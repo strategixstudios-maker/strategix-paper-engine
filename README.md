@@ -19,6 +19,7 @@
 | `ep01_whatsapp_logo.js` | «Ο πελάτης είπε...» #1 |
 | `pf01_notebook_laser.js` + `pf01_timing_sheet.md` | «Πώς φτιάχνεται;» #1 Χάραξη σε notebook |
 | `ad_afisa.js` + `ad_afisa_timing_sheet.md` | AD «Θολή αφίσα» (online εκτύπωση αφίσας) |
+| `pf02_thermos_laser.js` + `pf02_timing_sheet.md` | «Πώς φτιάχνεται;» #2 Χάραξη σε θερμός (rotary) |
 | `ad_konkardes_legacy.js` | AD κονκάρδες (standalone, πριν τον Στράτο) |
 | `ad_konkardes_test.js` | Test κονκάρδων |
 | `stratos_character_sheet.png`, `stratos_v1_vs_v2.png` | Visual references του Στράτου |

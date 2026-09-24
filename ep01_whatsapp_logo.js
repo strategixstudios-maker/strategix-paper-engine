@@ -2,7 +2,7 @@
 const L = require('./lib.js');
 const { C, ST, W, H, cut, rectPts, rrPts, circlePts, starPts, txt, pop, caption, captionSeq, burst, check, rng, clamp, lerp, prog, easeOut, easeIn, easeInOut, spring, lipsync, blinkNow } = L;
 const { S, stratos, handPos } = require('./stratos.js');
-const { BRAND, hoodie, reach, sparkle, msgBubble, stamp, seriesTag, wallShelf } = require('./props.js');
+const { BRAND, kostasLogo, hoodie, reach, sparkle, msgBubble, stamp, seriesTag, wallShelf } = require('./props.js');
 
 // VO = vo/ep01_vo.mp3 @ 0,2s (ElevenLabs eleven_v3, φωνή «Stratos»). Το lip-sync πατάει στην ένταση του αρχείου (ST.VOENV).
 // Χρονισμοί φράσεων (απόλυτοι, από silence detect) — για captions/cues:
@@ -11,18 +11,7 @@ const { BRAND, hoodie, reach, sparkle, msgBubble, stamp, seriesTag, wallShelf } 
 // 16,54 Λέγεται vector, | 17,62 και μεγαλώνει όσο θες χωρίς να χαλάσει. (–20,04) | 20,49 Γραφίστες, εμφανιστείτε στα σχόλια και πείτε μου τις εμπειρίες σας. (–23,89)
 const VO = [];
 
-// ---------- client logo: vector + pixelated JPG ----------
-function kostasLogo(ctx, x, y, size) {
-  const s = size / 400; ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
-  ctx.fillStyle = '#7A3E1D'; ctx.beginPath(); ctx.arc(0, 0, 190, 0, 7); ctx.fill();
-  ctx.strokeStyle = '#F5E6C8'; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(0, 0, 165, 0, 7); ctx.stroke();
-  ctx.fillStyle = '#F5E6C8'; ctx.beginPath(); ctx.moveTo(-62, -82); ctx.lineTo(62, -82); ctx.lineTo(50, 0); ctx.quadraticCurveTo(0, 16, -50, 0); ctx.closePath(); ctx.fill();
-  ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(70, -48, 24, -1.3, 1.3); ctx.stroke();
-  ctx.lineWidth = 9; ctx.lineCap = 'round'; for (const sx of [-24, 0, 24]) { ctx.beginPath(); ctx.moveTo(sx, -98); ctx.quadraticCurveTo(sx + 12, -114, sx, -130); ctx.stroke(); }
-  ctx.font = '62px Brand'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('KOSTAS', 0, 70);
-  ctx.font = '30px Brand'; ctx.fillText('COFFEE', 0, 118);
-  ctx.restore();
-}
+// ---------- client logo: vector (props.kostasLogo) + pixelated JPG ----------
 const PIX = (() => {
   const big = L.createCanvas(400, 400), b = big.getContext('2d'); b.fillStyle = '#fff'; b.fillRect(0, 0, 400, 400); kostasLogo(b, 200, 200, 400);
   const sm = L.createCanvas(34, 34), s = sm.getContext('2d'); s.drawImage(big, 0, 0, 34, 34);

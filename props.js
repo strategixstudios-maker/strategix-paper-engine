@@ -382,4 +382,100 @@ function phoneFrame(ctx, cx, cy, w, h, draw, o = {}) {
   ctx.restore(); return [sx, sy];
 }
 
-module.exports = { POSTER, poster, posterTube, phoneFrame, speechOff, checkChip, PIP, NB, ENGR, notebook, laserFX, smoke, HONEY, honeycomb, laserHeadTop, laserMachine, uiSlider, giftBox, stratosBack, msgOut, BRAND, HOOD, HOODD, bgFlat, tiles, wallShelf, starsBG, cafeLogo, hoodie, drum, machine, mug, clock, reach, msgBubble, speech, stamp, seriesTag, sparkle, ctaButton, pip };
+// ---------- demo client logo «KOSTAS COFFEE» (Latin: Poppins χωρίς ελληνικά) ----------
+// size = διάμετρος. o.mono: ένα χρώμα, χωρίς γεμάτο δίσκο (χάραξη / σφραγίδα). Default = έγχρωμο (ep01).
+function kostasLogo(ctx, x, y, size, o = {}) {
+  const s = size / 400, m = o.mono, fg = m || '#F5E6C8'; ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  if (!m) { ctx.fillStyle = '#7A3E1D'; ctx.beginPath(); ctx.arc(0, 0, 190, 0, 7); ctx.fill(); }
+  ctx.strokeStyle = fg; ctx.fillStyle = fg; ctx.lineWidth = m ? 14 : 10; ctx.beginPath(); ctx.arc(0, 0, m ? 180 : 165, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-62, -82); ctx.lineTo(62, -82); ctx.lineTo(50, 0); ctx.quadraticCurveTo(0, 16, -50, 0); ctx.closePath(); ctx.fill();
+  ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(70, -48, 24, -1.3, 1.3); ctx.stroke();
+  ctx.lineWidth = 9; ctx.lineCap = 'round'; for (const sx of [-24, 0, 24]) { ctx.beginPath(); ctx.moveTo(sx, -98); ctx.quadraticCurveTo(sx + 12, -114, sx, -130); ctx.stroke(); }
+  ctx.font = '62px Brand'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('KOSTAS', 0, 70);
+  ctx.font = '30px Brand'; ctx.fillText('COFFEE', 0, 118);
+  ctx.restore();
+}
+
+// ---------- θερμός (ανοξείδωτο με ματ βαφή) + rotary ----------
+// Τοπική γεωμετρία (όρθιο, origin = κέντρο σώματος): R ακτίνα, HB ύψος σώματος, lid πάνω. TH.top = πάνω άκρη καπακιού.
+// Κυλινδρική προβολή: η χάραξη ζει σε «ξετυλιγμένο» texture (περιφέρεια × ύψος) και ζωγραφίζεται σε λωρίδες,
+// οπότε όταν γυρίζει (o.phase, rad) το λογότυπο συμπιέζεται σωστά στις άκρες. Ξαπλωμένο: rot = -π/2 (καπάκι αριστερά).
+const TH = { R: 90, HB: 440, ring: 26, lid: 110, top: -356, bot: 220, lw: 200, ly: -10 };
+TH.C = Math.round(2 * Math.PI * TH.R);
+const TH_TEX = L.createCanvas(TH.C * 2, TH.HB);
+// o.engrave 0..1 (αποκάλυψη λογοτύπου κατά την περιφέρεια) | false · o.phase περιστροφή · o.col χρώμα βαφής · o.logo(ctx, cx, cy, size, col)
+// thermosPhase(p) → phase ώστε η στήλη που χαράζεται τώρα να είναι μπροστά/κάτω από τη δέσμη (θ = 0)
+const thermosPhase = p => (-TH.lw / 2 + p * TH.lw) / TH.R;
+function thermos(ctx, x, y, s, o = {}) {
+  const { R, HB, ring, lid } = TH, sd = o.seed || 7000, col = o.col || HOOD, e = o.engrave ?? 1, ph = o.phase || 0;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(o.rot || 0); ctx.scale(s, s);
+  cut(ctx, rrPts(-R + 10, -HB / 2 - ring - lid, 2 * R - 20, lid, 24), col, { seed: sd + 1, amp: 2, edgeW: o.edgeW ?? 7, scribble: HOODD, shadow: o.shadow });
+  cut(ctx, rectPts(-R + 16, -HB / 2 - ring - lid + 18, 2 * R - 32, 10), 'rgba(255,255,255,0.10)', { seed: sd + 2, amp: 1, edge: false, shadow: false });
+  cut(ctx, rrPts(-R + 4, -HB / 2 - ring - 4, 2 * R - 8, ring + 12, 6), C.silver, { seed: sd + 3, amp: 1.5, edgeW: o.edgeW ?? 6, shadow: false });
+  const bf = cut(ctx, rrPts(-R, -HB / 2, 2 * R, HB, 30), col, { seed: sd + 4, amp: 2, edgeW: o.edgeW ?? 8, scribble: HOODD, shadow: o.shadow });
+  ctx.save(); L.path(ctx, bf); ctx.clip();
+  if (o.engrave !== false && e > 0) {
+    const t = TH_TEX.getContext('2d'); t.clearRect(0, 0, TH_TEX.width, HB);
+    for (const off of [0, TH.C]) { const cx = TH.C / 2 + off, cy = HB / 2 + TH.ly, x0 = cx - TH.lw / 2;
+      t.save(); t.beginPath(); t.rect(x0 - 4, 0, TH.lw * e + 4, HB); t.clip();
+      (o.logo || ((c, a, b, z, k) => kostasLogo(c, a, b, z, { mono: k })))(t, cx, cy, TH.lw, o.engC || ENGR); t.restore(); }
+    const N = 44;
+    for (let i = 0; i < N; i++) {
+      const a0 = -Math.PI / 2 + i * Math.PI / N, a1 = a0 + Math.PI / N, x0 = R * Math.sin(a0), x1 = R * Math.sin(a1);
+      let u = ((R * (a0 + ph)) % TH.C + TH.C) % TH.C, du = R * (a1 - a0);
+      ctx.drawImage(TH_TEX, TH.C / 2 + u, 0, du, HB, x0, -HB / 2, x1 - x0 + 0.6, HB);
+    }
+  }
+  const g = ctx.createLinearGradient(-R, 0, R, 0); g.addColorStop(0, 'rgba(0,0,0,0.38)'); g.addColorStop(0.28, 'rgba(255,255,255,0.10)'); g.addColorStop(0.4, 'rgba(255,255,255,0)'); g.addColorStop(0.8, 'rgba(0,0,0,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0.45)');
+  ctx.fillStyle = g; ctx.fillRect(-R, -HB / 2, 2 * R, HB);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(-R, HB / 2 - 26, 2 * R, 26);
+  ctx.restore(); ctx.restore();
+}
+// rotary (roller type). o.top: κάτοψη (2 κύλινδροι δίπλα στο θερμός, gap = απόσταση από τον άξονα) · αλλιώς πρόσοψη (πάνω άκρη κυλίνδρου στο y).
+// o.len μήκος κυλίνδρων · o.spin (px) κύλιση των ραβδώσεων
+function rotary(ctx, x, y, s, o = {}) {
+  const len = o.len || 520, sp = o.spin || 0, sd = o.seed || 7100;
+  const roller = (ry, rh, k) => { const pf = cut(ctx, rrPts(-len / 2, ry, len, rh, rh / 2), '#3A4668', { seed: sd + k, amp: 1.5, edgeW: 5 });
+    ctx.save(); L.path(ctx, pf); ctx.clip(); ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 6;
+    for (let xx = -len / 2 - 40 + ((sp % 30) + 30) % 30; xx < len / 2 + 40; xx += 30) { ctx.beginPath(); ctx.moveTo(xx, ry); ctx.lineTo(xx - 16, ry + rh); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fillRect(-len / 2, ry + rh * 0.18, len, rh * 0.16); ctx.restore(); };
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  if (o.top) {
+    const gp = o.gap || 118;
+    for (const sg of [-1, 1]) cut(ctx, rrPts(-len / 2 - 70, -gp - 50, 60, 2 * gp + 100, 12), C.silver, { seed: sd + 5 + sg, amp: 1.5, edgeW: 5 });
+    cut(ctx, rrPts(-len / 2 - 150, -gp - 10, 90, 2 * gp + 20, 16), C.navy, { seed: sd + 8, amp: 2, edgeW: 6 });
+    roller(-gp - 22, 44, 1); roller(gp - 22, 44, 2);
+  } else {
+    cut(ctx, rectPts(-len / 2 - 60, 46, len + 120, 26), C.silver, { seed: sd + 3, amp: 1.5, edgeW: 5 });
+    cut(ctx, rrPts(-len / 2 - 150, -30, 110, 100, 14), C.navy, { seed: sd + 4, amp: 2, edgeW: 6 });
+    cut(ctx, circlePts(-len / 2 - 95, 20, 20), C.sky, { seed: sd + 9, amp: 1, edgeW: 3, shadow: false });
+    roller(0, 46, 1);
+    for (const sg of [-1, 1]) cut(ctx, circlePts(sg * (len / 2 + 14), 23, 30), C.silver, { seed: sd + 5 + sg, amp: 1.5, edgeW: 5 });
+  }
+  ctx.restore();
+}
+// cross-section inset: βαφή (πάνω) → ανοξείδωτο (κάτω). p 0..1 = πόσο άνοιξε το αυλάκι της δέσμης. Pops at st. (x,y) = κέντρο κάρτας
+function layersInset(ctx, lt, st, x, y, s, p, o = {}) {
+  pop(ctx, lt, st, x, y, () => {
+    ctx.scale(s, s); const w = 560, h = 300, sd = o.seed || 7200;
+    const pf = cut(ctx, rrPts(-w / 2, -h / 2, w, h, 28), C.paper, { seed: sd, amp: 3, edgeW: 9 });
+    ctx.save(); L.path(ctx, pf); ctx.clip();
+    ctx.fillStyle = C.pale; ctx.fillRect(-w / 2, -h / 2, w, h);
+    const cy = 10, gw = 280 * p, r = rng(sd + ST.B);
+    const steel = cut(ctx, rectPts(-w / 2 - 20, cy + 34, w + 40, h), C.silver, { seed: sd + 1, amp: 1.5, edge: false, shadow: false });
+    ctx.save(); L.path(ctx, steel); ctx.clip(); ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 3;
+    for (let yy = cy + 50; yy < h; yy += 14) { ctx.beginPath(); ctx.moveTo(-w / 2, yy); ctx.lineTo(w / 2, yy); ctx.stroke(); } ctx.restore();
+    const coat = (x0, x1, k) => { if (x1 - x0 > 4) cut(ctx, rectPts(x0, cy, x1 - x0, 38), HOOD, { seed: sd + k, amp: 1.5, edgeW: 4, scribble: HOODD, shadow: false }); };
+    coat(-w / 2 - 20, -gw / 2, 2); coat(gw / 2, w / 2 + 20, 3);
+    if (p > 0 && p < 1) { const g = ctx.createRadialGradient(0, cy + 30, 0, 0, cy + 30, 80); g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(1, 'rgba(255,150,60,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, cy + 30, 80, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,120,60,0.85)'; ctx.lineWidth = 12; ctx.beginPath(); ctx.moveTo(0, -h / 2); ctx.lineTo(0, cy + 34); ctx.stroke(); ctx.strokeStyle = '#FFF4D8'; ctx.lineWidth = 4; ctx.stroke();
+      for (let i = 0; i < 5; i++) { const k = (lt * 1.3 + i / 5) % 1; ctx.fillStyle = `rgba(236,239,246,${0.6 * (1 - k)})`; ctx.beginPath(); ctx.arc((r() - 0.5) * 60 + Math.sin(i * 2 + lt * 3) * 20, cy - k * 140, 10 + k * 26, 0, 7); ctx.fill(); } }
+    ctx.restore();
+    if (o.labels !== false) {
+      txt(ctx, 'βαφή', -w / 2 + 40, cy - 34, { font: 'bold 38px Round', color: C.navy, align: 'left' });
+      if (p >= 1 || o.steelLabel) txt(ctx, 'ανοξείδωτο', 0, cy + 104, { font: 'bold 42px Round', color: C.navy });
+    }
+  });
+}
+
+module.exports = { POSTER, poster, posterTube, phoneFrame, speechOff, checkChip, PIP, NB, ENGR, notebook, laserFX, smoke, HONEY, honeycomb, laserHeadTop, laserMachine, uiSlider, giftBox, stratosBack, msgOut, BRAND, HOOD, HOODD, bgFlat, tiles, wallShelf, starsBG, cafeLogo, hoodie, drum, machine, mug, clock, reach, msgBubble, speech, stamp, seriesTag, sparkle, ctaButton, pip, kostasLogo, TH, thermos, thermosPhase, rotary, layersInset };
