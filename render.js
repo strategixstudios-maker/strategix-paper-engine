@@ -30,8 +30,9 @@ module.exports = function run(ep) {
   if (require.main !== module.parent) return { frame, TOTAL };
   (async () => {
     const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d');
-    const draw = t => { ST.FRAME = Math.round(t * FPS); ctx.clearRect(0, 0, W, H); frame(ctx, t); };
-    if (mode === 'preview') { for (const t of process.argv.slice(3).map(Number)) { draw(t); fs.writeFileSync(`${name}_${t}.png`, cv.toBuffer('image/png')); } return; }
+    const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
+    const draw = t => { ST.FRAME = Math.round(t * FPS); ST.capBottom = null; ctx.clearRect(0, 0, W, H); frame(ctx, t); if (guide && mode !== 'render') L.safeGuide(ctx); };
+    if (mode === 'preview') { for (const t of process.argv.slice(3).filter(a => a !== 'guide').map(Number)) { draw(t); fs.writeFileSync(`${name}_${t}.png`, cv.toBuffer('image/png')); } return; }
     if (mode === 'sheet') {
       const n = 12, sw = 270, sh = 480, sheet = L.createCanvas(sw * 6, sh * 2), sx = sheet.getContext('2d');
       for (let i = 0; i < n; i++) { const t = (i + 0.5) * TOTAL / n; draw(t); sx.drawImage(cv, (i % 6) * sw, Math.floor(i / 6) * sh, sw, sh); sx.fillStyle = '#000'; sx.fillRect((i % 6) * sw, Math.floor(i / 6) * sh, 70, 30); sx.fillStyle = '#fff'; sx.font = '22px Round'; sx.fillText(t.toFixed(1) + 's', (i % 6) * sw + 6, Math.floor(i / 6) * sh + 22); }

@@ -143,14 +143,35 @@ function bubble(ctx, cx, cy, w, h, tx, ty, text, font, seed) {
   cut(ctx, rrPts(cx - w / 2, cy - h / 2, w, h, h * 0.45), C.paper, { seed, amp: 3 });
   txt(ctx, text, cx, cy, { font, color: C.ink });
 }
-function caption(ctx, text, lt, start = 0.15) {
-  const p = easeOut(prog(lt, start, start + 0.45)); if (p <= 0) return;
-  ctx.save(); ctx.font = '60px Hand'; const lines = wrap(ctx, text, 860), lh = 74, h = lines.length * lh + 56;
-  ctx.translate(lerp(-1150, 60, p), 150); ctx.rotate(-0.015);
-  cut(ctx, rectPts(0, 0, 960, h), C.paper, { seed: 500 + lines.length, amp: 6, step: 16 });
-  ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '60px Hand';
-  lines.forEach((l, i) => ctx.fillText(l, 480, 28 + lh / 2 + i * lh));
+// ---------- safe zones (IG Reels + TikTok, 1080×1920) ----------
+// top 250: header/back/camera · bottom 440: username/caption/audio/CTA · sides 60 (device crop) · right icons x>920 when y>1150
+const SAFE = { top: 250, bottom: 1480, left: 60, right: 1020, iconsX: 920, iconsY: 1150 };
+function safeGuide(ctx) {
+  ctx.save(); ctx.fillStyle = 'rgba(255,40,80,0.28)';
+  ctx.fillRect(0, 0, W, SAFE.top); ctx.fillRect(0, SAFE.bottom, W, H - SAFE.bottom);
+  ctx.fillRect(0, SAFE.top, SAFE.left, SAFE.bottom - SAFE.top); ctx.fillRect(SAFE.right, SAFE.top, W - SAFE.right, SAFE.bottom - SAFE.top);
+  ctx.fillRect(SAFE.iconsX, SAFE.iconsY, SAFE.right - SAFE.iconsX, SAFE.bottom - SAFE.iconsY);
+  ctx.strokeStyle = 'rgba(255,40,80,0.9)'; ctx.lineWidth = 4; ctx.setLineDash([16, 10]); ctx.strokeRect(SAFE.left, SAFE.top, SAFE.right - SAFE.left, SAFE.bottom - SAFE.top);
   ctx.restore();
+}
+// caption strip: Hand 76px, max ~2 lines (split long VO with captionSeq). Sets ST.capBottom for seriesTag.
+const CAP = { font: 76, lh: 92, w: 940, y: SAFE.top + 8 };
+function caption(ctx, text, lt, start = 0.15, o = {}) {
+  const p = easeOut(prog(lt, start, start + 0.4)); if (p <= 0) return;
+  const fs = o.fs || CAP.font, lh = Math.round(fs * 1.21);
+  ctx.save(); ctx.font = `${fs}px Hand`; const lines = wrap(ctx, text, CAP.w - 90), h = lines.length * lh + 50, y = o.y ?? CAP.y;
+  ctx.translate(lerp(-1150, (W - CAP.w) / 2, p), y); ctx.rotate(-0.012);
+  cut(ctx, rectPts(0, 0, CAP.w, h), C.paper, { seed: 500 + lines.length, amp: 6, step: 16 });
+  ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${fs}px Hand`;
+  lines.forEach((l, i) => ctx.fillText(l, CAP.w / 2, 25 + lh / 2 + i * lh));
+  ctx.restore(); ST.capBottom = y + h;
+}
+// timed caption chunks: seq = [[start, 'text'], ...] (lt-based). Only the first chunk slides in; later ones swap in place with a small pop.
+function captionSeq(ctx, lt, seq) {
+  let i = -1; for (let k = 0; k < seq.length; k++) if (lt >= seq[k][0]) i = k; if (i < 0) return;
+  if (i === 0) return caption(ctx, seq[0][1], lt, seq[0][0]);
+  const k = spring(prog(lt, seq[i][0], seq[i][0] + 0.35)); ctx.save(); ctx.translate(W / 2, CAP.y + 90); ctx.scale(0.94 + 0.06 * k, 0.94 + 0.06 * k); ctx.translate(-W / 2, -CAP.y - 90);
+  caption(ctx, seq[i][1], lt, -1); ctx.restore();
 }
 function burst(ctx, lt, start, x, y, word, rot) {
   pop(ctx, lt, start, x, y, () => {
@@ -174,4 +195,4 @@ function handPen(ctx, px, py, seed) {
 // lip-sync: VO = [[start,end],...] in seconds. Returns a mouth shape for current ST.T
 function lipsync(VO, rest = 'smile') { const t = ST.T; for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
 const blinkNow = () => (ST.T % 2.7) > 2.58;
-module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,txt,wrap,pop,check,logoMark,BADGE,badge,bubble,caption,burst};
+module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,txt,wrap,pop,check,logoMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};

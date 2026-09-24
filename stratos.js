@@ -4,7 +4,7 @@ const { C, cut, rectPts, rrPts, circlePts, txt, logoMark, check } = L;
 
 const S = {
   skin: '#F2C29C', skinD: '#DDA37C', hair: '#2E211C', beanie: '#E8B04A', beanieD: '#C99130',
-  tee: '#FBFAF6', apron: '#0B1B3F', apronS: '#1F3266', jeans: '#3E68C9', jeansS: '#5A82DA', shoe: '#FFFFFF',
+  tee: '#FBFAF6', teeD: '#E4DED0', apron: '#0B1B3F', apronS: '#1F3266', jeans: '#3E68C9', jeansS: '#5A82DA', shoe: '#FFFFFF',
 };
 
 // mouth: smile | closed | A | E | O | shock | flat | grin
@@ -63,38 +63,54 @@ function head(ctx, x, y, s, o = {}) {
   cut(ctx, m.map(([a, b]) => [a + look * .6, b]), S.hair, { seed: sd + 14, amp: 2.5, step: 12, edgeW: 6 });
   ctx.restore();
 }
-// ---- hands: drawn in arm-local space (wrist ≈ y255, fingers point +y). side: +1 viewer-right arm, -1 viewer-left
-function finger(ctx, x, y, len, w, ang, seed, col = S.skin) { ctx.save(); ctx.translate(x, y); ctx.rotate(ang); cut(ctx, rrPts(-w / 2, 0, w, len, w / 2), col, { seed, amp: 1, edgeW: 4, step: 14 }); ctx.restore(); }
+// ---- hands v2: arm-local space (wrist ≈ y244, fingers point +y). side: +1 viewer-right arm, -1 viewer-left
+// Reading rule: PALM side = creases, no nails (open). BACK side = nails + knuckle marks (point, fist, thumb).
+const NAIL = '#FBE3D4';
+function finger(ctx, x, y, len, w, ang, seed, o = {}) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  cut(ctx, rrPts(-w / 2, 0, w, len, w / 2), S.skin, { seed, amp: 1, edgeW: 4, step: 14 });
+  if (o.nail) { ctx.fillStyle = NAIL; ctx.beginPath(); ctx.ellipse(0, len - w * 0.62, w * 0.3, w * 0.4, 0, 0, 7); ctx.fill(); ctx.strokeStyle = S.skinD; ctx.lineWidth = 2; ctx.stroke(); }
+  if (o.joint) { ctx.strokeStyle = S.skinD; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-w * 0.25, len * 0.45); ctx.lineTo(w * 0.25, len * 0.45); ctx.stroke(); }
+  ctx.restore();
+}
 function hand(ctx, type, side, sd) {
-  const inX = -side; // thumb / index side = towards body centre
-  const crease = (xs, y0, y1) => { ctx.save(); ctx.strokeStyle = S.skinD; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; for (const x of xs) { ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); } ctx.restore(); };
-  if (type === 'open') {
-    [[3, 46, 0.14], [1, 58, 0.05], [-1, 60, -0.03], [-3, 50, -0.12]].forEach(([k, len, a], i) => finger(ctx, -inX * k * 10, 300, len, 19, a * -inX, sd + 10 + i));
-    finger(ctx, inX * 34, 262, 52, 22, inX * -0.95, sd + 15);
-    cut(ctx, rrPts(-42, 246, 84, 72, 24), S.skin, { seed: sd + 16, amp: 1.5, edgeW: 5 });
-  } else if (type === 'point') {
-    finger(ctx, inX * 26, 296, 98, 22, 0, sd + 10);
-    cut(ctx, rrPts(-44, 246, 88, 82, 30), S.skin, { seed: sd + 16, amp: 1.5, edgeW: 5 });
-    [-1, 1, 3].forEach((k, i) => cut(ctx, circlePts(-inX * k * 11 + inX * 4, 322, 13, 11, 12), S.skin, { seed: sd + 20 + i, amp: 1, edgeW: 3, shadow: false }));
-    finger(ctx, inX * 30, 270, 36, 22, inX * -1.45, sd + 15);
-  } else if (type === 'thumb') {
+  const inX = -side; // thumb side = towards body centre
+  const line = (pts, w = 3.5) => { ctx.save(); ctx.strokeStyle = S.skinD; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (const [x, y] of pts.slice(1)) ctx.lineTo(x, y); ctx.stroke(); ctx.restore(); };
+  if (type === 'open') { // palm facing the viewer
+    [[-3, 42, -0.14], [-1, 54, -0.04], [1, 58, 0.04], [3, 52, 0.12]].forEach(([k, len, a], i) => finger(ctx, inX * k * 10, 304, len, 20, a * inX, sd + 10 + i, { joint: true }));
+    finger(ctx, inX * 36, 256, 50, 22, inX * -0.95, sd + 15);
+    cut(ctx, rrPts(-42, 244, 84, 76, 26), S.skin, { seed: sd + 16, amp: 1.5, edgeW: 5 });
+    line([[-inX * 34, 286], [-inX * 8, 280], [inX * 16, 284]]); line([[inX * 18, 258], [inX * 6, 284], [inX * 10, 312]]);
+  } else if (type === 'point') { // back of the hand, index extended
+    finger(ctx, inX * 24, 296, 104, 22, 0, sd + 10, { nail: true, joint: true });
+    cut(ctx, rrPts(-42, 244, 84, 80, 28), S.skin, { seed: sd + 16, amp: 1.5, edgeW: 5 });
+    [inX * 2, -inX * 17, -inX * 34].forEach((x, i) => cut(ctx, rrPts(x - 10, 306, 20, 30, 10), S.skin, { seed: sd + 20 + i, amp: 0.8, edgeW: 3 }));
+    line([[-inX * 30, 298], [-inX * 22, 294]], 3); line([[-inX * 10, 298], [-inX * 2, 294]], 3);
+    finger(ctx, inX * 40, 266, 48, 22, inX * -0.3, sd + 15, { nail: true });
+  } else if (type === 'thumb') { // fist seen from the side, thumb up (+y)
     cut(ctx, rrPts(-44, 246, 88, 84, 30), S.skin, { seed: sd + 16, amp: 1.5, edgeW: 5 });
-    crease([-16, 4, 24].map(x => x * -inX), 292, 326);
-    finger(ctx, inX * 30, 292, 88, 26, 0, sd + 15);
-  } else { // fist
+    [254, 273, 292, 311].forEach((y, i) => cut(ctx, rrPts(Math.min(-inX * 46, inX * 10), y, 56, 20, 10), S.skin, { seed: sd + 20 + i, amp: 0.8, edgeW: 3 }));
+    finger(ctx, inX * 26, 300, 84, 26, 0, sd + 15, { nail: true, joint: true });
+  } else { // fist, back of the hand: knuckles at the far edge
     cut(ctx, rrPts(-44, 246, 88, 84, 30), S.skin, { seed: sd + 16, amp: 1.5, edgeW: 5 });
-    [-3, -1, 1, 3].forEach((k, i) => cut(ctx, circlePts(k * 11, 324, 13, 11, 12), S.skin, { seed: sd + 20 + i, amp: 1, edgeW: 3, shadow: false }));
-    crease([-22, 0, 22], 296, 318);
-    cut(ctx, rrPts(inX > 0 ? -6 : -50, 272, 56, 22, 11), S.skin, { seed: sd + 15, amp: 1, edgeW: 4, shadow: false });
+    [-3, -1, 1, 3].forEach((k, i) => cut(ctx, circlePts(k * 11, 322, 13, 11, 12), S.skin, { seed: sd + 20 + i, amp: 1, edgeW: 3 }));
+    [-22, 0, 22].forEach(x => line([[x, 300], [x, 316]], 3));
+    finger(ctx, inX * 40, 262, 44, 22, inX * -0.25, sd + 15, { nail: true });
   }
 }
-// arm pivots at shoulder; ang 0 = straight down (radians, + = outward swing). hand: open | fist | thumb | point
+// arm pivots at the shoulder; ang 0 = straight down (radians, + = outward). o.elbow bends the forearm (+ = towards the body centre)
+// draw order: upper arm → forearm → hand → SLEEVE on top (arm always comes out of the sleeve)
 function arm(ctx, side, ang, o = {}) {
-  const sd = (o.seed || 1100) + (side > 0 ? 0 : 50);
+  const sd = (o.seed || 1100) + (side > 0 ? 0 : 50), el = o.elbow || 0;
   ctx.save(); ctx.translate(side * 148, 24); ctx.rotate(-side * ang);
-  cut(ctx, [[-44, -10], [44, -10], [50, 95], [-50, 95]], S.tee, { seed: sd, amp: 2, edgeW: 6 });
-  cut(ctx, rrPts(-28, 85, 56, 175, 26), S.skin, { seed: sd + 1, amp: 2, edgeW: 6 });
+  cut(ctx, rrPts(-27, 30, 54, 144, 26), S.skin, { seed: sd + 1, amp: 2, edgeW: 6 });
+  ctx.save(); ctx.translate(0, 150); ctx.rotate(side * el); ctx.translate(0, -150);
+  cut(ctx, rrPts(-26, 126, 52, 138, 25), S.skin, { seed: sd + 3, amp: 2, edgeW: 6 });
   hand(ctx, o.hand || 'open', side, sd + 2);
+  ctx.restore();
+  const cap = []; for (let i = 0; i <= 10; i++) { const a = Math.PI + i / 10 * Math.PI; cap.push([Math.cos(a) * 48, Math.sin(a) * 40]); }
+  const sl = cut(ctx, [...cap, [58, 110], [-58, 110]], S.tee, { seed: sd, amp: 2, edgeW: 6 });
+  ctx.save(); L.path(ctx, sl); ctx.clip(); ctx.fillStyle = S.teeD; ctx.fillRect(-70, 94, 140, 20); ctx.restore();
   ctx.restore();
 }
 // full body. y = shoulder line. arms: [leftAng, rightAng]
@@ -106,24 +122,26 @@ function stratos(ctx, x, y, s, o = {}) {
     cut(ctx, [[8, 440], [118, 440], [112, 830], [18, 830]], S.jeans, { seed: sd + 21, scribble: S.jeansS });
     for (const [sx, k] of [[-66, 22], [66, 23]]) { cut(ctx, rrPts(sx - 72, 810, 144, 58, 28), S.shoe, { seed: sd + k, amp: 2 }); cut(ctx, rectPts(sx - 70, 850, 140, 14), C.mid, { seed: sd + k + 5, amp: 1, edge: false, shadow: false }); }
   }
-  if (o.behindArms) { arm(ctx, -1, aL, { seed: sd + 100, hand: o.handL }); }
-  cut(ctx, rectPts(-36, -70, 72, 96), S.skinD, { seed: sd + 24, edge: false, shadow: false, amp: 2 });
-  cut(ctx, [[-150, 0], [150, 0], [165, 470], [-165, 470]], S.tee, { seed: sd + 25, scribble: '#E9E5DA' });
+  if (o.behindArms) { arm(ctx, -1, aL, { seed: sd + 100, hand: o.handL, elbow: o.elbowL }); }
+  cut(ctx, rrPts(-33, -80, 66, 104, 20), S.skin, { seed: sd + 24, edge: false, shadow: false, amp: 1.5 });
+  ctx.save(); ctx.fillStyle = 'rgba(150,80,50,0.22)'; ctx.beginPath(); ctx.ellipse(0, -36, 34, 12, 0, 0, 7); ctx.fill(); ctx.restore();
+  cut(ctx, [[-116, -4], [116, -4], [150, 10], [163, 56], [165, 470], [-165, 470], [-163, 56], [-150, 10]], S.tee, { seed: sd + 25, scribble: '#E9E5DA' });
+  cut(ctx, [[-42, -4], [42, -4], [0, 32]], S.skin, { seed: sd + 32, amp: 1, edge: false, shadow: false });
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = S.teeD; ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(-50, -6); ctx.lineTo(0, 38); ctx.lineTo(50, -6); ctx.stroke(); ctx.restore();
   // apron
   cut(ctx, [[-118, 90], [118, 90], [140, 520], [-140, 520]], S.apron, { seed: sd + 26, scribble: S.apronS });
   for (const sg of [-1, 1]) cut(ctx, [[sg * 70, 0], [sg * 104, 0], [sg * 104, 100], [sg * 76, 100]], S.apron, { seed: sd + 27 + sg, amp: 1.5, edgeW: 6 });
   ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 170, 40, 0, 7); ctx.stroke(); ctx.restore(); txt(ctx, 'S', 0, 172, { font: '52px Brand', color: '#fff' });
   cut(ctx, rectPts(-86, 270, 172, 110), S.apronS, { seed: sd + 30, amp: 2, edgeW: 5 });
   ctx.save(); ctx.setLineDash([10, 8]); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 3; ctx.strokeRect(-74, 282, 148, 86); ctx.restore();
-  // collar
-  cut(ctx, [[-60, -4], [60, -4], [0, 40]], S.skinD, { seed: sd + 31, amp: 1.5, edge: false, shadow: false });
-  if (!o.behindArms) arm(ctx, -1, aL, { seed: sd + 100, hand: o.handL });
-  if (!o.armRFront) arm(ctx, 1, aR, { seed: sd + 100, hand: o.handR });
-  head(ctx, 0, 0, 1, o);
-  if (o.armRFront) arm(ctx, 1, aR, { seed: sd + 100, hand: o.handR });
+  if (!o.behindArms) arm(ctx, -1, aL, { seed: sd + 100, hand: o.handL, elbow: o.elbowL });
+  if (!o.armRFront) arm(ctx, 1, aR, { seed: sd + 100, hand: o.handR, elbow: o.elbowR });
+  head(ctx, 0, 10, 1, o);
+  if (o.armRFront) arm(ctx, 1, aR, { seed: sd + 100, hand: o.handR, elbow: o.elbowR });
   ctx.restore();
 }
-function handPos(side, ang, s, x, y) { const th = -side * ang; return [x + s * (side * 148 - 288 * Math.sin(th)), y + s * (24 + 288 * Math.cos(th))]; }
+// hand centre in world coords (matches arm(): shoulder pivot, elbow at 150, hand centre ≈ 288)
+function handPos(side, ang, s, x, y, elbow = 0) { const th = -side * ang, te = th + side * elbow; return [x + s * (side * 148 - 150 * Math.sin(th) - 138 * Math.sin(te)), y + s * (24 + 150 * Math.cos(th) + 138 * Math.cos(te))]; }
 module.exports = { S, head, arm, hand, stratos, handPos };
 
 // ---------- character sheet ----------
