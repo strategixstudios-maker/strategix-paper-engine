@@ -1,0 +1,10 @@
+# setup.sh outputs
+node_modules/
+fonts/
+package.json
+package-lock.json
+# render outputs (δεν μπαίνουν στο git)
+*.mp4
+*_sheet.png
+HANDS_SHEET.png
+*_[0-9]*.png

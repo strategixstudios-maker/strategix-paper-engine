@@ -95,6 +95,7 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 3. `node ep.js lint` → πρέπει να βγει **«lint ✔ καθαρό»** πριν το render (ανατομία χεριών, χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone).
 4. `node ep.js render` → MP4 + **timing sheet** VO/SFX για τον Αλέξανδρο.
 5. (Προαιρετικά) Αν έρθει VO αρχείο → προσαρμογή timings/lip-sync στη φωνή.
+6. Episode log (§8) → `bash ship.sh <ep> "<msg>"` → ένα `<ep>.patch` (lint gate μέσα). Το chat δεν κάνει push· το Claude Code κάνει `git am` + push (βλ. CLAUDE.md).
 
 ## 7. Σειρές
 - **ADS** — προϊόν/υπηρεσία, CTA «Πάρε προσφορά» + strategixstudios.com.

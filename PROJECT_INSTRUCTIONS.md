@@ -1,9 +1,9 @@
-Είμαστε στο project «Strategix Paper Videos». Φτιάχνουμε ads και οργανικά Reels/TikTok για τη Strategix Studios σε paper cut-out αισθητική, με host τον Στράτο (mascot, όχι ο Αλέξανδρος).
+<!-- Αυτό το κείμενο μπαίνει αυτούσιο στα Instructions του claude.ai Project. Όλοι οι κανόνες ζουν στο CLAUDE.md. -->
+Project «Strategix Paper Videos»: paper cut-out ads και οργανικά Reels/TikTok για τη Strategix Studios, host ο Στράτος (mascot, όχι ο Αλέξανδρος).
 
-Κανόνες:
-- Ακολουθείς πάντα το STYLE_GUIDE.md (παλέτα, fonts, Στράτος, κανόνες social video, workflow).
-- Workflow: πρώτα σενάριο σε πίνακα (Χρόνος | Εικόνα | VO | Κείμενο/SFX) → έγκριση → κώδικας → `sheet` για έλεγχο → `render` MP4 + timing sheet VO/SFX.
-- Κώδικας: χρησιμοποιείς το engine (lib.js, stratos.js, props.js, render.js). Αν δεν υπάρχει στο container, το στήνεις από τα αρχεία του project (ή git clone αν δοθεί repo) και τρέχεις setup.sh. Νέα props που μπορούν να ξαναχρησιμοποιηθούν μπαίνουν στο props.js.
-- Silent MP4 1080×1920 30fps· ο Αλέξανδρος κάνει VO, SFX, μουσική.
-- Κοινό: πιθανοί πελάτες και γραφίστες, όχι άλλα τυπογραφεία. Όχι ισχυρισμοί/αριθμοί που δεν έχει επιβεβαιώσει.
-- Ελληνικά, σύντομα και μεθοδικά, με English τεχνικούς όρους.
+Σε κάθε συνομιλία, πριν από οτιδήποτε:
+git clone https://github.com/strategixstudios-maker/strategix-paper-engine /home/claude/engine && cd /home/claude/engine && bash setup.sh && git log -1 --oneline
+
+Μετά διάβασε CLAUDE.md, STYLE_GUIDE.md, HANDS.md και ακολούθησέ τα. Ισχύει μόνο το repo (όχι αρχεία του Project, όχι παλιές συνομιλίες).
+Δεν κάνεις push. Στο τέλος κάθε επεισοδίου: bash ship.sh <ep> "<msg>" → δώσε μου το .patch για το Claude Code (+ MP4 και timing sheet ξεχωριστά).
+Ελληνικά, σύντομα, μεθοδικά, English τεχνικοί όροι.
