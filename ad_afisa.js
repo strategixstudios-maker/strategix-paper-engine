@@ -13,10 +13,7 @@ const T = {
   hook: 0.13, tholi: 2.43, ektos: 3.71, anevaseis: 4.74, megethos: 6.73, prin: 9.38,
   xarti: 10.42, solinas: 12.93, tsakiseis: 13.94, timi: 15.02, cta: 16.48, end: 19.58,
 };
-// φράσεις VO (απόλυτες) → ducking των SFX που πέφτουν πάνω στη φωνή
-const PHR = [[0.13, 1.96], [2.43, 3.29], [3.71, 4.5], [4.74, 6.56], [6.73, 9.16], [9.38, 10.23], [10.42, 12.76], [12.93, 13.79], [13.94, 14.79], [15.02, 16.29], [16.48, 17.69], [17.83, 19.58]];
-const SFX_MIX = 0.5, SFX_DUCK = 0.45; // όλα τα SFX −6 dB · όσα πέφτουν πάνω σε φράση άλλα −7 dB (≈ −13 dB κάτω από το VO)
-const duck = cues => cues.map(([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * SFX_MIX * (on ? SFX_DUCK : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; });
+// SFX: ducking = default του render.js (όλα −6 dB · όσα πέφτουν πάνω σε φράση άλλα −7 dB, φράσεις αυτόματα από το VO)
 const VO = []; // lip-sync από την ένταση του αρχείου (ST.VOENV)
 const S = { // όρια σκηνών (απόλυτα)
   a: 0, b: T.ektos - 0.1, c: T.anevaseis - 0.15, d: T.megethos - 0.2, e: T.xarti - 0.2, f: T.solinas - 0.2, g: T.timi - 0.2, h: T.end + 0.15,
@@ -147,13 +144,11 @@ function sH(ctx, lt) { hookShot(ctx, 0, 0, { arms: [0.12, 0.12], mouth: 'smile',
 
 const d = k => { const ks = Object.keys(S); const i = ks.indexOf(k); return S[ks[i + 1]] - S[k]; };
 const SCENES = [[sA, d('a')], [sB, d('b')], [sC, d('c')], [sD, d('d')], [sE, d('e')], [sF, d('f')], [sG, d('g')], [sH, 0.25]], WIPES = [2, 4, 5, 6, 7];
-const START = SCENES.reduce((a, [, du]) => [...a, a[a.length - 1] + du], [0]);
 require('./render.js')({
   name: 'ad_afisa',
-  SCENES, WIPES, AUTO_SFX: false, // wipes → whoosh εδώ, για να περνάνε κι αυτά από το duck
+  SCENES, WIPES, // wipes → auto whoosh
   VO_FILE: require('fs').existsSync('vo/ad_afisa_vo.mp3') ? 'vo/ad_afisa_vo.mp3' : undefined, VO_AT: 0.1,
-  SFX: duck([
-    ...WIPES.map(k => [START[k] - 0.27, 'whoosh', { seed: k, note: 'wipe' }]),
+  SFX: [
     [0.12, 'slide', { dur: 0.8, note: 'αφίσα ξετυλίγεται' }], [T.tholi + 0.1, 'boing', { note: 'θολή' }], [T.tholi + 0.35, 'stamp', { note: 'ΘΟΛΗ' }],
     [T.ektos, 'pop', { note: 'δάχτυλο πάνω' }],
     [S.c + rel('anevaseis') + 0.45, 'click', { note: 'tap upload' }], [S.c + rel('anevaseis') + 0.65, 'pop', { note: 'φωτογραφία' }], [S.c + rel('anevaseis') + 1.3, 'ding', { gain: 0.7, note: 'upload ✓' }],
@@ -161,5 +156,5 @@ require('./render.js')({
     [S.e + 0.05, 'pop', { note: 'hero αφίσα' }], [S.e + 0.5, 'stamp', { note: 'Ματ 250gr' }], [S.e + 0.85, 'slide', { dur: 1.0, gain: 0.7, note: 'χέρι στο χαρτί' }], [S.e + 0.4, 'shimmer', { gain: 0.6 }],
     [S.f + 0.05, 'slide', { dur: 0.55, note: 'τύλιγμα' }], [S.f + 1.0, 'swoosh', { note: 'ρολό στον σωλήνα' }], [S.f + 1.4, 'lid', { note: 'καπάκι' }], [T.tsakiseis + 0.05, 'ding', { gain: 0.7 }],
     [S.g + 0.35, 'stamp', { note: 'Από 13 €' }], [S.g + 0.3, 'swoosh', { note: 'thumb up' }], [T.cta + 0.2, 'pop', { note: 'CTA' }], [T.cta + 0.6, 'shimmer', { gain: 0.7 }],
-  ]),
+  ],
 });

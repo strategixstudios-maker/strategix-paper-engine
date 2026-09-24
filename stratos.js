@@ -2,7 +2,7 @@
 const L = require('./lib.js');
 const { C, cut, rectPts, rrPts, circlePts, txt, logoMark, check } = L;
 
-const S = {
+const S = { // χρώματα του Στράτου (skin, beanie, tee, apron, jeans...)
   skin: '#F2C29C', skinD: '#DDA37C', hair: '#2E211C', beanie: '#E8B04A', beanieD: '#C99130',
   tee: '#FBFAF6', teeD: '#E4DED0', apron: '#0B1B3F', apronS: '#1F3266', jeans: '#3E68C9', jeansS: '#5A82DA', shoe: '#FFFFFF',
 };

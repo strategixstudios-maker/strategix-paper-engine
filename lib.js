@@ -1,4 +1,4 @@
-// Κονκάρδες προσωπικού — paper-cutout animation, drawn frame-by-frame in JavaScript
+// lib.js — πυρήνας του engine: torn-paper cut(), κείμενο/captions, pops, easing, lip-sync, fonts, safe zones
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -7,7 +7,7 @@ GlobalFonts.registerFromPath(__dirname + '/fonts/Comfortaa.ttf', 'Round');
 GlobalFonts.registerFromPath(__dirname + '/fonts/Poppins-Bold.ttf', 'Brand');
 
 const W = 1080, H = 1920, FPS = 30;
-const C = {
+const C = { // παλέτα (STYLE_GUIDE §2)
   navy: '#0B1B3F', blue: '#1E3A8A', mid: '#2F5FD0', sky: '#8FB0EE', pale: '#DCE7FA',
   paper: '#F7F4EC', white: '#FFFFFF', gold: '#D8A93B', silver: '#C3CAD4', bronze: '#B07A4F',
   skin: '#F0BE98', skinD: '#D99C74', cheek: '#F4A0A0', hair: '#2B1F1C', hair2: '#6B4630', ink: '#101A33',
@@ -154,8 +154,9 @@ function safeGuide(ctx) {
   ctx.strokeStyle = 'rgba(255,40,80,0.9)'; ctx.lineWidth = 4; ctx.setLineDash([16, 10]); ctx.strokeRect(SAFE.left, SAFE.top, SAFE.right - SAFE.left, SAFE.bottom - SAFE.top);
   ctx.restore();
 }
+// ---------- captions ----------
+const CAP = { font: 76, lh: 92, w: 940, y: SAFE.top + 8 }; // γεωμετρία caption strip (y αμέσως κάτω από το header)
 // caption strip: Hand 76px, max ~2 lines (split long VO with captionSeq). Sets ST.capBottom for seriesTag.
-const CAP = { font: 76, lh: 92, w: 940, y: SAFE.top + 8 };
 function caption(ctx, text, lt, start = 0.15, o = {}) {
   const p = easeOut(prog(lt, start, start + 0.4)); if (p <= 0) return;
   const fs = o.fs || CAP.font, lh = Math.round(fs * 1.21);
@@ -192,10 +193,11 @@ function handPen(ctx, px, py, seed) {
 }
 
 
+// ---------- lip-sync ----------
 // lip-sync: VO = [[start,end],...] in seconds. Returns a mouth shape for current ST.T
 // Με VO αρχείο (render.js → ST.VOENV) το στόμα ακολουθεί την ένταση της φωνής (αλλαγή σχήματος στα 11fps).
 function lipsync(VO, rest = 'smile') { const t = ST.T;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
-const blinkNow = () => (ST.T % 2.7) > 2.58;
+const blinkNow = () => (ST.T % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() })
 module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,txt,wrap,pop,check,logoMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};

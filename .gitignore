@@ -1,6 +1,6 @@
 # setup.sh outputs
-node_modules/
-fonts/
+/node_modules
+/fonts
 package.json
 package-lock.json
 # render outputs (δεν μπαίνουν στο git)
@@ -14,3 +14,6 @@ HANDS_SHEET.png
 
 # VO sources (μπαίνουν στο git)
 !vo/*.mp3
+
+# regress.js (diff εικόνες)
+regress/

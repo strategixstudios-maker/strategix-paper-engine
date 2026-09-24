@@ -13,6 +13,11 @@ git add -A
 for f in $(git diff --cached --name-only --diff-filter=AM "$BASE" | grep -E '^(ad|ep|pf)[^/]*\.js$' | grep -v '_legacy' || true); do
   echo "lint $f"; node "$f" lint || { [ -n "$FORCE" ] || { echo "✘ $f όχι καθαρό (FORCE=1 για παράκαμψη)"; exit 1; }; }
 done
+# engine gate: άλλαξε engine/props → περιγραφές props + regress σε ΟΛΑ τα επεισόδια (νέο crash / νέο lint warning = stop)
+if git diff --cached --name-only "$BASE" | grep -qE '^(lib|stratos|hands|props|render|sfx)\.js$|^props/'; then
+  node api.js --check || [ -n "$FORCE" ] || exit 1
+  node regress.js "$BASE" || { [ -n "$FORCE" ] || { echo "✘ regress: η αλλαγή στο engine χαλάει παλιό επεισόδιο (FORCE=1 για παράκαμψη)"; exit 1; }; }
+fi
 git diff --cached --quiet || git commit -qm "$MSG"
 [ "$(git rev-list --count "$BASE"..HEAD)" -gt 0 ] || { echo "τίποτα να σταλεί"; exit 1; }
 mkdir -p "$OUT"; git format-patch "$BASE" --stdout > "$OUT/$NAME.patch"

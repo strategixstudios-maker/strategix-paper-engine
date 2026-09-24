@@ -12,11 +12,7 @@ const { BRAND, TH, thermos, thermosPhase, rotary, layersInset, kostasLogo, laser
 // 11,74 και από κάτω βγαίνει το ανοξείδωτο. | 13,92 Δεν είναι μελάνι, ούτε αυτοκόλλητο. | 16,06 Δεν έχει τίποτα να ξεκολλήσει.
 // 17,82 Ιδανικό για εταιρικά δώρα, | 19,28 για την ομάδα σου, | 20,28 ή για πελάτες. | 21,29 Στείλε μας το λογότυπό σου και την ποσότητα,
 // 23,40 και φτιάχνουμε τα δικά σου. (–24,5)
-// φράσεις VO (απόλυτες) → ducking των SFX που πέφτουν πάνω στη φωνή (ίδια λογική με ad_afisa v2)
-const PHR = [[0.24, 2.14], [2.37, 4.07], [4.39, 6.06], [6.33, 8.78], [9.13, 10.35], [10.67, 11.38], [11.74, 13.56], [13.92, 15.82], [16.06, 17.52],
-  [17.82, 19.13], [19.28, 20.1], [20.28, 21.03], [21.29, 23.16], [23.4, 24.5]];
-const SFX_MIX = 0.5, SFX_DUCK = 0.45; // όλα τα SFX −6 dB · όσα πέφτουν πάνω σε φράση άλλα −7 dB (≈ −13 dB κάτω από το VO)
-const duck = cues => cues.map(([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * SFX_MIX * (on ? SFX_DUCK : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; });
+// SFX: ducking = default του render.js (όλα −6 dB · όσα πέφτουν πάνω σε φράση άλλα −7 dB, φράσεις αυτόματα από το VO)
 const VO = [];
 const TAG = 'Πώς φτιάχνεται; #2';
 const lp = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
@@ -165,13 +161,11 @@ function sG(ctx, lt) { // 21,1–24,75 · CTA
 function sH(ctx, lt) { burnView(ctx, lt - 0.25, hookP(lt - 0.25)); } // loop → frame 0
 
 const SCENES = [[sA, 4.25], [sB, 1.95], [sC, 2.8], [sD, 4.7], [sE, 3.95], [sF, 3.45], [sG, 3.65], [sH, 0.25]], WIPES = [1, 2, 3, 4, 5, 6, 7];
-const START = SCENES.reduce((a, [, du]) => [...a, a[a.length - 1] + du], [0]);
 require('./render.js')({
   name: 'pf02_thermos_laser',
-  SCENES, WIPES, AUTO_SFX: false, // wipes → whoosh εδώ, για να περνάνε κι αυτά από το duck
+  SCENES, WIPES, // wipes → auto whoosh
   VO_FILE: 'vo/pf02_vo.mp3', VO_AT: 0.2,
-  SFX: duck([
-    ...WIPES.map(k => [START[k] - 0.27, 'whoosh', { seed: k, note: 'wipe' }]),
+  SFX: [
     [0.0, 'laser', { dur: 4.0, note: 'hook: laser loop' }],
     [2.4, 'pop', { note: 'σταγόνα μελάνι' }], [2.72, 'swoosh', { gain: 0.6, note: '✗ διαγραφή' }],
     [4.35, 'swoosh', { gain: 0.7, note: 'σηκώνει το θερμός' }], [5.0, 'pop', { note: 'chip «ματ βαφή»' }],
@@ -185,5 +179,5 @@ require('./render.js')({
     [17.8, 'pop', { note: 'εταιρικά δώρα' }], [19.25, 'pop', { note: 'ομάδα' }], [20.25, 'pop', { note: 'πελάτες' }],
     [21.3, 'swoosh', { note: 'thumb up' }], [21.7, 'sent', { note: 'logo.pdf' }], [22.65, 'sent', { note: 'ποσότητα' }], [23.45, 'pop', { note: 'CTA «Στείλε μήνυμα»' }],
     [24.75, 'laser', { dur: 0.25, note: 'loop → αρχή' }],
-  ]),
+  ],
 });

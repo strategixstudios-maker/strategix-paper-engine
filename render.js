@@ -7,6 +7,8 @@
 //       node ep.js sfx              -> μόνο ήχος: <n>_sfx.wav + <n>_sfx.md και remux στο υπάρχον MP4 (χωρίς νέο video render)
 // SFX: auto whoosh σε κάθε wipe + ep.SFX = [[t, 'preset', {gain, pan, seed, dur, note}], ...] (βλ. sfx.js). AUTO_SFX:false → μόνο τα χειροκίνητα.
 // VO:  ep.VO_FILE = 'vo/<ep>_vo.mp3' (στο repo), VO_AT = offset s, VO_GAIN. → <n>_vo.wav stem + <n>_mix.wav (VO+SFX) στο MP4, lip-sync από την ένταση (ST.VOENV).
+// DUCK (default με VO): όλα τα SFX ×mix 0.5 (−6 dB) και όσα πέφτουν πάνω σε φράση ×duck 0.45 (άλλα −7 dB). Φράσεις αυτόματα από την ένταση του VO.
+//      DUCK: { phrases: [[a, b], ...], mix, duck } → χειροκίνητα · DUCK: false → χωρίς.
 const L = require('./lib.js');
 const { C, ST, W, H, FPS, cut, rng, lerp, easeInOut } = L;
 const SFX = require('./sfx.js');
@@ -19,9 +21,7 @@ module.exports = function run(ep) {
   const STARTS = []; let acc = 0; for (const [, d] of ep.SCENES) { STARTS.push(acc); acc += d; }
   const TOTAL = acc, TR = ep.TR || 0.22, name = ep.name || 'video';
   const wipes = ep.WIPES === 'all' ? STARTS.map((_, i) => i).slice(1) : (ep.WIPES || []);
-  // SFX cues: whoosh με peak στην αλλαγή σκηνής (−0.27s) για κάθε wipe + τα χειροκίνητα του επεισοδίου
-  const CUES = [...(ep.AUTO_SFX === false ? [] : wipes.map(k => [Math.max(0, STARTS[k] - 0.27), 'whoosh', { seed: k, note: 'wipe' }])), ...(ep.SFX || [])].sort((a, b) => a[0] - b[0]);
-  // VO: decode → track στο μήκος του video + envelope ανά frame (RMS / p95) για lip-sync
+  // VO: decode → track στο μήκος του video + envelope ανά frame (RMS / p95) για lip-sync + φράσεις για ducking
   let VO = null;
   if (ep.VO_FILE) {
     const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', ep.VO_FILE, '-ac', '1', '-ar', String(SFX.SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
@@ -33,8 +33,13 @@ module.exports = function run(ep) {
     for (let f = 0; f < F; f++) { const a = Math.floor(f * hop), b = Math.min(N, Math.floor((f + 1) * hop)); let s = 0; for (let i = a; i < b; i++) s += v[i] * v[i]; env[f] = Math.sqrt(s / Math.max(1, b - a)); }
     const on = [...env].filter(x => x > 1e-3).sort((a, b) => a - b), ref = on[Math.floor(on.length * 0.95)] || 1;
     for (let f = 0; f < F; f++) env[f] = Math.min(1, env[f] / ref);
-    VO = { v, env, end: at + raw.length / SFX.SR }; ST.VOENV = env;
+    const phr = []; for (let f = 0; f < F; f++) if (env[f] > 0.1) { const p = phr[phr.length - 1]; if (p && f / FPS - p[1] < 0.15) p[1] = (f + 1) / FPS; else phr.push([f / FPS, (f + 1) / FPS]); } // ένταση > 0.1, κενά < 0.15s ενώνονται
+    VO = { v, env, phr, end: at + raw.length / SFX.SR }; ST.VOENV = env;
   }
+  // SFX cues: whoosh με peak στην αλλαγή σκηνής (−0.27s) για κάθε wipe + τα χειροκίνητα του επεισοδίου → ducking κάτω από το VO
+  const DK = ep.DUCK === false ? null : ep.DUCK || (VO ? {} : null), PHR = DK && (DK.phrases || (VO ? VO.phr : []));
+  const duck = ([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * (DK.mix ?? 0.5) * (on ? (DK.duck ?? 0.45) : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; };
+  const CUES = [...(ep.AUTO_SFX === false ? [] : wipes.map(k => [Math.max(0, STARTS[k] - 0.27), 'whoosh', { seed: k, note: 'wipe' }])), ...(ep.SFX || [])].sort((a, b) => a[0] - b[0]).map(c => DK ? duck(c) : c);
   const voWarn = () => VO && VO.end > TOTAL + 0.05 ? [[`VO: το αρχείο (${VO.end.toFixed(2)}s) βγαίνει εκτός video (${TOTAL.toFixed(2)}s)`, TOTAL]] : [];
   const sfxWarn = () => [...voWarn(), ...CUES.flatMap(([t, nm]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]))];
   const writeSfx = () => {
