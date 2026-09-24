@@ -296,4 +296,25 @@ function msgOut(ctx, x, y, w, h, text, o = {}) {
   if (text) txt(ctx, text, x + 30, y + h / 2 - 4, { font: `bold ${o.fs || 42}px Round`, color: '#fff', align: 'left' });
 }
 
-module.exports = { PIP, NB, ENGR, notebook, laserFX, smoke, HONEY, honeycomb, laserHeadTop, laserMachine, uiSlider, giftBox, stratosBack, msgOut, BRAND, HOOD, HOODD, bgFlat, tiles, wallShelf, starsBG, cafeLogo, hoodie, drum, machine, mug, clock, reach, msgBubble, speech, stamp, seriesTag, sparkle, ctaButton, pip };
+
+// speech bubble from an off-screen speaker. side: 1 = speaker off right, -1 = off left. Pops at st.
+function speechOff(ctx, lt, st, side, x, y, w, h, text, o = {}) {
+  pop(ctx, lt, st, x, y, () => {
+    const bx = side * (w / 2 - 60);
+    cut(ctx, [[bx - 34, -h / 2 + 30], [bx + 34, h / 2 - 30], [side * (W + 200), side > 0 ? 40 : 40]], C.paper, { seed: (o.seed || 1) + 1, amp: 2 });
+    cut(ctx, rrPts(-w / 2, -h / 2, w, h, Math.min(80, h * 0.45)), C.paper, { seed: o.seed || 1, amp: 3 });
+    txt(ctx, text, 0, 4, { font: o.font || '64px Hand', color: o.color || C.ink });
+  }, o.rot || 0);
+}
+// check chip: rounded paper label with a brand-blue tick circle. Pops at st.
+function checkChip(ctx, lt, st, x, y, label, o = {}) {
+  const fs = o.fs || 58; ctx.font = `bold ${fs}px Round`; const tw = ctx.measureText(label).width, w = tw + fs * 2.6, h = fs * 1.9;
+  pop(ctx, lt, st, x, y, () => {
+    cut(ctx, rrPts(-w / 2, -h / 2, w, h, h / 2), o.bg || C.paper, { seed: o.seed || 60, amp: 2, edgeW: 8 });
+    const cx = -w / 2 + h / 2 + 6; cut(ctx, circlePts(cx, 0, h * 0.34), BRAND, { seed: (o.seed || 60) + 1, amp: 1, edgeW: 4, shadow: false });
+    L.check(ctx, cx, 0, h / 80, '#fff');
+    txt(ctx, label, cx + h * 0.45 + tw / 2, 2, { font: `bold ${fs}px Round`, color: o.color || C.navy });
+  }, o.rot || 0);
+}
+
+module.exports = { speechOff, checkChip, PIP, NB, ENGR, notebook, laserFX, smoke, HONEY, honeycomb, laserHeadTop, laserMachine, uiSlider, giftBox, stratosBack, msgOut, BRAND, HOOD, HOODD, bgFlat, tiles, wallShelf, starsBG, cafeLogo, hoodie, drum, machine, mug, clock, reach, msgBubble, speech, stamp, seriesTag, sparkle, ctaButton, pip };

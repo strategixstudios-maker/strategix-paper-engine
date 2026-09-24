@@ -44,8 +44,10 @@
 - `eyes`: dot · happy · shock · tired ; `blink: blinkNow()`
 - `brows`: -0.5 (συνοφρυωμένος) … 1.2 (σοκ) ; `look`: -15…15 (βλέμμα)
 - `arms: [left, right]` σε rad (0 = κάτω, ~2.75 = ψηλά, -2.65 = facepalm με `armRFront:true`)
-- `elbowL / elbowR` (rad, + = προς το σώμα): λυγισμένος αγκώνας για κράτημα props, κυματισμό, σταυρωτά χέρια.
-- `handL/handR`: open · fist · point · thumb.
+- `elbowL / elbowR` (rad, + = προς το σώμα, − = πήχης προς τα έξω/πάνω). Ο πήχης κοιτάει στη γωνία **`ang − elbow`** (0 = κάτω, π = πάνω). Thumb up: `ang 1.4, elbow −1.6`.
+- `handL/handR`: relaxed · open · fist · point · thumb · grip · wave · ok (default `relaxed`).
+- `viewL/viewR`: `auto` (default) · palm · back · side. Το **auto** διαλέγει ανατομικά σωστή όψη από τη γωνία του πήχη. Δες **HANDS.md** + `HANDS_SHEET.png`.
+- `hintL/hintR`: `'shrug'` / `'stop'` όταν θες σκόπιμα παλάμη προς θεατή (μόνο με λυγισμένο αγκώνα).
 - `legs:false` για medium shot. `handPos(side, ang, s, x, y, elbow)` → θέση χεριού για props (λαμβάνει υπόψη τον αγκώνα).
 - `stratosBack(ctx, x, y, s)` (props.js) → Στράτος από πίσω για over-the-shoulder.
 - `reach(ctx, tipX, tipY, dx, dy, {hand})` (props.js) → χέρι που μπαίνει στο κάδρο από (dx,dy).
@@ -89,9 +91,10 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 
 ## 6. Workflow (για να μην καίμε tokens σε λάθη)
 1. **Σενάριο** σε πίνακα: Χρόνος | Εικόνα | VO | Κείμενο/SFX → έγκριση.
-2. Κώδικας επεισοδίου → `node ep.js sheet` (12 frames + safe-zone overlay) → έλεγχος: τίποτα σημαντικό στο κόκκινο.
-3. `node ep.js render` → MP4 + **timing sheet** VO/SFX για τον Αλέξανδρο.
-4. (Προαιρετικά) Αν έρθει VO αρχείο → προσαρμογή timings/lip-sync στη φωνή.
+2. Κώδικας επεισοδίου → `node ep.js sheet` (12 frames + safe-zone overlay + lint warnings σε κόκκινο) → έλεγχος: τίποτα σημαντικό στο κόκκινο.
+3. `node ep.js lint` → πρέπει να βγει **«lint ✔ καθαρό»** πριν το render (ανατομία χεριών, χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone).
+4. `node ep.js render` → MP4 + **timing sheet** VO/SFX για τον Αλέξανδρο.
+5. (Προαιρετικά) Αν έρθει VO αρχείο → προσαρμογή timings/lip-sync στη φωνή.
 
 ## 7. Σειρές
 - **ADS** — προϊόν/υπηρεσία, CTA «Πάρε προσφορά» + strategixstudios.com.

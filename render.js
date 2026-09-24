@@ -3,6 +3,7 @@
 // CLI:  node ep.js sheet            -> <name>_sheet.png (12 evenly spaced frames, cheap review)
 //       node ep.js preview 1.2 5.0  -> <name>_<t>.png
 //       node ep.js render [out.mp4] -> 1080x1920 30fps H.264
+//       node ep.js lint             -> anatomy/safe-zone warnings for the whole video (10 samples/s), exit 1 if any
 const L = require('./lib.js');
 const { C, ST, W, H, FPS, cut, rng, lerp, easeInOut } = L;
 const { spawn } = require('child_process');
@@ -31,12 +32,18 @@ module.exports = function run(ep) {
   (async () => {
     const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d');
     const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
-    const draw = t => { ST.FRAME = Math.round(t * FPS); ST.capBottom = null; ctx.clearRect(0, 0, W, H); frame(ctx, t); if (guide && mode !== 'render') L.safeGuide(ctx); };
+    ST.lint = mode !== 'render';
+    const WARN = new Map(); // msg -> [firstT, lastT]
+    const drawWarn = () => { ctx.save(); for (const w of ST.warn) { ctx.strokeStyle = '#FF1E50'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(w.x, w.y, 70, 0, 7); ctx.stroke(); ctx.font = 'bold 30px Round'; const tw = Math.min(ctx.measureText(w.msg).width, 1000); const bx = Math.max(10, Math.min(W - tw - 30, w.x - tw / 2)); ctx.fillStyle = '#FF1E50'; ctx.fillRect(bx - 10, w.y + 78, tw + 20, 44); ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(w.msg, bx, w.y + 100, 1000); } ctx.restore(); };
+    const draw = t => { ST.FRAME = Math.round(t * FPS); ST.capBottom = null; ST.warn = []; ctx.clearRect(0, 0, W, H); frame(ctx, t); if (guide && mode !== 'render') { L.safeGuide(ctx); drawWarn(); } for (const w of ST.warn) { const r = WARN.get(w.msg); r ? (r[1] = t) : WARN.set(w.msg, [t, t]); } };
+    const report = () => { if (!WARN.size) { console.log('lint ✔ καθαρό'); return 0; } console.log(`lint: ${WARN.size} warning(s)`); for (const [m, [a, b]] of WARN) console.log(`  ${a.toFixed(1)}–${b.toFixed(1)}s  ${m}`); return 1; };
+    const avoidWipe = t => { for (const k of wipes) if (Math.abs(t - STARTS[k]) < TR + 0.05) return STARTS[k] + TR + 0.1; return t; };
+    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); process.exitCode = report(); return; }
     if (mode === 'preview') { for (const t of process.argv.slice(3).filter(a => a !== 'guide').map(Number)) { draw(t); fs.writeFileSync(`${name}_${t}.png`, cv.toBuffer('image/png')); } return; }
     if (mode === 'sheet') {
       const n = 12, sw = 270, sh = 480, sheet = L.createCanvas(sw * 6, sh * 2), sx = sheet.getContext('2d');
-      for (let i = 0; i < n; i++) { const t = (i + 0.5) * TOTAL / n; draw(t); sx.drawImage(cv, (i % 6) * sw, Math.floor(i / 6) * sh, sw, sh); sx.fillStyle = '#000'; sx.fillRect((i % 6) * sw, Math.floor(i / 6) * sh, 70, 30); sx.fillStyle = '#fff'; sx.font = '22px Round'; sx.fillText(t.toFixed(1) + 's', (i % 6) * sw + 6, Math.floor(i / 6) * sh + 22); }
-      fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`); return;
+      for (let i = 0; i < n; i++) { const t = avoidWipe((i + 0.5) * TOTAL / n); draw(t); sx.drawImage(cv, (i % 6) * sw, Math.floor(i / 6) * sh, sw, sh); sx.fillStyle = '#000'; sx.fillRect((i % 6) * sw, Math.floor(i / 6) * sh, 70, 30); sx.fillStyle = '#fff'; sx.font = '22px Round'; sx.fillText(t.toFixed(1) + 's', (i % 6) * sw + 6, Math.floor(i / 6) * sh + 22); }
+      fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`); report(); return;
     }
     const out = process.argv[3] || `${name}.mp4`, N = Math.round(TOTAL * FPS);
     const ff = spawn('ffmpeg', ['-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', `${FPS}`, '-i', '-', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium', '-movflags', '+faststart', out], { stdio: ['pipe', 'ignore', 'ignore'] });
