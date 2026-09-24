@@ -6,6 +6,7 @@
 //       node ep.js lint             -> anatomy/safe-zone warnings for the whole video (10 samples/s), exit 1 if any
 //       node ep.js sfx              -> μόνο ήχος: <n>_sfx.wav + <n>_sfx.md και remux στο υπάρχον MP4 (χωρίς νέο video render)
 // SFX: auto whoosh σε κάθε wipe + ep.SFX = [[t, 'preset', {gain, pan, seed, dur, note}], ...] (βλ. sfx.js). AUTO_SFX:false → μόνο τα χειροκίνητα.
+// VO:  ep.VO_FILE = 'vo/<ep>_vo.mp3' (στο repo), VO_AT = offset s, VO_GAIN. → <n>_vo.wav stem + <n>_mix.wav (VO+SFX) στο MP4, lip-sync από την ένταση (ST.VOENV).
 const L = require('./lib.js');
 const { C, ST, W, H, FPS, cut, rng, lerp, easeInOut } = L;
 const SFX = require('./sfx.js');
@@ -20,11 +21,31 @@ module.exports = function run(ep) {
   const wipes = ep.WIPES === 'all' ? STARTS.map((_, i) => i).slice(1) : (ep.WIPES || []);
   // SFX cues: whoosh με peak στην αλλαγή σκηνής (−0.27s) για κάθε wipe + τα χειροκίνητα του επεισοδίου
   const CUES = [...(ep.AUTO_SFX === false ? [] : wipes.map(k => [Math.max(0, STARTS[k] - 0.27), 'whoosh', { seed: k, note: 'wipe' }])), ...(ep.SFX || [])].sort((a, b) => a[0] - b[0]);
-  const sfxWarn = () => CUES.flatMap(([t, nm]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]));
+  // VO: decode → track στο μήκος του video + envelope ανά frame (RMS / p95) για lip-sync
+  let VO = null;
+  if (ep.VO_FILE) {
+    const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', ep.VO_FILE, '-ac', '1', '-ar', String(SFX.SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
+    if (r.status !== 0) throw new Error(`VO: δεν διαβάζεται το ${ep.VO_FILE}`);
+    const raw = new Float32Array(r.stdout.buffer.slice(r.stdout.byteOffset, r.stdout.byteOffset + r.stdout.length));
+    const at = ep.VO_AT || 0, g = ep.VO_GAIN ?? 1, N = Math.ceil(TOTAL * SFX.SR), v = new Float32Array(N), j0 = Math.round(at * SFX.SR);
+    for (let i = 0; i < raw.length; i++) { const j = j0 + i; if (j >= 0 && j < N) v[j] = raw[i] * g; }
+    const F = Math.ceil(TOTAL * FPS), hop = SFX.SR / FPS, env = new Float32Array(F);
+    for (let f = 0; f < F; f++) { const a = Math.floor(f * hop), b = Math.min(N, Math.floor((f + 1) * hop)); let s = 0; for (let i = a; i < b; i++) s += v[i] * v[i]; env[f] = Math.sqrt(s / Math.max(1, b - a)); }
+    const on = [...env].filter(x => x > 1e-3).sort((a, b) => a - b), ref = on[Math.floor(on.length * 0.95)] || 1;
+    for (let f = 0; f < F; f++) env[f] = Math.min(1, env[f] / ref);
+    VO = { v, env, end: at + raw.length / SFX.SR }; ST.VOENV = env;
+  }
+  const voWarn = () => VO && VO.end > TOTAL + 0.05 ? [[`VO: το αρχείο (${VO.end.toFixed(2)}s) βγαίνει εκτός video (${TOTAL.toFixed(2)}s)`, TOTAL]] : [];
+  const sfxWarn = () => [...voWarn(), ...CUES.flatMap(([t, nm]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]))];
   const writeSfx = () => {
     const wav = `${name}_sfx.wav`, f = t => t.toFixed(2).replace('.', ','); SFX.writeWav(wav, SFX.mix(CUES, TOTAL));
     fs.writeFileSync(`${name}_sfx.md`, `# ${name} — SFX (auto από sfx.js)\n| Χρόνος | SFX | Σημείωση |\n|---|---|---|\n` + CUES.map(([t, nm, o = {}]) => `| ${f(t)}${o.dur ? '–' + f(t + o.dur) : ''} | ${nm} | ${o.note || ''} |`).join('\n') + '\n');
-    return wav;
+    if (!VO) return wav;
+    const [L0, R0] = SFX.mix(CUES, TOTAL), lim = x => { const s = Math.abs(x); return s < 0.85 ? x : Math.sign(x) * (0.85 + 0.15 * Math.tanh((s - 0.85) / 0.15)); };
+    const Lm = L0.map((x, i) => lim(x + VO.v[i])), Rm = R0.map((x, i) => lim(x + VO.v[i]));
+    SFX.writeWav(`${name}_vo.wav`, [VO.v, VO.v]); SFX.writeWav(`${name}_mix.wav`, [Lm, Rm]);
+    fs.appendFileSync(`${name}_sfx.md`, `\nVO: \`${ep.VO_FILE}\` @ ${f(ep.VO_AT || 0)}s → \`${name}_vo.wav\` (stem) · \`${name}_mix.wav\` (VO+SFX, στο MP4)\n`);
+    return `${name}_mix.wav`;
   };
   function frame(ctx, t) {
     ST.T = t; ST.B = Math.floor(t * 12);
@@ -52,7 +73,7 @@ module.exports = function run(ep) {
     const avoidWipe = t => { for (const k of wipes) if (Math.abs(t - STARTS[k]) < TR + 0.05) return STARTS[k] + TR + 0.1; return t; };
     if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); process.exitCode = report(); return; }
     if (mode === 'sfx') {
-      const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues');
+      const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : ''));
       if (fs.existsSync(mp4)) { const tmp = mp4.replace(/\.mp4$/, '') + '.tmp.mp4'; const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp]); if (r.status === 0) { fs.renameSync(tmp, mp4); console.log('remux', mp4); } else console.log('✘ remux', String(r.stderr)); }
       return;
     }
@@ -63,7 +84,7 @@ module.exports = function run(ep) {
       fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`); report(); return;
     }
     const out = process.argv[3] || `${name}.mp4`, N = Math.round(TOTAL * FPS);
-    const wav = CUES.length ? writeSfx() : null; // πρώτα ο ήχος (1s): άγνωστο preset → σφάλμα πριν το video render
+    const wav = CUES.length || VO ? writeSfx() : null; // πρώτα ο ήχος (1s): άγνωστο preset → σφάλμα πριν το video render
     const aIn = wav ? ['-i', wav] : [], aOut = wav ? ['-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '192k', '-shortest'] : [];
     const ff = spawn('ffmpeg', ['-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', `${FPS}`, '-i', '-', ...aIn, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium', ...aOut, '-movflags', '+faststart', out], { stdio: ['pipe', 'ignore', 'ignore'] });
     for (let f = 0; f < N; f++) { draw(f / FPS); const buf = Buffer.from(ctx.getImageData(0, 0, W, H).data.buffer); if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r)); }

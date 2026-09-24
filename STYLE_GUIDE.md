@@ -1,6 +1,6 @@
 # STRATEGIX STUDIOS — Paper Cut-out Video Bible · engine v2
 
-Όλα τα βίντεο Strategix (ads + οργανικά) γίνονται σε **paper cut-out** αισθητική, σχεδιασμένα frame-by-frame σε JavaScript (Node + @napi-rs/canvas → ffmpeg). Ο Αλέξανδρος κάνει voice over + μουσική στο CapCut. Εμείς παραδίδουμε **MP4 1080×1920, 30fps με SFX** (`sfx.js`, βλ. §5c) + `<ep>_sfx.wav` stem + timing sheet.
+Όλα τα βίντεο Strategix (ads + οργανικά) γίνονται σε **paper cut-out** αισθητική, σχεδιασμένα frame-by-frame σε JavaScript (Node + @napi-rs/canvas → ffmpeg). VO = ElevenLabs, φωνή **«Stratos»** (βλ. §5d)· ο Αλέξανδρος βάζει μόνο μουσική στο CapCut. Εμείς παραδίδουμε **MP4 1080×1920, 30fps με VO + SFX** + stems (`_vo.wav`, `_sfx.wav`) + timing sheet.
 
 ---
 
@@ -110,12 +110,19 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 - Διόρθωση μόνο ήχου: `node ep.js sfx` → νέο stem + `_sfx.md` + remux στο υπάρχον MP4 σε ~1s, χωρίς video render.
 - CapCut: είτε ο ήχος του MP4, είτε mute + `<ep>_sfx.wav` για ξεχωριστό balance.
 
+## 5d. VO — ElevenLabs «Stratos»
+- Φωνή: **Stratos** (ElevenLabs voice design, voice_id `4djcgN1Upzan46ZOCATJ`, νέος Αθηναίος 25–35, χιουμοριστικός μάστορας). Ίδια σε ΟΛΑ τα επεισόδια.
+- Μοντέλο `eleven_v3` με audio tags (`[casual]`, `[sighs]`, `[chuckles]`, `[amused]`, `[friendly]`, `[playful]`). Αριθμοί ολογράφως («Ογδόντα»), ακρωνύμια φωνητικά για το TTS («πι ντι εφ, ες βι τζι, ή έι άι») — στα captions γράφονται κανονικά.
+- **Ένα αρχείο ανά επεισόδιο** (όλο το VO σε ένα generation, max 2 takes: το πλάνο επιτρέπει 2 ταυτόχρονα). Ο Αλέξανδρος κατεβάζει το MP3 και το ανεβάζει στο chat (το container δεν φτάνει το ElevenLabs storage).
+- Στο chat: silence detect → σφίξιμο παύσεων (όχι πριν τα punchlines) → `vo/<ep>_vo.mp3` (μπαίνει στο git) → χρονισμοί φράσεων σε σχόλιο στην κορυφή του επεισοδίου.
+- Επεισόδιο: `render.js({ ..., VO_FILE: 'vo/<ep>_vo.mp3', VO_AT: 0.2, VO_GAIN })` → `_vo.wav` stem + `_mix.wav` (VO+SFX) στο MP4. Το `lipsync()` ακολουθεί αυτόματα την ένταση της φωνής (`ST.VOENV`)· το `VO` array μένει κενό. VO μεγαλύτερο από το video → warning στο lint.
+
 ## 6. Workflow (για να μην καίμε tokens σε λάθη)
 1. **Σενάριο** σε πίνακα: Χρόνος | Εικόνα | VO | Κείμενο/SFX → έγκριση.
 2. Κώδικας επεισοδίου → `node ep.js sheet` (12 frames + safe-zone overlay + lint warnings σε κόκκινο) → έλεγχος: τίποτα σημαντικό στο κόκκινο.
 3. `node ep.js lint` → πρέπει να βγει **«lint ✔ καθαρό»** πριν το render (ανατομία χεριών, χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone).
-4. `node ep.js render` → MP4 με SFX + `<ep>_sfx.wav` + `<ep>_sfx.md` (πίνακας SFX, auto) + **timing sheet** VO για τον Αλέξανδρο. Αλλαγή μόνο στον ήχο → `node ep.js sfx`.
-5. (Προαιρετικά) Αν έρθει VO αρχείο → προσαρμογή timings/lip-sync στη φωνή.
+4. VO (§5d): generation στη φωνή Stratos → upload MP3 → `vo/<ep>_vo.mp3` + timings σκηνών/captions/SFX πάνω στις πραγματικές φράσεις.
+5. `node ep.js render` → MP4 με VO + SFX + stems + `<ep>_sfx.md` + **timing sheet** (`<ep>_timing_sheet.md`). Αλλαγή μόνο στον ήχο → `node ep.js sfx`.
 6. Episode log (§8) → `bash ship.sh <ep> "<msg>"` → ένα `<ep>.patch` (lint gate μέσα). Το chat δεν κάνει push· το Claude Code κάνει `git am` + push (βλ. CLAUDE.md).
 
 ## 7. Σειρές
@@ -138,15 +145,15 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 | 14,1–15,6 | ...και μένει σαν καινούργιο. |
 | 15,95–18,5 | Φούτερ με το λογότυπό σου. Πάρε προσφορά στο strategixstudios.com. |
 
-### ORGANIC — «Ο πελάτης είπε...» #1 Το λογότυπο από WhatsApp (19s) · `ep01_whatsapp_logo.js`
+### ORGANIC — «Ο πελάτης είπε...» #1 Το λογότυπο από WhatsApp · v2 (24,9s) · `ep01_whatsapp_logo.js`
+Πρώτο επεισόδιο με VO ElevenLabs «Stratos» (`vo/ep01_vo.mp3`) + SFX, safe zones διορθωμένα. «Minecraft» → «χάλια» (stamp «ΧΑΛΙΑ»). Timing sheet: `ep01_timing_sheet.md`.
 | Χρόνος | VO |
 |---|---|
-| 0,2–1,4 | Ο πελάτης μου στέλνει το λογότυπο... |
-| 1,7–3,8 | ...από WhatsApp. 80 pixel. |
-| 4,4–6,6 | Και φυσικά... το θέλει για αύριο. |
-| 7,2–9,8 | Αν το τυπώσω έτσι... θα βγει Minecraft. |
-| 10,2–15,2 | Tip: ζήτα από τον γραφίστα σου το λογότυπο σε PDF, SVG ή AI. Λέγεται vector και μεγαλώνει όσο θες χωρίς να χαλάσει. |
-| 15,6–18,3 | Γραφίστες, εμφανιστείτε στα σχόλια και πείτε μου τις εμπειρίες σας. |
+| 0,30–5,56 | Ο πελάτης μου στέλνει το λογότυπο... από WhatsApp. [sigh] Ογδόντα pixel. |
+| 5,96–7,99 | Και φυσικά... το θέλει για αύριο. |
+| 8,49–10,83 | Αν το τυπώσω έτσι... θα βγει χάλια. |
+| 11,28–20,04 | Tip: ζήτα από τον γραφίστα σου το λογότυπο σε PDF, SVG ή AI. Λέγεται vector, και μεγαλώνει όσο θες χωρίς να χαλάσει. |
+| 20,49–23,89 | Γραφίστες, εμφανιστείτε στα σχόλια και πείτε μου τις εμπειρίες σας. |
 
 ### ORGANIC/AD — «Πώς φτιάχνεται;» #1 Χάραξη σε notebook (27,6s) · `pf01_notebook_laser.js`
 Laser CO2, navy δερματίνη + ANNA CAFÉ, CTA «Στείλε μήνυμα». Νέα props: `notebook` (NB geometry), `laserMachine`, `laserFX`, `smoke`, `honeycomb`, `laserHeadTop`, `uiSlider`, `giftBox`, `stratosBack`, `msgOut`. `cafeLogo(..., col)`.
@@ -163,4 +170,4 @@ Laser CO2, navy δερματίνη + ANNA CAFÉ, CTA «Στείλε μήνυμα
 | 18,7–21,4 | Ιδανικό για δώρα σε πελάτες, σε συνεργάτες, ή για την ομάδα σου. |
 | 21,8–26,8 | Στείλε μας μήνυμα με το λογότυπό σου και την ποσότητα που σε ενδιαφέρει, και φτιάξε τα δικά σου εταιρικά δώρα. |
 
-> ⚠️ Τα επεισόδια πριν το engine v2 (ad_plysi, ep01, pf01) έχουν pip/CTA σε θέσεις εκτός safe zone. Χρειάζονται μικρές αλλαγές θέσεων και captionSeq πριν από νέο render. Στο ίδιο pass: `SFX` cues από το timing sheet τους (τα wipes παίρνουν ήδη auto whoosh).
+> ⚠️ Τα επεισόδια πριν το engine v2 (ad_plysi, pf01 — το ep01 έγινε στο v2) έχουν pip/CTA σε θέσεις εκτός safe zone. Χρειάζονται μικρές αλλαγές θέσεων και captionSeq πριν από νέο render. Στο ίδιο pass: `SFX` cues από το timing sheet τους (τα wipes παίρνουν ήδη auto whoosh).

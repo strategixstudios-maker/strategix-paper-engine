@@ -15,14 +15,14 @@
 4. `git push` και σύντομη αναφορά: commits, αρχεία, lint.
 
 ## Κανόνες κώδικα
-- Μόνο με το engine (lib.js, stratos.js, hands.js, props.js, render.js, sfx.js). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέα reusable props → props.js. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
+- Μόνο με το engine (lib.js, stratos.js, hands.js, props.js, render.js, sfx.js). VO sources στο `vo/` (τα μόνα mp3 στο git). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέα reusable props → props.js. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
 - Αλλαγή στο engine → τρέξε `lint`/`sheet` στα επεισόδια που επηρεάζονται, να μη σπάσει κάτι παλιό.
 - Αλλαγή κανόνα → STYLE_GUIDE/HANDS στο ΙΔΙΟ commit.
 - Όχι render outputs στο git (MP4, sheets, previews) — βλ. .gitignore.
 
 ## Workflow επεισοδίου (chat)
-Σενάριο (Χρόνος | Εικόνα | VO | Κείμενο/SFX) → έγκριση → κώδικας → `sheet` (safe zones + lint) → `lint` καθαρό → `render` MP4 με SFX + timing sheet VO (+ auto `_sfx.md`) → episode log στο STYLE_GUIDE §8 → `ship.sh`.
-- MP4 1080×1920 30fps με SFX από `sfx.js` (auto whoosh στα wipes + `SFX` cues, STYLE_GUIDE §5c) + `<ep>_sfx.wav` stem· VO και μουσική τα κάνει ο Αλέξανδρος.
+Σενάριο (Χρόνος | Εικόνα | VO | Κείμενο/SFX) → έγκριση → VO στη φωνή Stratos → upload MP3 → κώδικας → `sheet` (safe zones + lint) → `lint` καθαρό → `render` MP4 με SFX + timing sheet VO (+ auto `_sfx.md`) → episode log στο STYLE_GUIDE §8 → `ship.sh`.
+- MP4 1080×1920 30fps με VO (ElevenLabs «Stratos», `vo/<ep>_vo.mp3`, STYLE_GUIDE §5d) + SFX από `sfx.js` (§5c) + stems `_vo.wav`/`_sfx.wav`· μουσική την κάνει ο Αλέξανδρος.
 - Κείμενα/CTA/πρόσωπο/προϊόν μέσα στο safe box· captions max 2 γραμμές (`captionSeq`).
 - Host ο Στράτος (mascot, όχι ο Αλέξανδρος). Κοινό: πιθανοί πελάτες & γραφίστες, όχι τυπογραφεία. Όχι ανεπιβεβαίωτοι ισχυρισμοί/αριθμοί.
 - Ελληνικά, σύντομα, μεθοδικά, English τεχνικοί όροι.
