@@ -1,6 +1,6 @@
 # STRATEGIX STUDIOS — Paper Cut-out Video Bible · engine v2
 
-Όλα τα βίντεο Strategix (ads + οργανικά) γίνονται σε **paper cut-out** αισθητική, σχεδιασμένα frame-by-frame σε JavaScript (Node + @napi-rs/canvas → ffmpeg). Ο Αλέξανδρος κάνει voice over + SFX + μουσική στο CapCut. Εμείς παραδίδουμε **silent MP4 1080×1920, 30fps** + timing sheet.
+Όλα τα βίντεο Strategix (ads + οργανικά) γίνονται σε **paper cut-out** αισθητική, σχεδιασμένα frame-by-frame σε JavaScript (Node + @napi-rs/canvas → ffmpeg). Ο Αλέξανδρος κάνει voice over + μουσική στο CapCut. Εμείς παραδίδουμε **MP4 1080×1920, 30fps με SFX** (`sfx.js`, βλ. §5c) + `<ep>_sfx.wav` stem + timing sheet.
 
 ---
 
@@ -89,11 +89,32 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 - CTA κουμπί: y ≤ 1400, x στο κέντρο (540).
 - `node ep.js sheet` δείχνει τις κόκκινες ζώνες (`sheet clean` χωρίς αυτές). `preview t1 t2 guide` επίσης. Το render βγαίνει πάντα καθαρό.
 
+## 5c. SFX — `sfx.js` (procedural, χωρίς assets)
+Οι ήχοι είναι **κώδικας** (συνταγή + `seed`), όχι αρχεία: μικρό repo, μία διόρθωση ωφελεί όλα τα επεισόδια, παραλλαγές με `seed` (τα whoosh δεν ακούγονται copy-paste). Τα WAV είναι render outputs (εκτός git).
+- **Auto**: κάθε wipe → `whoosh` με peak στην αλλαγή σκηνής (seed = index σκηνής). `AUTO_SFX: false` για απενεργοποίηση.
+- **Χειροκίνητα** στο `render.js({...})`: `SFX: [[t, 'preset', { gain, pan, seed, dur, note }], ...]`. `gain` σχετικό (1 = default) · `pan` −1…1 · `dur` για ήχους με διάρκεια (laser loop, slide, tear, whoosh) · `note` → στήλη στο `_sfx.md`.
+- Άγνωστο preset / χρόνος εκτός βίντεο → warning στο `lint`, και το `render` σταματάει πριν το video.
+
+| Preset | Χρήση |
+|---|---|
+| `whoosh` · `swoosh` · `zoom` · `air` | wipes · γρήγορη κίνηση (thumb up) · zoom-in · αέρας/καπνός |
+| `tear` | σκίσιμο χαρτιού / σκίσιμο οθόνης |
+| `pop` · `blip` · `boing` | εμφάνιση (spring pop) · κείμενο/caption · κωμικό ελατήριο |
+| `click` · `beep` · `ticks` | κουμπί/ποντίκι · μηχάνημα (`count`) · slider (`count`, `rise`) |
+| `ding` · `shimmer` · `sent` | ✓ επιτυχία · αποτέλεσμα ✨ · μήνυμα στάλθηκε |
+| `thud` · `stamp` | κάτι ακουμπάει · σφραγίδα / «κλακ» |
+| `laser` · `lid` · `slide` | CO2 laser (loop με `dur`) · καπάκι μηχανήματος · χαρτί/αντικείμενο που σέρνεται |
+
+- `node sfx.js demo` → όλα τα presets στη σειρά (ακρόαση). Νέο preset → `P` + default στο `GAIN` + demo.
+- Levels: stem peak ≈ −3 dB, μέσος ≈ −23 dB (χώρος για VO + μουσική), limiter στο master.
+- Διόρθωση μόνο ήχου: `node ep.js sfx` → νέο stem + `_sfx.md` + remux στο υπάρχον MP4 σε ~1s, χωρίς video render.
+- CapCut: είτε ο ήχος του MP4, είτε mute + `<ep>_sfx.wav` για ξεχωριστό balance.
+
 ## 6. Workflow (για να μην καίμε tokens σε λάθη)
 1. **Σενάριο** σε πίνακα: Χρόνος | Εικόνα | VO | Κείμενο/SFX → έγκριση.
 2. Κώδικας επεισοδίου → `node ep.js sheet` (12 frames + safe-zone overlay + lint warnings σε κόκκινο) → έλεγχος: τίποτα σημαντικό στο κόκκινο.
 3. `node ep.js lint` → πρέπει να βγει **«lint ✔ καθαρό»** πριν το render (ανατομία χεριών, χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone).
-4. `node ep.js render` → MP4 + **timing sheet** VO/SFX για τον Αλέξανδρο.
+4. `node ep.js render` → MP4 με SFX + `<ep>_sfx.wav` + `<ep>_sfx.md` (πίνακας SFX, auto) + **timing sheet** VO για τον Αλέξανδρο. Αλλαγή μόνο στον ήχο → `node ep.js sfx`.
 5. (Προαιρετικά) Αν έρθει VO αρχείο → προσαρμογή timings/lip-sync στη φωνή.
 6. Episode log (§8) → `bash ship.sh <ep> "<msg>"` → ένα `<ep>.patch` (lint gate μέσα). Το chat δεν κάνει push· το Claude Code κάνει `git am` + push (βλ. CLAUDE.md).
 
@@ -142,4 +163,4 @@ Laser CO2, navy δερματίνη + ANNA CAFÉ, CTA «Στείλε μήνυμα
 | 18,7–21,4 | Ιδανικό για δώρα σε πελάτες, σε συνεργάτες, ή για την ομάδα σου. |
 | 21,8–26,8 | Στείλε μας μήνυμα με το λογότυπό σου και την ποσότητα που σε ενδιαφέρει, και φτιάξε τα δικά σου εταιρικά δώρα. |
 
-> ⚠️ Τα επεισόδια πριν το engine v2 (ad_plysi, ep01, pf01) έχουν pip/CTA σε θέσεις εκτός safe zone. Χρειάζονται μικρές αλλαγές θέσεων και captionSeq πριν από νέο render.
+> ⚠️ Τα επεισόδια πριν το engine v2 (ad_plysi, ep01, pf01) έχουν pip/CTA σε θέσεις εκτός safe zone. Χρειάζονται μικρές αλλαγές θέσεων και captionSeq πριν από νέο render. Στο ίδιο pass: `SFX` cues από το timing sheet τους (τα wipes παίρνουν ήδη auto whoosh).

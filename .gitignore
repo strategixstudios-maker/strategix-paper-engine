@@ -8,3 +8,6 @@ package-lock.json
 *_sheet.png
 HANDS_SHEET.png
 *_[0-9]*.png
+*.wav
+*.mp3
+*_sfx.md

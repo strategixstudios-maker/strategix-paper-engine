@@ -11,7 +11,8 @@
 | `stratos.js` | Ο Στράτος (rig v2). `node stratos.js` → character sheet PNG |
 | `hands.js` | Χέρια v3: τύποι × όψεις, auto view, lint. `node hands.js sheet` → HANDS_SHEET.png |
 | `props.js` | Επαναχρησιμοποιούμενα props |
-| `render.js` | Runner: sheet / preview / lint / render MP4 |
+| `render.js` | Runner: sheet / preview / lint / render MP4 (+SFX) / sfx (μόνο ήχος + remux) |
+| `sfx.js` | Procedural SFX: presets + mixer + WAV. `node sfx.js demo` → sfx_demo.wav |
 | `setup.sh` | Εγκατάσταση canvas + fonts σε νέο container |
 | `ship.sh` | chat → repo: lint gate + ένα `.patch` για `git am` στο Claude Code |
 | `ad_plysi.js` | AD «Η πλύση» (φούτερ DTF) |
@@ -30,7 +31,8 @@
 git clone https://github.com/strategixstudios-maker/strategix-paper-engine /home/claude/engine && cd /home/claude/engine && bash setup.sh
 node ep01_whatsapp_logo.js sheet        # 12 frames + safe-zone overlay + lint (sheet clean = χωρίς overlay)
 node ep01_whatsapp_logo.js lint         # πρέπει «lint ✔ καθαρό»
-node ep01_whatsapp_logo.js render       # MP4
+node ep01_whatsapp_logo.js render       # MP4 με SFX + _sfx.wav + _sfx.md
+node ep01_whatsapp_logo.js sfx          # μόνο ήχος (~1s) + remux στο MP4
 ```
 
 ## Νέο επεισόδιο (template)
@@ -40,5 +42,5 @@ const { stratos } = require('./stratos.js'); const P = require('./props.js');
 const VO = [[0.2, 2.0], [2.4, 4.5]];
 function s1(ctx, lt) { P.tiles(ctx); stratos(ctx, 540, 1100, 1, { legs: false, mouth: lipsync(VO), blink: blinkNow() });
   L.captionSeq(ctx, lt, [[0.1, 'Hook εδώ'], [2.4, 'Δεύτερο κομμάτι']]); P.seriesTag(ctx, lt, 'Σειρά #N'); }
-require('./render.js')({ name: 'ep02', SCENES: [[s1, 4.5]], WIPES: 'all' });
+require('./render.js')({ name: 'ep02', SCENES: [[s1, 4.5]], WIPES: 'all', SFX: [[0.3, 'pop'], [2.4, 'ding']] }); // wipes → auto whoosh
 ```
