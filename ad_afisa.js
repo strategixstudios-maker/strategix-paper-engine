@@ -5,17 +5,21 @@ const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, captionSeq, check, le
 const { stratos } = require('./stratos.js');
 const { BRAND, POSTER, poster, posterTube, phoneFrame, reach, sparkle, stamp, ctaButton, checkChip, pip, PIP, bgFlat, starsBG } = require('./props.js');
 
-// VO = vo/ad_afisa_vo.mp3 @ 0,2s (ElevenLabs eleven_v3, φωνή «Stratos», παύσεις σφιγμένες + atempo 1.06). Χρονισμοί φράσεων (απόλυτοι, silence detect):
-// 0,23 Περίμενες μια εβδομάδα την αφίσα σου... | 2,53 και βγήκε θολή. | 3,72 [sighs] Γνωστό σενάριο. | 5,26 Εκτός αν... | 6,28 την ανεβάσεις εδώ, από το κινητό σου.
-// 8,28 Διαλέγεις μέγεθος, | 9,30 και βλέπεις αν η ανάλυση φτάνει. | 10,93 Πριν πληρώσεις. | 11,96 Premium ματ χαρτί, διακόσια πενήντα γραμμάρια.
-// 14,47 Έρχεται σε σωλήνα. | 15,48 Χωρίς τσακίσεις. | 16,57 Αφίσα από δεκατρία ευρώ. | 18,02 Ανέβασε τη φωτογραφία σου | 19,37 στο strategixstudios.com. (–21,12)
+// VO = vo/ad_afisa_vo.mp3 @ 0,1s (ElevenLabs eleven_v3, φωνή «Stratos», χωρίς «[sighs] Γνωστό σενάριο», παύσεις σφιγμένες + atempo 1.06). Χρονισμοί φράσεων (απόλυτοι, silence detect):
+// 0,13 Περίμενες μια εβδομάδα την αφίσα σου... | 2,43 και βγήκε θολή. | 3,71 Εκτός αν... | 4,74 την ανεβάσεις εδώ, από το κινητό σου.
+// 6,73 Διαλέγεις μέγεθος, | 7,75 και βλέπεις αν η ανάλυση φτάνει. | 9,38 Πριν πληρώσεις. | 10,42 Premium ματ χαρτί, διακόσια πενήντα γραμμάρια.
+// 12,93 Έρχεται σε σωλήνα. | 13,94 Χωρίς τσακίσεις. | 15,02 Αφίσα από δεκατρία ευρώ. | 16,48 Ανέβασε τη φωτογραφία σου | 17,83 στο strategixstudios.com. (–19,58)
 const T = {
-  hook: 0.23, tholi: 2.53, senario: 3.72, ektos: 5.26, anevaseis: 6.28, megethos: 8.28, prin: 10.93,
-  xarti: 11.96, solinas: 14.47, tsakiseis: 15.48, timi: 16.57, cta: 18.02, end: 21.12,
+  hook: 0.13, tholi: 2.43, ektos: 3.71, anevaseis: 4.74, megethos: 6.73, prin: 9.38,
+  xarti: 10.42, solinas: 12.93, tsakiseis: 13.94, timi: 15.02, cta: 16.48, end: 19.58,
 };
+// φράσεις VO (απόλυτες) → ducking των SFX που πέφτουν πάνω στη φωνή
+const PHR = [[0.13, 1.96], [2.43, 3.29], [3.71, 4.5], [4.74, 6.56], [6.73, 9.16], [9.38, 10.23], [10.42, 12.76], [12.93, 13.79], [13.94, 14.79], [15.02, 16.29], [16.48, 17.69], [17.83, 19.58]];
+const SFX_MIX = 0.5, SFX_DUCK = 0.45; // όλα τα SFX −6 dB · όσα πέφτουν πάνω σε φράση άλλα −7 dB (≈ −13 dB κάτω από το VO)
+const duck = cues => cues.map(([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * SFX_MIX * (on ? SFX_DUCK : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; });
 const VO = []; // lip-sync από την ένταση του αρχείου (ST.VOENV)
 const S = { // όρια σκηνών (απόλυτα)
-  a: 0, b: T.ektos - 0.1, c: T.anevaseis - 0.15, d: T.megethos - 0.2, e: T.xarti - 0.2, f: T.solinas - 0.2, g: T.timi - 0.2, h: T.end + 0.3,
+  a: 0, b: T.ektos - 0.1, c: T.anevaseis - 0.15, d: T.megethos - 0.2, e: T.xarti - 0.2, f: T.solinas - 0.2, g: T.timi - 0.2, h: T.end + 0.15,
 };
 const rel = k => T[k] - S[Object.keys(S).reverse().find(s => S[s] <= T[k])]; // χρόνος φράσης μέσα στη σκηνή του
 const SX = 820, SY = 1010, SS = 0.8; // Στράτος στο hook
@@ -36,13 +40,11 @@ function hookShot(ctx, lt, t0, st) { // τοίχος + αφίσα που ξετ�
 }
 
 // ---------- σκηνές ----------
-function sA(ctx, lt) { // hook: η αφίσα ήρθε… θολή → facepalm
-  const shock = lt > rel('tholi') + 0.1, palm = lt > rel('senario') - 0.15;
-  hookShot(ctx, lt, 0, palm
-    ? { arms: [0.12, -2.65], armRFront: true, handR: 'open', mouth: lipsync(VO, 'flat'), eyes: 'tired', brows: -0.4, look: -6 }
-    : { arms: [0.12, 0.12], mouth: lipsync(VO, shock ? 'shock' : 'smile'), eyes: shock ? 'shock' : 'happy', brows: shock ? 1.2 : 0.5, look: -14 });
+function sA(ctx, lt) { // hook: η αφίσα ήρθε… θολή
+  const shock = lt > rel('tholi') + 0.1;
+  hookShot(ctx, lt, 0, { arms: [0.12, 0.12], mouth: lipsync(VO, shock ? 'shock' : 'smile'), eyes: shock ? 'shock' : 'happy', brows: shock ? 1.2 : 0.5, look: shock ? -8 : -14 });
   stamp(ctx, lt, rel('tholi') + 0.35, PA[0], PA[1] + PA[3] * 0.42, 'ΘΟΛΗ', -0.12, '#D6453D', 96);
-  captionSeq(ctx, lt, [[0.05, 'Περίμενες μια εβδομάδα την αφίσα σου...'], [rel('tholi') - 0.05, '...και βγήκε θολή.'], [rel('senario') - 0.05, 'Γνωστό σενάριο.']]);
+  captionSeq(ctx, lt, [[0.05, 'Περίμενες μια εβδομάδα την αφίσα σου...'], [rel('tholi') - 0.05, '...και βγήκε θολή.']]);
 }
 function sB(ctx, lt) { // «Εκτός αν...» — δάχτυλο πάνω, μικρό zoom στον Στράτο
   const z = easeInOut(prog(lt, 0, 0.6)), zs = lerp(1, 1.18, z);
@@ -101,7 +103,7 @@ function sD(ctx, lt) {
   if (lt > pickT - 0.45 && out < 1) reach(ctx, tipP[0] + out * 300, tipP[1] + press + (1 - hin) * 800 + out * 700, 380, 900, { seed: 7440, hand: 'point' });
   checkChip(ctx, lt, rel('prin') + 0.05, 650, 1390, 'Πριν πληρώσεις', { seed: 7450, fs: 54, rot: -0.03 });
   pip(ctx, ...PIP, VO, { rest: 'smile', eyes: 'happy' });
-  captionSeq(ctx, lt, [[0.05, 'Διαλέγεις μέγεθος,'], [rel('megethos') + 0.98, '...και βλέπεις αν η ανάλυση φτάνει.'], [rel('prin') - 0.05, 'Πριν πληρώσεις.']]);
+  captionSeq(ctx, lt, [[0.05, 'Διαλέγεις μέγεθος,'], [rel('megethos') + 1.0, '...και βλέπεις αν η ανάλυση φτάνει.'], [rel('prin') - 0.05, 'Πριν πληρώσεις.']]);
 }
 function sE(ctx, lt) { // premium ματ χαρτί 250gr: hero αφίσα + χέρι που τη χαϊδεύει
   bgFlat(ctx, C.pale, '#BFD0F0', 23);
@@ -144,18 +146,20 @@ function sG(ctx, lt) { // CTA: καθαρή αφίσα στον τοίχο + Σ�
 function sH(ctx, lt) { hookShot(ctx, 0, 0, { arms: [0.12, 0.12], mouth: 'smile', eyes: 'happy', brows: 0.5, look: -14 }); } // loop → frame 0
 
 const d = k => { const ks = Object.keys(S); const i = ks.indexOf(k); return S[ks[i + 1]] - S[k]; };
+const SCENES = [[sA, d('a')], [sB, d('b')], [sC, d('c')], [sD, d('d')], [sE, d('e')], [sF, d('f')], [sG, d('g')], [sH, 0.25]], WIPES = [2, 4, 5, 6, 7];
+const START = SCENES.reduce((a, [, du]) => [...a, a[a.length - 1] + du], [0]);
 require('./render.js')({
   name: 'ad_afisa',
-  SCENES: [[sA, d('a')], [sB, d('b')], [sC, d('c')], [sD, d('d')], [sE, d('e')], [sF, d('f')], [sG, d('g')], [sH, 0.3]],
-  WIPES: [2, 4, 5, 6, 7],
-  VO_FILE: require('fs').existsSync('vo/ad_afisa_vo.mp3') ? 'vo/ad_afisa_vo.mp3' : undefined, VO_AT: 0.2,
-  SFX: [
+  SCENES, WIPES, AUTO_SFX: false, // wipes → whoosh εδώ, για να περνάνε κι αυτά από το duck
+  VO_FILE: require('fs').existsSync('vo/ad_afisa_vo.mp3') ? 'vo/ad_afisa_vo.mp3' : undefined, VO_AT: 0.1,
+  SFX: duck([
+    ...WIPES.map(k => [START[k] - 0.27, 'whoosh', { seed: k, note: 'wipe' }]),
     [0.12, 'slide', { dur: 0.8, note: 'αφίσα ξετυλίγεται' }], [T.tholi + 0.1, 'boing', { note: 'θολή' }], [T.tholi + 0.35, 'stamp', { note: 'ΘΟΛΗ' }],
-    [T.senario - 0.1, 'thud', { gain: 0.6, note: 'facepalm' }], [T.ektos, 'pop', { note: 'δάχτυλο πάνω' }],
+    [T.ektos, 'pop', { note: 'δάχτυλο πάνω' }],
     [S.c + rel('anevaseis') + 0.45, 'click', { note: 'tap upload' }], [S.c + rel('anevaseis') + 0.65, 'pop', { note: 'φωτογραφία' }], [S.c + rel('anevaseis') + 1.3, 'ding', { gain: 0.7, note: 'upload ✓' }],
     [T.megethos + 0.25, 'ticks', { count: 6, note: 'κουκκίδες ποιότητας' }], [T.megethos + 1.8, 'click', { note: 'επιλογή 40×50' }], [T.megethos + 1.9, 'ding', { note: 'άριστη ανάλυση' }], [T.prin + 0.05, 'pop', { note: 'Πριν πληρώσεις' }],
     [S.e + 0.05, 'pop', { note: 'hero αφίσα' }], [S.e + 0.5, 'stamp', { note: 'Ματ 250gr' }], [S.e + 0.85, 'slide', { dur: 1.0, gain: 0.7, note: 'χέρι στο χαρτί' }], [S.e + 0.4, 'shimmer', { gain: 0.6 }],
     [S.f + 0.05, 'slide', { dur: 0.55, note: 'τύλιγμα' }], [S.f + 1.0, 'swoosh', { note: 'ρολό στον σωλήνα' }], [S.f + 1.4, 'lid', { note: 'καπάκι' }], [T.tsakiseis + 0.05, 'ding', { gain: 0.7 }],
     [S.g + 0.35, 'stamp', { note: 'Από 13 €' }], [S.g + 0.3, 'swoosh', { note: 'thumb up' }], [T.cta + 0.2, 'pop', { note: 'CTA' }], [T.cta + 0.6, 'shimmer', { gain: 0.7 }],
-  ],
+  ]),
 });
