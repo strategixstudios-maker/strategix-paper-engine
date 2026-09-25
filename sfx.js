@@ -155,9 +155,53 @@ const P = {
     for (let i = 0; i < n.length; i++) { const t = i / SR, fr = 420 * Math.pow(1250 / 420, Math.min(1, t / 0.14)); ph += TAU * fr / SR; if (i % 32 === 0) f.set('bp', fr * 2, 2); n[i] = Math.sin(ph) * env(t, 0.005, 0.07) + f.run(W(r)) * 0.35 * env(t, 0.01, 0.06); }
     return n;
   },
+  // vinyl plotter (drag knife): stepper whine που αλλάζει με την ταχύτητα ανά segment + ξύσιμο λεπίδας + «τικ» στις αλλαγές κατεύθυνσης
+  plotter(o, r) {
+    const d = o.dur ?? 2.5, seg = o.seg ?? 0.22, n = buf(d), mLP = biquad().set('lp', 2600, 0.7), sc = biquad().set('bp', 5200, 1.1), scl = biquad().set('hp', 2500), tk = biquad().set('bp', 3000, 3);
+    let ph = 0, segEnd = 0, v0 = 0, v1 = 0, segLen = 1, segStart = 0, tick = 0, grit = 0, gT = 0;
+    for (let i = 0; i < n.length; i++) {
+      const t = i / SR, u = i / n.length;
+      if (i >= segEnd) { v0 = v1; v1 = 0.35 + r() * 0.65; segStart = i; segLen = Math.floor(SR * seg * (0.5 + r())); segEnd = i + segLen; tick = Math.floor(SR * 0.004); }
+      const su = (i - segStart) / segLen, ramp = su < 0.12 ? su / 0.12 : su > 0.88 ? (1 - su) / 0.12 : 1, v = v1 * ramp;
+      ph += TAU * (220 + 900 * v) / SR;
+      const s = Math.sin(ph), motor = (s + 0.3 * Math.sin(2 * ph) + 0.25 * Math.sign(s) + 0.12 * Math.sin(3.01 * ph)) * (0.1 + 0.9 * v);
+      if (i >= gT) { grit = 0.4 + r() * 0.6; gT = i + Math.floor(SR * (0.002 + r() * 0.01)); }
+      const scratch = sc.run(W(r)) * grit * v * 0.9 + scl.run(W(r)) * 0.08 * v;
+      const k = tick-- > 0 ? tk.run(W(r)) * 1.2 : tk.run(0);
+      n[i] = (mLP.run(motor) * 0.45 + scratch + k) * fade(u, 0.04, 0.1);
+    }
+    return n;
+  },
+  // vinyl ξεκολλάει από το backing (weeding / transfer tape): πυκνά micro-crackles κόλλας + stick-slip rasp · o.speed 0..1 (αργό = πιο «τραγανό»)
+  peel(o, r) {
+    const d = o.dur ?? 2.0, spd = o.speed ?? 0.5, n = buf(d), c1 = biquad(), body = biquad().set('bp', 1400, 0.9), hp = biquad().set('hp', 700), lo = biquad().set('lp', 500, 0.7);
+    let next = 0, burst = 0, amp = 0, sp = 0, slipPh = 0;
+    for (let i = 0; i < n.length; i++) {
+      const t = i / SR, u = i / n.length;
+      const vel = (0.55 + 0.45 * Math.sin(TAU * (0.7 + spd) * t + 1.3) * Math.sin(TAU * 0.23 * t + 0.4)) * fade(u, 0.08, 0.15);
+      if (i >= next) { const dens = 350 + 2200 * vel * (0.6 + spd); next = i + Math.floor(SR / dens * (0.2 + r() * 1.6)); burst = Math.floor(SR * (0.00015 + r() * 0.0006)); amp = (0.25 + r() * 0.75) * (r() < 0.06 ? 1.8 : 1); c1.set('bp', 2200 + r() * 4200, 1.8); }
+      const c = burst-- > 0 ? W(r) * amp : 0;
+      slipPh += (70 + 110 * vel) / SR; const slip = Math.pow(Math.max(0, Math.sin(TAU * slipPh)), 6);
+      sp += (vel - sp) * 0.002;
+      n[i] = (c1.run(c) * 1.6 + body.run(hp.run(W(r))) * 0.35 * slip * sp + lo.run(W(r)) * 0.15 * sp) * vel;
+    }
+    return n;
+  },
+  // ράκλα (squeegee) πάνω σε vinyl/transfer tape: τρίψιμο πλαστικού + αχνό «τσιρ» · strokes = περάσματα
+  squeegee(o, r) {
+    const d = o.dur ?? 0.9, st = o.strokes ?? 1, n = buf(d), bp = biquad().set('bp', 950, 0.9), hp = biquad().set('hp', 3500), sq = biquad().set('bp', 2600, 8), p = pink(r);
+    let ph = 0;
+    for (let i = 0; i < n.length; i++) {
+      const t = i / SR, u = i / n.length, k = Math.min(st - 1, Math.floor(u * st)), v = u * st - k, e = v < 0.85 ? bell(v / 0.85, 0.3) : 0;
+      ph += TAU * (2300 + 350 * Math.sin(TAU * 9 * t) + 600 * e) / SR;
+      const rub = bp.run(p()) * 2.4 + hp.run(W(r)) * 0.12, squeak = sq.run(Math.sin(ph) * (r() < 0.5 ? 1 : 0.2)) * 0.5 * Math.max(0, e - 0.5) * 2;
+      n[i] = (rub + squeak) * e * (0.8 + 0.2 * Math.sin(TAU * 31 * t));
+    }
+    return n;
+  },
 };
 // default gains (σχετική ένταση στο stem)
-const GAIN = { laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
+const GAIN = { plotter: 0.5, peel: 0.6, squeegee: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
 
 function norm(x, pk = 0.7) { let m = 0; for (const v of x) m = Math.max(m, Math.abs(v)); if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= pk / m; return x; }
 function make(name, o = {}) {
@@ -186,7 +230,7 @@ module.exports = { SR, P, GAIN, make, mix, writeWav };
 if (require.main === module) {
   const [cmd = 'demo', seed] = process.argv.slice(2);
   if (cmd === 'demo') {
-    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }]];
+    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }]];
     let t = 0.3; const cues = [];
     for (const [nm, o = {}] of list) { const len = make(nm, o)[0].length / SR; cues.push([t, nm, o]); console.log(`${t.toFixed(1).padStart(5)}s  ${nm}${o.seed ? ' (seed ' + o.seed + ')' : ''}`); t += len + 0.6; }
     writeWav('sfx_demo.wav', mix(cues, t + 0.3)); console.log('sfx_demo.wav', t.toFixed(1) + 's');

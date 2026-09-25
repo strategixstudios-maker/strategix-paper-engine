@@ -41,3 +41,8 @@ Timing sheet: `ad_afisa_timing_sheet.md`.
 CO2 laser + **rotary**, navy powder-coat θερμός → η δέσμη αφαιρεί τη βαφή, βγαίνει ασημί ανοξείδωτο. KOSTAS COFFEE, CTA «Στείλε μήνυμα». VO `vo/pf02_vo.mp3` (atempo 1.06). SFX −6 dB + ducking κάτω από το VO (2η φορά μετά το ad_afisa → `DUCK` στο engine).
 Νέα props: `thermos` (κυλινδρική προβολή χάραξης: `engrave`, `phase`, `thermosPhase(p)`, `TH` geometry), `rotary` (πρόσοψη / `top` κάτοψη), `layersInset` (τομή βαφή → ανοξείδωτο), `kostasLogo` (μεταφέρθηκε από το ep01, `mono` για χάραξη).
 Timing sheet: `pf02_timing_sheet.md`.
+
+### ORGANIC — «Πριν / Μετά» #1 Η τζαμαρία (16,8s) · `pm01_vitrina.js`
+Split Α (άδειο τζάμι) | Β (ANNA CAFÉ σε βινύλιο) → montage plotter → weeding → transfer tape → τζάμι → περαστικός σταματάει στο Β, μέρα → νύχτα (φωτισμένο τζάμι) → CTA comment bait «Α ή Β; Και γιατί;» πάνω στο ίδιο split (αόρατο loop). Ξεκίνησε ως «Weeding ASMR» — ο ψίθυρος στο VO βγήκε cringe, κράτησα μόνο assets + ήχους.
+Νέα SFX presets: `plotter`, `peel` (`speed`), `squeegee` (`strokes`). Νέα props στο επεισόδιο (1η χρήση): vinyl layers (`logoC`/`accOnly`/`wasteLayer`/`tapeLayer`), γενικό `peel()` (καθρεφτισμένο flap), `sheet`, `plotterRail`, `squeegee`, `pencil`, `shopfront`/`onGlass`, `shop`/`street`/`awning`, `splitLabels`, `walker`.
+Timing sheet: `pm01_timing_sheet.md`.
