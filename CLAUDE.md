@@ -11,17 +11,19 @@
 ## Εφαρμογή patch από το chat (Claude Code)
 1. `git pull --ff-only`
 2. `git am <file>.patch`. Αν αποτύχει: `git am --abort`, δείξε τη σύγκρουση, ΠΟΤΕ force/overwrite.
-3. `bash setup.sh` (αν λείπουν deps) → `node regress.js origin/main` = τι άλλαξε το patch σε ΟΛΑ τα επεισόδια (lint · frames · ήχος). Νέο crash / νέο lint warning → stop. Οπτική/ηχητική αλλαγή σε επεισόδιο που δεν αφορά το patch → δείξ' τη (`regress/<ep>.png`) πριν το push.
+3. `bash setup.sh` (αν λείπουν deps) → `node regress.js origin/main` (αν άλλαξε το engine): νέο crash → stop. Νέα lint / οπτικές αλλαγές σε παλιά επεισόδια = μία γραμμή στην αναφορά (χωρίς έλεγχο εικόνων, χωρίς διόρθωση).
 4. `git push` και σύντομη αναφορά: commits, αρχεία, regress, νέες γραμμές στο `BACKLOG.md`.
 
 ## Engine που βελτιώνεται — κανόνας 2ης φοράς
+**Τα παλιά επεισόδια μένουν όπως παραδόθηκαν**: διόρθωση, render ή οπτικός έλεγχος σε παλιό επεισόδιο μόνο όταν το ζητήσει ο Αλέξανδρος. Κάθε ζητούμενη διόρθωση → στο επεισόδιο που ζητήθηκε + στο engine/κανόνες/lint, ώστε να ισχύει στα νέα. (Ο έλεγχος όλων των παλιών σε κάθε αλλαγή δεν κλιμακώνεται σε tokens.)
+
 Ό,τι γράφεται ή διορθώνεται **2η φορά** πάει στο engine, ώστε το επόμενο επεισόδιο να το έχει έτοιμο:
 - ίδιος κώδικας σε 2 επεισόδια → prop/helper στο engine (π.χ. `kostasLogo` → props, `duck()` → `DUCK` default στο render.js)
 - ίδια ρύθμιση/διόρθωση 2 φορές → default στο engine, όχι copy-paste στο επεισόδιο
 - ίδιο λάθος 2 φορές → lint rule (render/hands) ή κανόνας στο STYLE_GUIDE/HANDS
 - νέο prop: 1η χρήση μέσα στο επεισόδιο · 2η → `props/<θέμα>.js` με σχόλιο περιγραφής (`node api.js --check`)
 - ό,τι δεν χωράει τώρα → μία γραμμή στο `BACKLOG.md` (`[πηγή] πρόβλημα → πρόταση`)
-- κάθε αλλαγή engine: συμβατή με τα παλιά επεισόδια (νέα option με default, όχι rename) + `node regress.js` → καμία ακούσια αλλαγή
+- κάθε αλλαγή engine: συμβατή με τα παλιά επεισόδια (νέα option με default, όχι rename) + `node regress.js` → κανένα crash
 
 ## Οικονομία context
 - Engine: `node api.js` (κατάλογος) → `node api.js <όνομα>` (αρχείο:γραμμή) → διάβασε μόνο αυτή τη συνάρτηση. Όχι ολόκληρα αρχεία του engine.
@@ -29,7 +31,7 @@
 
 ## Κανόνες κώδικα
 - Μόνο με το engine (lib.js, stratos.js, hands.js, props/, render.js, sfx.js). VO sources στο `vo/` (τα μόνα mp3 στο git). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
-- Αλλαγή στο engine → `node regress.js` (όλα τα επεισόδια vs HEAD: lint, frames, ήχος).
+- Αλλαγή στο engine → `node regress.js` (crash check σε όλα τα επεισόδια vs HEAD, συνοπτικό output).
 - Αλλαγή κανόνα → STYLE_GUIDE/HANDS στο ΙΔΙΟ commit.
 - Όχι render outputs στο git (MP4, sheets, previews, `regress/`) — βλ. .gitignore.
 

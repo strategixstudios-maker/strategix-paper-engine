@@ -241,14 +241,13 @@ function sH(ctx, lt) { // CTA: split Α | Β + Στράτος «ζυγαριά»
   captionSeq(ctx, lt, [[0.05, 'Εσύ ποιο μαγαζί θα διάλεγες;'], [rel('giati', 'h'), 'Α ή Β; Γράψε και γιατί.']]);
   seriesTag(ctx, lt, 'Πριν / Μετά');
 }
-function sI(ctx, lt) { sA(ctx, 99); } // loop → frame 0 (labels ήδη ανοιχτά — σχεδόν αόρατο loop)
 
 const RAIL_Y = 830;
-const SCENES = [[sA, d('a')], [sB, d('b')], [sC, d('c')], [sD, d('d')], [sE, d('e')], [sF, d('f')], [sG, d('g')], [sH, d('h')], [sI, 0.3]], WIPES = [2, 5, 6, 7];
+const SCENES = [[sA, d('a')], [sB, d('b')], [sC, d('c')], [sD, d('d')], [sE, d('e')], [sF, d('f')], [sG, d('g')], [sH, d('h')]], WIPES = [2, 5, 6, 7]; // + LOOP: wipe → frame 0
 const Sc = (k, t) => S[k] + t;
 require('./render.js')({
   name: 'pm01_vitrina',
-  SCENES, WIPES, // wipes → auto whoosh
+  SCENES, WIPES, LOOP: true, // wipes → auto whoosh · LOOP: τέλος = frame 0
   VO_FILE: require('fs').existsSync('vo/pm01_vo.mp3') ? 'vo/pm01_vo.mp3' : undefined, VO_AT: 0.1,
   SFX: [
     [0.15, 'pop', { note: 'Α' }], [0.3, 'pop', { f0: 860, note: 'Β' }],

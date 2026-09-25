@@ -2,7 +2,8 @@
 // node regress.js [base=HEAD] [ep ...] [--fresh]     π.χ. node regress.js origin/main  ·  node regress.js HEAD pf02_thermos_laser
 //   ανά επεισόδιο: lint (νέα / λυμένα warnings) · 12 frames του sheet (pixel diff) · SFX stem (ίδιο ή Δ dB)
 //   οπτική αλλαγή → regress/<ep>.png (πάνω base · μέση νέο · κάτω diff σε κόκκινο)
-//   exit 1 μόνο για ΝΕΟ crash ή ΝΕΟ lint warning. Οπτικές/ηχητικές αλλαγές = αναφορά (σκόπιμες; αλλιώς διόρθωσε).
+//   exit 1 μόνο για ΝΕΟ crash. Τα παλιά επεισόδια μένουν όπως παραδόθηκαν: νέα lint / οπτικές / ηχητικές αλλαγές σε αυτά = μία γραμμή, όχι stop
+//   (οι νέοι κανόνες lint ισχύουν για τα νέα επεισόδια μέσω του lint gate του ship.sh). Output συνοπτικό: μόνο ό,τι άλλαξε + πλήθος ίδιων.
 // Τρέχει σε αντίγραφα στο tmp (δεν αγγίζει outputs/MP4 του repo). Τα αποτελέσματα του base μένουν σε cache ανά commit.
 const fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto');
 const { execSync, spawn } = require('child_process');
@@ -87,7 +88,7 @@ async function frames(bf, cf, ep) {
   }
   let next = 0; await Promise.all(Array.from({ length: Math.min(os.cpus().length, jobs.length) }, async () => { while (next < jobs.length) await jobs[next++](); }));
 
-  let fail = 0; const rows = [], notes = [], pad = Math.max(...eps.map(e => e.length - 3));
+  let fail = 0, same = 0; const rows = [], notes = [], lintOld = [], pad = Math.max(...eps.map(e => e.length - 3));
   for (const ep of eps) {
     const { b, c } = R[ep], name = ep.replace(/\.js$/, '');
     if (!c) { rows.push([name, 'αφαιρέθηκε', '', '']); continue; }
@@ -95,17 +96,20 @@ async function frames(bf, cf, ep) {
     let lint;
     if (c.crash) lint = '✘ crash';
     else { const nw = c.lint.filter(m => !(b && b.lint || []).includes(m)), fx = (b && b.lint || []).filter(m => !c.lint.includes(m));
-      lint = (c.lint.length ? String(c.lint.length) : '✔') + (nw.length ? ` ✘ +${nw.length} νέα` : c.lint.length && b ? ' (ίδια)' : '') + (fx.length ? ` −${fx.length} λύθηκαν` : '');
-      if (nw.length) { fail = 1; for (const m of nw) notes.push(`✘ ${name}: νέο lint — ${m}`); } }
+      lint = (c.lint.length ? String(c.lint.length) : '✔') + (nw.length ? ` +${nw.length} νέα` : c.lint.length && b ? ' (ίδια)' : '') + (fx.length ? ` −${fx.length} λύθηκαν` : '');
+      if (nw.length && b) lintOld.push(`${name} +${nw.length}`); }
     if (!b) { rows.push([name, lint, 'νέο', 'νέο']); continue; }
     const fr = c.sheet && b.sheet ? await frames(b.sheet, c.sheet, ep) : null;
     if (fr) notes.push(`→ regress/${name}.png`);
     const au = !c.sfx || !b.sfx ? '—' : c.sfx.hash === b.sfx.hash ? '✔ ίδιο' : `Δ rms ${b.sfx.rms}→${c.sfx.rms} dB · peak ${b.sfx.peak}→${c.sfx.peak}` + (b.sfx.dur !== c.sfx.dur ? ` · ${b.sfx.dur}→${c.sfx.dur}s` : '');
+    if (!c.crash && !fr && !au.startsWith('Δ')) { if (!/νέα|λύθηκαν/.test(lint)) same++; continue; } // ίδια εικόνα/ήχος → μόνο στο πλήθος (τα νέα lint σε μία γραμμή)
     rows.push([name, lint, fr === null ? '—' : fr ? `Δ ${fr}/12` : '✔ ίδια', au]);
   }
   console.log(`regress: ${/^[0-9a-f]{40}$/.test(base) ? hash.slice(0, 7) : `${base} (${hash.slice(0, 7)})`} → working tree · ${eps.length} επεισόδια · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
-  console.log(`${''.padEnd(pad)}  ${'lint'.padEnd(22)}${'frames'.padEnd(12)}SFX`);
+  if (rows.length) console.log(`${''.padEnd(pad)}  ${'lint'.padEnd(22)}${'frames'.padEnd(12)}SFX`);
   for (const [n, l, f, a] of rows) console.log(`${n.padEnd(pad)}  ${l.padEnd(22)}${f.padEnd(12)}${a}`);
+  if (same) console.log(`✔ ${same} επεισόδια ίδια (lint · frames · ήχος)`);
+  if (lintOld.length) console.log(`· νέα lint σε παλιά (ενημερωτικά, όχι stop): ${lintOld.join(' · ')}`);
   for (const n of notes) console.log(n);
   fs.rmSync(CUR, { recursive: true, force: true });
   process.exitCode = fail;

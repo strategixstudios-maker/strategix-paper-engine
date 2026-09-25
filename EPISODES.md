@@ -45,4 +45,4 @@ Timing sheet: `pf02_timing_sheet.md`. v2.1: ρολά του ραφιού κάτ�
 ### ORGANIC — «Πριν / Μετά» · Η τζαμαρία (16,8s) · `pm01_vitrina.js`
 Split Α (άδειο τζάμι) | Β (ANNA CAFÉ σε βινύλιο) → montage plotter → weeding → transfer tape → τζάμι → περαστικός σταματάει στο Β, μέρα → νύχτα (φωτισμένο τζάμι) → CTA comment bait «Α ή Β; Και γιατί;» πάνω στο ίδιο split (αόρατο loop). Ξεκίνησε ως «Weeding ASMR» — ο ψίθυρος στο VO βγήκε cringe, κράτησα μόνο assets + ήχους.
 Νέα SFX presets: `plotter`, `peel` (`speed`), `squeegee` (`strokes`). Νέα props στο επεισόδιο (1η χρήση): vinyl layers (`logoC`/`accOnly`/`wasteLayer`/`tapeLayer`), γενικό `peel()` (καθρεφτισμένο flap), `sheet`, `plotterRail`, `squeegee`, `pencil`, `shopfront`/`onGlass`, `shop`/`street`/`awning`, `splitLabels`, `walker`.
-Timing sheet: `pm01_timing_sheet.md`. v2.1: caption 3 γραμμών (9,5s) → «Και ξαφνικά...» / «...η τζαμαρία σου δουλεύει για σένα.» (VO 9,46 / 10,50).
+Timing sheet: `pm01_timing_sheet.md`. v2.1: caption 3 γραμμών (9,5s) → «Και ξαφνικά...» / «...η τζαμαρία σου δουλεύει για σένα.» (VO 9,46 / 10,50) · loop: `LOOP: true` (wipe → frame 0) αντί για σκηνή με «Μία διαφορά.» στο τέλος.

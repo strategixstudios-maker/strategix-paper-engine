@@ -5,6 +5,7 @@
 //       node ep.js render [out.mp4] -> 1080x1920 30fps H.264
 //       node ep.js lint             -> anatomy/safe-zone warnings for the whole video (10 samples/s), exit 1 if any
 //       node ep.js sfx              -> μόνο ήχος: <n>_sfx.wav + <n>_sfx.md και remux στο υπάρχον MP4 (χωρίς νέο video render)
+// LOOP: true → ουρά 0,3s με wipe που καταλήγει ακριβώς στο frame 0 (το lint ελέγχει ότι τέλος = αρχή: caption + εικόνα)
 // SFX: auto whoosh σε κάθε wipe + ep.SFX = [[t, 'preset', {gain, pan, seed, dur, note}], ...] (βλ. sfx.js). AUTO_SFX:false → μόνο τα χειροκίνητα.
 // VO:  ep.VO_FILE = 'vo/<ep>_vo.mp3' (στο repo), VO_AT = offset s, VO_GAIN. → <n>_vo.wav stem + <n>_mix.wav (VO+SFX) στο MP4, lip-sync από την ένταση (ST.VOENV).
 // DUCK (default με VO): όλα τα SFX ×mix 0.5 (−6 dB) και όσα πέφτουν πάνω σε φράση ×duck 0.45 (άλλα −7 dB). Φράσεις αυτόματα από την ένταση του VO.
@@ -15,9 +16,17 @@ const SFX = require('./sfx.js');
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 
+const LOOP_BLOCKS = 12; // loop lint: max περιοχές 40×40 px που αλλάζουν > 20% ανάμεσα στο τελευταίο και το πρώτο frame (boil/grain/σπίθες μένουν κάτω)
 const NOISE = [0, 1, 2].map(k => { const c = L.createCanvas(360, 640), x = c.getContext('2d'), im = x.createImageData(360, 640), r = rng(k + 5); for (let i = 0; i < im.data.length; i += 4) { const v = 205 + r() * 50; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c; });
 
 module.exports = function run(ep) {
+  // LOOP (§5.7): ουρά που γυρίζει στο frame 0, ώστε το τέλος να δένει με την αρχή · true = torn-paper wipe (+ auto whoosh) · 'cut' = κόψιμο · LOOP_DUR (default 0.3s = wipe + 2 frames)
+  if (ep.LOOP) {
+    const s0 = ep.SCENES[0][0], n = ep.SCENES.length;
+    if (ep.WIPES === 'all') ep.WIPES = ep.SCENES.map((_, i) => i).slice(1);
+    ep.SCENES = [...ep.SCENES, [ctx => s0(ctx, 0), ep.LOOP_DUR || Math.max(0.3, (ep.TR || 0.22) + 0.08)]];
+    if (ep.LOOP !== 'cut') ep.WIPES = [...(ep.WIPES || []), n];
+  }
   const STARTS = []; let acc = 0; for (const [, d] of ep.SCENES) { STARTS.push(acc); acc += d; }
   const TOTAL = acc, TR = ep.TR || 0.22, name = ep.name || 'video';
   const wipes = ep.WIPES === 'all' ? STARTS.map((_, i) => i).slice(1) : (ep.WIPES || []);
@@ -73,10 +82,20 @@ module.exports = function run(ep) {
     const WARN = new Map(); // msg -> [firstT, lastT]
     for (const [m, t] of sfxWarn()) WARN.set(m, [t, t]);
     const drawWarn = () => { ctx.save(); for (const w of ST.warn) { ctx.strokeStyle = '#FF1E50'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(w.x, w.y, 70, 0, 7); ctx.stroke(); ctx.font = 'bold 30px Round'; const tw = Math.min(ctx.measureText(w.msg).width, 1000); const bx = Math.max(10, Math.min(W - tw - 30, w.x - tw / 2)); ctx.fillStyle = '#FF1E50'; ctx.fillRect(bx - 10, w.y + 78, tw + 20, 44); ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(w.msg, bx, w.y + 100, 1000); } ctx.restore(); };
-    const draw = t => { ST.FRAME = Math.round(t * FPS); ST.capBottom = null; ST.warn = []; ctx.clearRect(0, 0, W, H); frame(ctx, t); if (guide && mode !== 'render') { L.safeGuide(ctx); drawWarn(); } for (const w of ST.warn) { const r = WARN.get(w.msg); r ? (r[1] = t) : WARN.set(w.msg, [t, t]); } };
+    const draw = t => { ST.FRAME = Math.round(t * FPS); ST.capBottom = null; ST.capText = null; ST.warn = []; ctx.clearRect(0, 0, W, H); frame(ctx, t); if (guide && mode !== 'render') { L.safeGuide(ctx); drawWarn(); } for (const w of ST.warn) { const r = WARN.get(w.msg); r ? (r[1] = t) : WARN.set(w.msg, [t, t]); } };
     const report = () => { if (!WARN.size) { console.log('lint ✔ καθαρό'); return 0; } console.log(`lint: ${WARN.size} warning(s)`); for (const [m, [a, b]] of WARN) console.log(`  ${a.toFixed(1)}–${b.toFixed(1)}s  ${m}`); return 1; };
     const avoidWipe = t => { for (const k of wipes) if (Math.abs(t - STARTS[k]) < TR + 0.05) return STARTS[k] + TR + 0.1; return t; };
-    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); process.exitCode = report(); return; }
+    // loop (§5.7): το τελευταίο frame πρέπει να δένει με το πρώτο — ίδιο caption + ίδια εικόνα (μικρογραφία 27×48: χωρίς boil/grain)
+    const snap = t => { draw(t); const d = ctx.getImageData(0, 0, W, H).data, g = new Float32Array(27 * 48 * 3);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, k = (Math.floor(y / 40) * 27 + Math.floor(x / 40)) * 3; g[k] += d[i]; g[k + 1] += d[i + 1]; g[k + 2] += d[i + 2]; }
+      return { cap: ST.capText, g }; };
+    const loopCheck = () => {
+      const a = snap(0), b = snap(TOTAL - 1 / FPS), q = s => s ? `«${s.length > 24 ? s.slice(0, 24) + '…' : s}»` : 'χωρίς caption';
+      let big = 0; for (let k = 0; k < a.g.length; k += 3) if (Math.abs(a.g[k] - b.g[k]) + Math.abs(a.g[k + 1] - b.g[k + 1]) + Math.abs(a.g[k + 2] - b.g[k + 2]) > 0.2 * 3 * 1600 * 255) big++;
+      if (a.cap !== b.cap) WARN.set(`loop: caption στο τέλος ${q(b.cap)} ≠ αρχή ${q(a.cap)} → LOOP: true`, [TOTAL, TOTAL]);
+      if (big > LOOP_BLOCKS) WARN.set(`loop: το τελευταίο frame δεν δένει με το πρώτο (${big} περιοχές αλλάζουν) → LOOP: true`, [TOTAL, TOTAL]);
+    };
+    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); loopCheck(); process.exitCode = report(); return; }
     if (mode === 'sfx') {
       const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : ''));
       if (fs.existsSync(mp4)) { const tmp = mp4.replace(/\.mp4$/, '') + '.tmp.mp4'; const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp]); if (r.status === 0) { fs.renameSync(tmp, mp4); console.log('remux', mp4); } else console.log('✘ remux', String(r.stderr)); }
@@ -86,7 +105,7 @@ module.exports = function run(ep) {
     if (mode === 'sheet') {
       const n = 12, sw = 270, sh = 480, sheet = L.createCanvas(sw * 6, sh * 2), sx = sheet.getContext('2d');
       for (let i = 0; i < n; i++) { const t = avoidWipe((i + 0.5) * TOTAL / n); draw(t); sx.drawImage(cv, (i % 6) * sw, Math.floor(i / 6) * sh, sw, sh); sx.fillStyle = '#000'; sx.fillRect((i % 6) * sw, Math.floor(i / 6) * sh, 70, 30); sx.fillStyle = '#fff'; sx.font = '22px Round'; sx.fillText(t.toFixed(1) + 's', (i % 6) * sw + 6, Math.floor(i / 6) * sh + 22); }
-      fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`); report(); return;
+      fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`); loopCheck(); report(); return;
     }
     const out = process.argv[3] || `${name}.mp4`, N = Math.round(TOTAL * FPS);
     const wav = CUES.length || VO ? writeSfx() : null; // πρώτα ο ήχος (1s): άγνωστο preset → σφάλμα πριν το video render

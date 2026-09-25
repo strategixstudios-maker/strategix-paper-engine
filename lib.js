@@ -173,7 +173,7 @@ function caption(ctx, text, lt, start = 0.15, o = {}) {
   cut(ctx, rectPts(0, 0, CAP.w, h), C.paper, { seed: 500 + lines.length, amp: 6, step: 16 });
   ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${fs}px Hand`;
   lines.forEach((l, i) => ctx.fillText(l, CAP.w / 2, 25 + lh / 2 + i * lh));
-  ctx.restore(); ST.capBottom = y + h;
+  ctx.restore(); ST.capBottom = y + h; ST.capText = text;
 }
 // timed caption chunks: seq = [[start, 'text'], ...] (lt-based). Only the first chunk slides in; later ones swap in place with a small pop.
 function captionSeq(ctx, lt, seq) {

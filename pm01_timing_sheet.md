@@ -13,7 +13,7 @@ SFX: νέα presets `plotter` · `peel` · `squeegee` (sfx.js) + ducking default
 | F · ξεκόλλημα στο τζάμι | 8,40–9,36 | (συνέχεια) | συνέχεια |
 | G · περαστικοί · μέρα → νύχτα | 9,36–13,19 | 9,46 Και ξαφνικά, · 10,50 η τζαμαρία σου δουλεύει για σένα. · 12,32 Όλη μέρα. | 3 |
 | H · CTA split + «ζυγαριά» | 13,19–16,49 | 13,39 Εσύ ποιο μαγαζί θα διάλεγες; · 15,52 Και γιατί; (–16,09) | 2 · seriesTag |
-| I · loop → frame 0 | 16,49–16,79 | — | — |
+| I · loop (`LOOP: true`: wipe → frame 0) | 16,49–16,79 | — | — |
 
 Wipes: C, F, G, H. Stems: `pm01_vitrina_vo.wav` · `pm01_vitrina_sfx.wav` · `pm01_vitrina_mix.wav`. SFX λίστα: `pm01_vitrina_sfx.md`.
 Loudness MP4: −16,9 LUFS · peak −2,2 dB.
