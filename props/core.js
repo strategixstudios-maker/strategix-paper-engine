@@ -17,8 +17,8 @@ function tiles(ctx) { // laundry / bathroom tiles + navy floor
   ctx.restore();
   cut(ctx, rectPts(-40, 1740, W + 80, 300), C.navy, { seed: 6, scribble: '#1B2D62', edgeW: 8 });
 }
-function wallShelf(ctx, o = {}) { // workshop wall with vinyl rolls on a shelf · o.y = πάνω άκρη ραφιού (default 560 · 640 → τα ρολά βγαίνουν κάτω από caption 2 γραμμών)
-  const y = o.y ?? 560;
+function wallShelf(ctx, o = {}) { // workshop wall with vinyl rolls on a shelf · o.y = πάνω άκρη ραφιού (default 640: τα ρολά βγαίνουν κάτω από caption 2 γραμμών)
+  const y = o.y ?? 640;
   bgFlat(ctx, C.blue, '#3456B0', 11);
   cut(ctx, rectPts(-40, y, W + 80, 40), C.paper, { seed: 12, amp: 2, edgeW: 6 });
   const cols = [C.sky, BRAND, C.paper, '#F4D98A', C.mid];

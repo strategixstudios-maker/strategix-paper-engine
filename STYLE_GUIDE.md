@@ -64,7 +64,7 @@
 2. Κάτι αλλάζει **κάθε 1,5–2,5s** (σκηνή, pop, ήχος).
 3. **Open loop** νωρίς → **reward** στο τέλος.
 4. **Μία ιδέα** ανά βίντεο.
-5. **Captions πάντα**: πάνω strip, Hand **76px**, **max 2 γραμμές**. Μακρύ VO → `captionSeq(ctx, lt, [[t,'κομμάτι'],...])` σε chunks.
+5. **Captions πάντα**: πάνω strip, Hand **76px**, **max 2 γραμμές** (3+ → lint warning). Μακρύ VO → `captionSeq(ctx, lt, [[t,'κομμάτι'],...])` σε chunks.
 6. Ads: προϊόν μέσα στα πρώτα 3s. Οργανικά: αξία/γέλιο πριν από οτιδήποτε.
 7. **Loop** τέλος → αρχή.
 8. **Ένα CTA.** Ads: «Πάρε προσφορά» (όχι τιμή, εκτός αν δοθεί). Οργανικά: comment bait.
@@ -121,7 +121,7 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 ## 6. Workflow (για να μην καίμε tokens σε λάθη)
 1. **Σενάριο** σε πίνακα: Χρόνος | Εικόνα | VO | Κείμενο/SFX → έγκριση.
 2. Κώδικας επεισοδίου (τι υπάρχει στο engine: `node api.js`, όχι ολόκληρα αρχεία) → `node ep.js sheet` (12 frames + safe-zone overlay + lint warnings σε κόκκινο) → έλεγχος: τίποτα σημαντικό στο κόκκινο. Για διορθώσεις: `preview t1 t2` μόνο στα σημεία που αλλάζουν.
-3. `node ep.js lint` → πρέπει να βγει **«lint ✔ καθαρό»** πριν το render (ανατομία χεριών, χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone, αριθμός επεισοδίου «#N» σε κείμενο).
+3. `node ep.js lint` → πρέπει να βγει **«lint ✔ καθαρό»** πριν το render (ανατομία χεριών, χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone, αριθμός επεισοδίου «#N» σε κείμενο, caption πάνω από 2 γραμμές).
 4. VO (§5d): generation στη φωνή Stratos → upload MP3 → `vo/<ep>_vo.mp3` + timings σκηνών/captions/SFX πάνω στις πραγματικές φράσεις.
 5. `node ep.js render` → MP4 με VO + SFX + stems + `<ep>_sfx.md` + **timing sheet** (`<ep>_timing_sheet.md`). Αλλαγή μόνο στον ήχο → `node ep.js sfx`.
 6. Εγγραφή στο `EPISODES.md` (+ `BACKLOG.md` για ό,τι θέλει engine) → `bash ship.sh <ep> "<msg>"` → ένα `<ep>.patch` (lint gate μέσα· αν άλλαξε το engine και `regress` σε όλα τα επεισόδια). Το chat δεν κάνει push· το Claude Code κάνει `git am` + push (βλ. CLAUDE.md).

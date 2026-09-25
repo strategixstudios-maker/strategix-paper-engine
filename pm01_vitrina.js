@@ -232,7 +232,7 @@ function sG(ctx, lt) {
   if (turned) pop(ctx, lt, stopT + 0.1, x1 + 125, 1085, () => { cut(ctx, circlePts(0, 0, 44, 44, 20), '#FBFAF6', { seed: 5610, amp: 2 }); txt(ctx, '!', 0, 4, { font: 'bold 70px Round', color: BRAND }); });
   cut(ctx, rectPts(-40, KERB - 60, W + 80, 200), '#C9CDD6', { seed: 5303, amp: 2, scribble: '#B9BFCB' }); // πεζοδρόμιο μπροστά (κρύβει τον κορμό)
   cut(ctx, rectPts(-40, KERB + 130, W + 80, 22), '#9AA1B2', { seed: 5304, amp: 1.5, edgeW: 5, shadow: false });
-  captionSeq(ctx, lt, [[0.05, 'Και ξαφνικά, η τζαμαρία σου δουλεύει για σένα.'], [rel('oli', 'g'), 'Όλη μέρα.']]);
+  captionSeq(ctx, lt, [[0.05, 'Και ξαφνικά...'], [rel('tzamaria', 'g') - 0.05, '...η τζαμαρία σου δουλεύει για σένα.'], [rel('oli', 'g'), 'Όλη μέρα.']]);
 }
 function sH(ctx, lt) { // CTA: split Α | Β + Στράτος «ζυγαριά»
   street(ctx, lt); splitLabels(ctx, lt, 0.05);

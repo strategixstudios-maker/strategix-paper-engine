@@ -96,7 +96,7 @@ function sC(ctx, lt) { // 6,2–9,0 · στο rotary μέσα στο laser, κλ
     ctx.save(); ctx.rotate(-(lt - 1.9) * 4); ctx.strokeStyle = BRAND; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, 0, 38, 0.4, 5.6); ctx.stroke();
     ctx.fillStyle = BRAND; ctx.beginPath(); ctx.moveTo(38 * Math.cos(0.4) + 18, 38 * Math.sin(0.4) - 6); ctx.lineTo(38 * Math.cos(0.4) - 16, 38 * Math.sin(0.4) - 12); ctx.lineTo(38 * Math.cos(0.4) + 2, 38 * Math.sin(0.4) + 22); ctx.closePath(); ctx.fill(); ctx.restore();
   });
-  captionSeq(ctx, lt, [[0.12, 'Το στήνουμε στο rotary, για να γυρίζει όσο χαράζει.']]);
+  captionSeq(ctx, lt, [[0.12, 'Το στήνουμε στο rotary...'], [1.25, '...για να γυρίζει όσο χαράζει.']]); // 7,45 = παύση του κόμματος στο VO
 }
 function sD(ctx, lt) { // 9,0–13,7 · χάραξη + inset στρώσεων
   const p = 0.02 + 0.98 * prog(lt, 0.1, 4.3);

@@ -168,6 +168,7 @@ function caption(ctx, text, lt, start = 0.15, o = {}) {
   lintText(ctx, text, W / 2, (o.y ?? CAP.y) + 60);
   const fs = o.fs || CAP.font, lh = Math.round(fs * 1.21);
   ctx.save(); ctx.font = `${fs}px Hand`; const lines = wrap(ctx, text, CAP.w - 90), h = lines.length * lh + 50, y = o.y ?? CAP.y;
+  if (ST.lint && lines.length > 2) ST.warn.push({ msg: `caption ${lines.length} γραμμές («${text.slice(0, 22)}…») → captionSeq, max 2`, x: W / 2, y: y + h / 2 });
   ctx.translate(lerp(-1150, (W - CAP.w) / 2, p), y); ctx.rotate(-0.012);
   cut(ctx, rectPts(0, 0, CAP.w, h), C.paper, { seed: 500 + lines.length, amp: 6, step: 16 });
   ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${fs}px Hand`;

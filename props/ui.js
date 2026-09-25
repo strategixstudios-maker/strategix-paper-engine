@@ -3,15 +3,17 @@ const L = require('../lib.js');
 const { C, ST, W, cut, rrPts, circlePts, starPts, txt, pop } = L;
 const { BRAND } = require('./core.js');
 
+// πλάτος κουτιού που χωράει το κείμενο: max(w, πλάτος κειμένου + pad) — κοινό για όλα τα κουτιά με κείμενο (msgBubble, msgOut, speech, speechOff, ctaButton)
+function fitW(ctx, font, text, w, pad) { if (!text) return w; ctx.save(); ctx.font = font; const tw = ctx.measureText(text).width; ctx.restore(); return Math.max(w, tw + pad); }
 function msgBubble(ctx, x, y, w, h, text, o = {}) { // incoming chat message · το πλάτος μεγαλώνει όσο χρειάζεται για να χωρέσει το κείμενο
-  const font = `${o.fs || 40}px Round`;
-  if (text) { ctx.save(); ctx.font = font; w = Math.max(w, ctx.measureText(text).width + 56); ctx.restore(); }
+  const font = `${o.fs || 40}px Round`; w = fitW(ctx, font, text, w, 56);
   cut(ctx, [[x + 10, y + 16], [x - 22, y + 4], [x + 18, y + 44]], '#fff', { seed: (o.seed || 1) + 1, amp: 1.5, edgeW: 5 });
   cut(ctx, rrPts(x, y, w, h, 26), '#fff', { seed: o.seed || 1, amp: 2, edgeW: 6 });
   if (text) { ctx.save(); ctx.font = font; ctx.fillStyle = C.ink; ctx.textBaseline = 'middle'; ctx.fillText(text, x + 28, y + h / 2 - 6); ctx.restore(); }
   txt(ctx, o.time || '21:47', x + w - 52, y + h - 20, { font: '22px Round', color: '#8A94A8' });
 }
-function speech(ctx, x, y, w, h, lines, o = {}) { // speech bubble with tail pointing to (tx,ty) relative
+function speech(ctx, x, y, w, h, lines, o = {}) { // speech bubble with tail pointing to (tx,ty) relative · το πλάτος μεγαλώνει αν δεν χωράει κάποια γραμμή
+  for (const [t, font] of lines) w = fitW(ctx, font || '64px Hand', t, w, 100);
   const [tx, ty] = o.tail || [0, h / 2 + 70];
   cut(ctx, [[x - 40, y + h / 2 - 12], [x + 30, y + h / 2 - 12], [x + tx, y + ty]], C.paper, { seed: (o.seed || 1) + 1, amp: 2 });
   cut(ctx, rrPts(x - w / 2, y - h / 2, w, h, Math.min(90, h * 0.45)), C.paper, { seed: o.seed || 1, amp: 3 });
@@ -27,8 +29,8 @@ function seriesTag(ctx, lt, label, x, y) { // sticker on the caption's bottom-ri
 }
 // αστεράκι ✨ που σκάει στο start και πάλλεται
 function sparkle(ctx, x, y, s, lt, start, seed) { pop(ctx, lt, start, x, y, () => { const k = 0.8 + 0.2 * Math.sin((lt - start) * 12); cut(ctx, starPts(0, 0, 60 * s * k, 4, 0.3), '#fff', { seed, amp: 1, edgeW: 3, shadow: false }); }); }
-function ctaButton(ctx, lt, st, x, y, label, o = {}) { // brand-blue pill with arrow, pulses
-  const pulse = lt > st + 0.4 ? 1 + 0.045 * Math.sin((lt - st - 0.4) * 7) : 1, w = o.w || 640;
+function ctaButton(ctx, lt, st, x, y, label, o = {}) { // brand-blue pill with arrow, pulses · το πλάτος μεγαλώνει αν δεν χωράει το label
+  const pulse = lt > st + 0.4 ? 1 + 0.045 * Math.sin((lt - st - 0.4) * 7) : 1, w = fitW(ctx, 'bold 52px Round', label, o.w || 640, 160);
   pop(ctx, lt, st, x, y, () => {
     ctx.scale(pulse, pulse); cut(ctx, rrPts(-w / 2, -64, w, 128, 64), o.col || BRAND, { seed: 90, amp: 2, edgeW: 8 });
     txt(ctx, label, -42, 2, { font: 'bold 52px Round', color: '#fff' });
@@ -44,20 +46,22 @@ function uiSlider(ctx, x, y, w, v, label, o = {}) {
   cut(ctx, circlePts(x + w * v, y, 30), C.paper, { seed: (o.seed || 5200) + 2, amp: 1.5, edgeW: 5 });
   return [x + w * v, y];
 }
-// outgoing chat message (brand blue, tail bottom-right). x,y = top-left
+// outgoing chat message (brand blue, tail bottom-right). x,y = top-left · το πλάτος μεγαλώνει αν δεν χωράει το κείμενο
 function msgOut(ctx, x, y, w, h, text, o = {}) {
+  const font = `bold ${o.fs || 42}px Round`; w = fitW(ctx, font, text, w, 60);
   cut(ctx, [[x + w - 40, y + h - 30], [x + w + 26, y + h + 4], [x + w - 12, y + h - 50]], BRAND, { seed: (o.seed || 1) + 1, amp: 1.5, edgeW: 5 });
   cut(ctx, rrPts(x, y, w, h, 26), BRAND, { seed: o.seed || 1, amp: 2, edgeW: 7 });
-  if (text) txt(ctx, text, x + 30, y + h / 2 - 4, { font: `bold ${o.fs || 42}px Round`, color: '#fff', align: 'left' });
+  if (text) txt(ctx, text, x + 30, y + h / 2 - 4, { font, color: '#fff', align: 'left' });
 }
 
-// speech bubble from an off-screen speaker. side: 1 = speaker off right, -1 = off left. Pops at st.
+// speech bubble from an off-screen speaker. side: 1 = speaker off right, -1 = off left. Pops at st. · το πλάτος μεγαλώνει αν δεν χωράει το κείμενο
 function speechOff(ctx, lt, st, side, x, y, w, h, text, o = {}) {
+  const font = o.font || '64px Hand'; w = fitW(ctx, font, text, w, 100);
   pop(ctx, lt, st, x, y, () => {
     const bx = side * (w / 2 - 60);
     cut(ctx, [[bx - 34, -h / 2 + 30], [bx + 34, h / 2 - 30], [side * (W + 200), side > 0 ? 40 : 40]], C.paper, { seed: (o.seed || 1) + 1, amp: 2 });
     cut(ctx, rrPts(-w / 2, -h / 2, w, h, Math.min(80, h * 0.45)), C.paper, { seed: o.seed || 1, amp: 3 });
-    txt(ctx, text, 0, 4, { font: o.font || '64px Hand', color: o.color || C.ink });
+    txt(ctx, text, 0, 4, { font, color: o.color || C.ink });
   }, o.rot || 0);
 }
 // check chip: rounded paper label with a brand-blue tick circle. Pops at st.

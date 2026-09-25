@@ -50,7 +50,7 @@ function sA(ctx, lt) { // 0–5,8 · phone: logo arrives → pinch-zoom → 80 p
   seriesTag(ctx, lt, 'Ο πελάτης είπε...');
 }
 function sB(ctx, lt) { // 5,8–8,25 · messages keep coming, eye twitch, coffee shaking
-  wallShelf(ctx, { y: 640 }); // ρολά κάτω από το caption 2 γραμμών
+  wallShelf(ctx);
   cut(ctx, circlePts(880, 840, 80), '#fff', { seed: 60, amp: 2 }); ctx.save(); ctx.strokeStyle = C.navy; ctx.lineWidth = 7; ctx.lineCap = 'round'; for (const [len, sp] of [[56, 6], [38, 0.5]]) { const a = lt * sp; ctx.beginPath(); ctx.moveTo(880, 840); ctx.lineTo(880 + Math.sin(a) * len, 840 - Math.cos(a) * len); ctx.stroke(); } ctx.restore();
   const tw = lt > 1.5 ? Math.sin(lt * 60) * 6 : 0;
   stratos(ctx, 540, 1250, 0.95, { seed: 1000, legs: false, arms: [0.15, 0.15], mouth: lipsync(VO, 'flat'), eyes: lt > 1.5 && Math.sin(lt * 30) > 0 ? 'tired' : 'shock', brows: lt > 1.5 ? -0.4 : 1, look: tw });
