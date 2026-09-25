@@ -87,10 +87,19 @@ function pop(ctx, lt, start, x, y, fn, rot = 0) { const s = spring(prog(lt, star
 function check(ctx, x, y, s, col) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 8 * s; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(x - 14 * s, y); ctx.lineTo(x - 3 * s, y + 12 * s); ctx.lineTo(x + 16 * s, y - 12 * s); ctx.stroke(); ctx.restore(); }
 
 // ---------- elements ----------
+// γενικό demo σήμα (φύλλο σε κύκλο) — ΟΧΙ το λογότυπο Strategix (→ brandMark)
 function logoMark(ctx, x, y, r, col = C.ink) {
   ctx.save(); ctx.translate(x, y); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = r * 0.2;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(-r * .45, r * .45); ctx.quadraticCurveTo(-r * .5, -r * .5, r * .45, -r * .45); ctx.quadraticCurveTo(r * .5, r * .5, -r * .45, r * .45); ctx.fill();
+  ctx.restore();
+}
+// λογότυπο Strategix: «S» (Poppins Bold) σε κύκλο, όπως στην ποδιά του Στράτου · r = ακτίνα κύκλου · o.ring:false → μόνο το «S»
+function brandMark(ctx, x, y, r, col = C.navy, o = {}) {
+  ctx.save(); ctx.translate(x, y); ctx.fillStyle = col; ctx.strokeStyle = col;
+  if (o.ring !== false) { ctx.lineWidth = r * 0.15; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.font = `${Math.round(r * 1.3)}px Brand`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  const m = ctx.measureText('S'); ctx.fillText('S', 0, (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
   ctx.restore();
 }
 const BADGE = { gold: [C.gold, '#F4D98A'], silver: [C.silver, '#F1F4F8'], bronze: [C.bronze, '#DDAA82'] };
@@ -208,4 +217,4 @@ function lipsync(VO, rest = 'smile') { const t = ST.T;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
 const blinkNow = () => (ST.T % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() })
-module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,txt,wrap,pop,check,logoMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};
+module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};

@@ -1,6 +1,6 @@
 // «Πώς φτιάχνεται;» — Μεταξοτυπία (screen printing) · top-down σε cutting mat · host: Στράτος (reach + pip) · VO ElevenLabs «Stratos» + SFX · 22,6s · seamless loop
 const L = require('./lib.js');
-const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, caption, captionSeq, logoMark,
+const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, caption, captionSeq, brandMark,
   lerp, clamp, prog, easeOut, easeIn, easeInOut, spring } = L;
 const { BRAND, reach, sparkle, seriesTag, pip, PIP } = require('./props.js');
 
@@ -61,8 +61,8 @@ function printedS(ctx, frac, o = {}) {
   ctx.save();
   ctx.beginPath(); ctx.rect(FCX - SR - 60, FCY - SR - 60, 2 * (SR + 60), (2 * SR + 120) * clamp(frac)); ctx.clip();
   const sc = o.pop ? spring(o.pop) : 1 + 0.08 * Math.sin(Math.PI * clamp(o.bump || 0)); ctx.translate(FCX, FCY); ctx.scale(sc, sc); ctx.translate(-FCX, -FCY);
-  logoMark(ctx, FCX, FCY, SR, BRAND);
-  if (o.wet) { ctx.globalAlpha = 0.35; ctx.fillStyle = '#BFD4FB'; L.path(ctx, circlePts(FCX - 34, FCY - 40, 30, 44)); ctx.fill(); ctx.globalAlpha = 1; }
+  brandMark(ctx, FCX, FCY, SR, BRAND);
+  if (o.wet) { ctx.globalAlpha = 0.55; ctx.strokeStyle = '#BFD4FB'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(FCX, FCY, SR, 3.5, 4.3); ctx.stroke(); ctx.globalAlpha = 1; }   // γυαλάδα (υγρό μελάνι)
   ctx.restore();
 }
 
@@ -95,8 +95,8 @@ const meshInner = ctx => { interiorBase(ctx, '#EDEBE3', 7510, '#DBD8CE'); meshGr
 // στένσιλ (μετά το ξέπλυμα): emulsion + ανοιχτό «S» → φαίνεται το λευκό tee · inkY = ως εκεί έχει περάσει το μελάνι (μπλε)
 function stencilInner(ctx, inkY) {
   interiorBase(ctx, EMUL, 7512);
-  logoMark(ctx, FCX, FCY, SR, '#F3F0E8');
-  if (inkY > FCY - SR - 30) { ctx.save(); ctx.beginPath(); ctx.rect(FCX - SR - 60, FCY - SR - 60, 2 * (SR + 60), inkY - (FCY - SR - 60)); ctx.clip(); logoMark(ctx, FCX, FCY, SR, INK); ctx.restore(); }
+  brandMark(ctx, FCX, FCY, SR, '#F3F0E8');
+  if (inkY > FCY - SR - 30) { ctx.save(); ctx.beginPath(); ctx.rect(FCX - SR - 60, FCY - SR - 60, 2 * (SR + 60), inkY - (FCY - SR - 60)); ctx.clip(); brandMark(ctx, FCX, FCY, SR, INK); ctx.restore(); }
   meshGrid(ctx);
 }
 
@@ -129,7 +129,7 @@ function filmPositive(ctx, dx = 0) {
   ctx.save(); ctx.translate(dx, 0); ctx.globalAlpha = 0.94;
   cut(ctx, rrPts(FCX - 272, FCY - 336, 544, 672, 12), '#CFE0FA', { seed: 7800, amp: 1.5, edgeW: 5 });
   ctx.globalAlpha = 0.5; ctx.fillStyle = '#fff'; L.path(ctx, rrPts(FCX - 250, FCY - 316, 150, 632, 8)); ctx.fill();
-  ctx.globalAlpha = 1; logoMark(ctx, FCX, FCY, SR, C.ink);
+  ctx.globalAlpha = 1; brandMark(ctx, FCX, FCY, SR, C.ink);
   ctx.restore();
 }
 
@@ -200,7 +200,7 @@ function sEmul(ctx, lt) {
 // S4 — βήμα 3: έκθεση σε φως  (VO: «Φως. Ό,τι κρύβει το σχέδιο, μένει μαλακό.»)
 function sLight(ctx, lt) {
   matBG(ctx);
-  frame(ctx, { inner: c => { interiorBase(c, EMUL, 7512); logoMark(c, FCX, FCY, SR, C.ink); } }); // emulsion + film (μαύρο S)
+  frame(ctx, { inner: c => { interiorBase(c, EMUL, 7512); brandMark(c, FCX, FCY, SR, C.ink); } }); // emulsion + film (μαύρο S)
   const g = easeOut(prog(lt, 0.2, 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(lt * 20)));
   ctx.save();
   const grd = ctx.createRadialGradient(FCX, FCY - 40, 40, FCX, FCY - 40, 560);
@@ -220,7 +220,7 @@ function sWash(ctx, lt) {
     inner: c => {
       interiorBase(c, EMUL, 7512);
       c.save(); c.beginPath(); c.rect(FCX - SR - 60, FCY - SR - 40, 2 * (SR + 60), (2 * SR + 80) * open); c.clip();
-      logoMark(c, FCX, FCY, SR, C.navy);                   // ανοιχτό «S» (φαίνεται το mat από κάτω)
+      brandMark(c, FCX, FCY, SR, C.navy);                   // ανοιχτό «S» (φαίνεται το mat από κάτω)
       meshGrid(c); c.restore();
     }
   });

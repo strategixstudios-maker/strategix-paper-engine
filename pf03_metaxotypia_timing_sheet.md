@@ -1,7 +1,7 @@
 # «Πώς φτιάχνεται;» — Μεταξοτυπία (screen printing) · 22,6s · 1080×1920 30fps
 VO: `vo/pf03_vo.mp3` @ 0,15s — ElevenLabs `eleven_v3`, φωνή **Stratos** (voice_id 4djcgN1Upzan46ZOCATJ). Παύσεις ήδη σφιγμένες, χωρίς atempo (22,05s). Μουσική: CapCut.
 SFX: ducking = default του render.js (όλα −6 dB · όσα πέφτουν πάνω σε φράση −7 dB, φράσεις αυτόματα από το VO). Λίστα: `pf03_metaxotypia_sfx.md`.
-Όλο top-down πάνω σε cutting mat (navy + grid, στα χρώματά μας). Host ο Στράτος με `reach()` (χέρι στο κάδρο) + `pip()` στην ερώτηση. Demo logo: το «S» μας (brand blue).
+Όλο top-down πάνω σε cutting mat (navy + grid, στα χρώματά μας). Host ο Στράτος με `reach()` (χέρι στο κάδρο) + `pip()` στην ερώτηση. Demo logo: το «S» μας (`brandMark()`, brand blue).
 Loop (§5.7) **seamless** (`LOOP: 'cut'`, χωρίς σκίσιμο): frame 0 = «έτοιμο» — τελάρο κάτω στο λευκό tee, μελάνι + σπάτουλα πάνω, χέρι στη λαβή. Το hook ξεκινά με το πέρασμα. Η τελευταία σκηνή τυπώνει, αλλάζει tee και καταλήγει ξανά στο «έτοιμο». Στο replay η σπάτουλα συνεχίζει κατευθείαν να τυπώνει.
 
 | Σκηνή | Χρόνος | VO | Caption / εικόνα |
