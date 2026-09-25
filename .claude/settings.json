@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "vercel@claude-plugins-official": false,
+    "stripe@claude-plugins-official": false
+  }
+}

@@ -1,18 +1,20 @@
-# Strategix Paper Engine — οδηγίες για Claude (Claude Code & claude.ai Project)
+# Strategix Paper Engine — οδηγίες για Claude Code
 
 Πηγή αλήθειας για κώδικα ΚΑΙ κανόνες = αυτό το repo. Κανόνες:
 @STYLE_GUIDE.md
 @HANDS.md
 
 ## Ρόλοι
-- **Claude Code** (τοπικά, με git credentials): αλλαγές engine (lib/stratos/hands/props/render/sfx), κανόνες (STYLE_GUIDE/HANDS), `BACKLOG.md`, εφαρμογή patches από το chat, commit + push.
-- **claude.ai Project (chat)**: `git clone` read-only → επεισόδια (+ μικρές, συμβατές αλλαγές engine που χρειάζεται το επεισόδιο). ΔΕΝ κάνει push. Στο τέλος: `bash ship.sh <ep> "<msg>"` → ένα `<ep>.patch`.
+- **Claude Code** (τοπικά, με git credentials): **όλη η παραγωγή** — επεισόδια από το σενάριο ως το MP4, engine (lib/stratos/hands/props/render/sfx), κανόνες (STYLE_GUIDE/HANDS), `BACKLOG.md`, commit + push.
+- **claude.ai Project (chat)**: ιδέες και σενάρια, χωρίς clone/render. Επεισόδιο με κώδικα εκεί μόνο αν το ζητήσει ο Αλέξανδρος → `.patch` → εφαρμογή κατά το **CHAT.md**.
 
-## Εφαρμογή patch από το chat (Claude Code)
-1. `git pull --ff-only`
-2. `git am <file>.patch`. Αν αποτύχει: `git am --abort`, δείξε τη σύγκρουση, ΠΟΤΕ force/overwrite.
-3. `bash setup.sh` (αν λείπουν deps) → `node regress.js origin/main` (αν άλλαξε το engine): νέο crash → stop. Νέα lint / οπτικές αλλαγές σε παλιά επεισόδια = μία γραμμή στην αναφορά (χωρίς έλεγχο εικόνων, χωρίς διόρθωση).
-4. `git push` και σύντομη αναφορά: commits, αρχεία, regress, νέες γραμμές στο `BACKLOG.md`.
+## Workflow επεισοδίου — 1 επεισόδιο = 1 session
+1. `/clear` → σενάριο σε πίνακα (Χρόνος | Εικόνα | VO | Κείμενο/SFX) → έγκριση. Σενάριο, διάρκεια (§5.9) και VO κλειδώνουν **πριν** από τον κώδικα (αλλαγή μετά = ξανά χρονισμοί παντού).
+2. VO (§5d): `node render.js vo` → σφίξιμο παυσών → `vo/<ep>_vo.mp3` + χρονισμοί φράσεων σε σχόλιο στην κορυφή του επεισοδίου.
+3. Κώδικας (`node api.js`) → `node <ep>.js lint` ως «lint ✔ καθαρό» → ένα `sheet` → `preview t` μόνο εκεί που αλλάζει κάτι.
+4. `node <ep>.js render` → MP4 στη ρίζα (εκτός git) → ο Αλέξανδρος το βλέπει και στέλνει **όλες τις σημειώσεις σε ένα μήνυμα** → ένας γύρος διορθώσεων + ένα render. Μόνο ήχος → `node <ep>.js sfx`.
+5. `<ep>_timing_sheet.md` + εγγραφή στο `EPISODES.md` (+ `BACKLOG.md`) → `node regress.js` αν άλλαξε το engine → commit + push → αναφορά: όνομα MP4, commits. Μουσική: ο Αλέξανδρος στο CapCut.
+- Παραδοτέο, safe zones, captions, Στράτος, κοινό, ισχυρισμοί → STYLE_GUIDE. Ελληνικά, σύντομα, μεθοδικά, English τεχνικοί όροι.
 
 ## Engine που βελτιώνεται — κανόνας 2ης φοράς
 **Τα παλιά επεισόδια μένουν όπως παραδόθηκαν**: διόρθωση, render ή οπτικός έλεγχος σε παλιό επεισόδιο μόνο όταν το ζητήσει ο Αλέξανδρος. Κάθε ζητούμενη διόρθωση → στο επεισόδιο που ζητήθηκε + στο engine/κανόνες/lint, ώστε να ισχύει στα νέα. (Ο έλεγχος όλων των παλιών σε κάθε αλλαγή δεν κλιμακώνεται σε tokens.)
@@ -25,19 +27,14 @@
 - ό,τι δεν χωράει τώρα → μία γραμμή στο `BACKLOG.md` (`[πηγή] πρόβλημα → πρόταση`)
 - κάθε αλλαγή engine: συμβατή με τα παλιά επεισόδια (νέα option με default, όχι rename) + `node regress.js` → κανένα crash
 
-## Οικονομία context
+## Οικονομία tokens
+- Μοντέλο ανά session (`/model`): Opus για νέο επεισόδιο/engine · Sonnet για διορθώσεις, ήχο, render, git. Αλλαγή στην αρχή της session (στη μέση χάνεται το cache).
 - Engine: `node api.js` (κατάλογος) → `node api.js <όνομα>` (αρχείο:γραμμή) → διάβασε μόνο αυτή τη συνάρτηση. Όχι ολόκληρα αρχεία του engine.
-- `EPISODES.md` (log) και `BACKLOG.md` μόνο όταν χρειάζονται. Μία συνομιλία ανά επεισόδιο. `sheet` σε checkpoints, `preview t1 t2` για διορθώσεις.
+- `EPISODES.md` (log) και `BACKLOG.md` μόνο όταν χρειάζονται. `sheet` σε checkpoints, `preview t1 t2` για διορθώσεις.
+- Ιδέες που πατάνε σε υπάρχοντα σκηνικά/props κοστίζουν λιγότερο από νέο σκηνικό.
 
 ## Κανόνες κώδικα
 - Μόνο με το engine (lib.js, stratos.js, hands.js, props/, render.js, sfx.js). VO sources στο `vo/` (τα μόνα mp3 στο git). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
 - Αλλαγή στο engine → `node regress.js` (crash check σε όλα τα επεισόδια vs HEAD, συνοπτικό output).
 - Αλλαγή κανόνα → STYLE_GUIDE/HANDS στο ΙΔΙΟ commit.
 - Όχι render outputs στο git (MP4, sheets, previews, `regress/`) — βλ. .gitignore.
-
-## Workflow επεισοδίου (chat)
-Σενάριο (Χρόνος | Εικόνα | VO | Κείμενο/SFX) → έγκριση → VO στη φωνή Stratos → upload MP3 → κώδικας (`node api.js`) → `sheet` (safe zones + lint) → `lint` καθαρό → `render` MP4 με SFX + timing sheet VO (+ auto `_sfx.md`) → εγγραφή στο `EPISODES.md` → `ship.sh` (lint + regress αν άλλαξε το engine).
-- MP4 1080×1920 30fps με VO (ElevenLabs «Stratos», `vo/<ep>_vo.mp3`, STYLE_GUIDE §5d) + SFX από `sfx.js` (§5c, ducking αυτόματα κάτω από το VO) + stems `_vo.wav`/`_sfx.wav`· μουσική την κάνει ο Αλέξανδρος.
-- Κείμενα/CTA/πρόσωπο/προϊόν μέσα στο safe box· captions max 2 γραμμές (`captionSeq`).
-- Host ο Στράτος (mascot, όχι ο Αλέξανδρος). Κοινό: πιθανοί πελάτες & γραφίστες, όχι τυπογραφεία. Όχι ανεπιβεβαίωτοι ισχυρισμοί/αριθμοί.
-- Ελληνικά, σύντομα, μεθοδικά, English τεχνικοί όροι.

@@ -5,6 +5,9 @@
 //       node ep.js render [out.mp4] -> 1080x1920 30fps H.264
 //       node ep.js lint             -> anatomy/safe-zone warnings for the whole video (10 samples/s), exit 1 if any
 //       node ep.js sfx              -> μόνο ήχος: <n>_sfx.wav + <n>_sfx.md και remux στο υπάρχον MP4 (χωρίς νέο video render)
+//       node ep.js vo               -> φράσεις του VO_FILE σε χρόνο video (σχόλιο στην κορυφή / timing sheet / SFX cues), χωρίς render
+//       node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]] -> ίδιο πριν γραφτεί το επεισόδιο ·
+//                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (punchlines)
 // LOOP: true → ουρά 0,3s με wipe που καταλήγει ακριβώς στο frame 0 (το lint ελέγχει ότι τέλος = αρχή: caption + εικόνα)
 // SFX: auto whoosh σε κάθε wipe + ep.SFX = [[t, 'preset', {gain, pan, seed, dur, note}], ...] (βλ. sfx.js). AUTO_SFX:false → μόνο τα χειροκίνητα.
 // VO:  ep.VO_FILE = 'vo/<ep>_vo.mp3' (στο repo), VO_AT = offset s, VO_GAIN. → <n>_vo.wav stem + <n>_mix.wav (VO+SFX) στο MP4, lip-sync από την ένταση (ST.VOENV).
@@ -30,21 +33,9 @@ module.exports = function run(ep) {
   const STARTS = []; let acc = 0; for (const [, d] of ep.SCENES) { STARTS.push(acc); acc += d; }
   const TOTAL = acc, TR = ep.TR || 0.22, name = ep.name || 'video';
   const wipes = ep.WIPES === 'all' ? STARTS.map((_, i) => i).slice(1) : (ep.WIPES || []);
-  // VO: decode → track στο μήκος του video + envelope ανά frame (RMS / p95) για lip-sync + φράσεις για ducking
+  // VO: track στο μήκος του video + envelope για lip-sync + φράσεις για ducking (voLoad, κάτω)
   let VO = null;
-  if (ep.VO_FILE) {
-    const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', ep.VO_FILE, '-ac', '1', '-ar', String(SFX.SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
-    if (r.status !== 0) throw new Error(`VO: δεν διαβάζεται το ${ep.VO_FILE}`);
-    const raw = new Float32Array(r.stdout.buffer.slice(r.stdout.byteOffset, r.stdout.byteOffset + r.stdout.length));
-    const at = ep.VO_AT || 0, g = ep.VO_GAIN ?? 1, N = Math.ceil(TOTAL * SFX.SR), v = new Float32Array(N), j0 = Math.round(at * SFX.SR);
-    for (let i = 0; i < raw.length; i++) { const j = j0 + i; if (j >= 0 && j < N) v[j] = raw[i] * g; }
-    const F = Math.ceil(TOTAL * FPS), hop = SFX.SR / FPS, env = new Float32Array(F);
-    for (let f = 0; f < F; f++) { const a = Math.floor(f * hop), b = Math.min(N, Math.floor((f + 1) * hop)); let s = 0; for (let i = a; i < b; i++) s += v[i] * v[i]; env[f] = Math.sqrt(s / Math.max(1, b - a)); }
-    const on = [...env].filter(x => x > 1e-3).sort((a, b) => a - b), ref = on[Math.floor(on.length * 0.95)] || 1;
-    for (let f = 0; f < F; f++) env[f] = Math.min(1, env[f] / ref);
-    const phr = []; for (let f = 0; f < F; f++) if (env[f] > 0.1) { const p = phr[phr.length - 1]; if (p && f / FPS - p[1] < 0.15) p[1] = (f + 1) / FPS; else phr.push([f / FPS, (f + 1) / FPS]); } // ένταση > 0.1, κενά < 0.15s ενώνονται
-    VO = { v, env, phr, end: at + raw.length / SFX.SR }; ST.VOENV = env;
-  }
+  if (ep.VO_FILE) { VO = voLoad(ep.VO_FILE, ep.VO_AT || 0, ep.VO_GAIN ?? 1, TOTAL); ST.VOENV = VO.env; }
   // SFX cues: whoosh με peak στην αλλαγή σκηνής (−0.27s) για κάθε wipe + τα χειροκίνητα του επεισοδίου → ducking κάτω από το VO
   const DK = ep.DUCK === false ? null : ep.DUCK || (VO ? {} : null), PHR = DK && (DK.phrases || (VO ? VO.phr : []));
   const duck = ([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * (DK.mix ?? 0.5) * (on ? (DK.duck ?? 0.45) : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; };
@@ -77,6 +68,7 @@ module.exports = function run(ep) {
   if (require.main !== module.parent) return { frame, TOTAL };
   (async () => {
     const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d');
+    if (mode === 'vo') return VO ? voPrint(ep.VO_FILE, VO, ep.VO_AT || 0, TOTAL) : console.log('vo: το επεισόδιο δεν έχει VO_FILE');
     const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
     ST.lint = mode !== 'render';
     const WARN = new Map(); // msg -> [firstT, lastT]
@@ -115,3 +107,62 @@ module.exports = function run(ep) {
     ff.stdin.end(); await new Promise(r => ff.on('close', r)); console.log('done', out, TOTAL + 's', wav ? `+ ${wav}, ${name}_sfx.md (${CUES.length} SFX)` : '(silent)');
   })();
 };
+
+// VO: decode → track στο μήκος του video (total, default όλο το αρχείο) + envelope ανά frame (RMS / p95) για lip-sync + φράσεις για ducking / `vo`
+function voLoad(file, at = 0, g = 1, total) {
+  const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', file, '-ac', '1', '-ar', String(SFX.SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
+  if (r.status !== 0) throw new Error(`VO: δεν διαβάζεται το ${file}`);
+  const raw = new Float32Array(r.stdout.buffer.slice(r.stdout.byteOffset, r.stdout.byteOffset + r.stdout.length));
+  const TOTAL = total ?? at + raw.length / SFX.SR, N = Math.ceil(TOTAL * SFX.SR), v = new Float32Array(N), j0 = Math.round(at * SFX.SR);
+  for (let i = 0; i < raw.length; i++) { const j = j0 + i; if (j >= 0 && j < N) v[j] = raw[i] * g; }
+  const F = Math.ceil(TOTAL * FPS), hop = SFX.SR / FPS, env = new Float32Array(F);
+  for (let f = 0; f < F; f++) { const a = Math.floor(f * hop), b = Math.min(N, Math.floor((f + 1) * hop)); let s = 0; for (let i = a; i < b; i++) s += v[i] * v[i]; env[f] = Math.sqrt(s / Math.max(1, b - a)); }
+  const on = [...env].filter(x => x > 1e-3).sort((a, b) => a - b), ref = on[Math.floor(on.length * 0.95)] || 1;
+  for (let f = 0; f < F; f++) env[f] = Math.min(1, env[f] / ref);
+  const phr = []; for (let f = 0; f < F; f++) if (env[f] > 0.1) { const p = phr[phr.length - 1]; if (p && f / FPS - p[1] < 0.15) p[1] = (f + 1) / FPS; else phr.push([f / FPS, (f + 1) / FPS]); } // ένταση > 0.1, κενά < 0.15s ενώνονται
+  return { raw, v, env, phr, end: at + raw.length / SFX.SR };
+}
+
+// `vo`: φράσεις σε χρόνο video → σχόλιο στην κορυφή του επεισοδίου / timing sheet / SFX cues
+function voPrint(file, VO, at, total) {
+  const f = x => x.toFixed(2), P = VO.phr;
+  console.log(`VO ${file} @ ${f(at)}s → τέλος ${f(VO.end)}s` + (total ? ` · video ${f(total)}s` + (VO.end > total ? ' ✘ VO μεγαλύτερο από το video' : '') : '') + ` · ${P.length} φράσεις`);
+  P.forEach(([a, b], i) => console.log(`${String(i + 1).padStart(3)}  ${f(a)}–${f(b)}` + (i ? `   παύση ${f(a - P[i - 1][1])}` : '')));
+}
+
+// σφίξιμο παυσών: παύση > gap → gap (μένουν gap/2 μετά τη φράση + gap/2 πριν την επόμενη, crossfade 10ms) · ουρά → gap · keep { N: s | undefined }
+function voTight(raw, phr, gap, keep = {}) {
+  const SR = SFX.SR, X = Math.round(0.01 * SR), len = raw.length / SR, cuts = [];
+  for (let k = 2; k <= phr.length + 1; k++) { // παύση πριν τη φράση k · k = n+1 → ουρά μετά την τελευταία
+    const e = phr[k - 2][1], tail = k > phr.length, s = tail ? len : phr[k - 1][0], g = s - e;
+    const t = tail ? gap : k in keep ? (keep[k] ?? g) : gap;
+    if (g > t + 0.02) cuts.push(tail ? [e + t, len] : [e + t / 2, s - t / 2]);
+  }
+  const out = new Float32Array(raw.length); let n = 0, from = 0;
+  for (const [ca, cb] of cuts) {
+    const a = Math.round(ca * SR), b = Math.min(raw.length, Math.round(cb * SR));
+    for (let i = from; i < a; i++) out[n++] = raw[i];
+    const m = Math.min(X, n, raw.length - b); for (let j = 0; j < m; j++) { const w = (j + 1) / (m + 1); out[n - m + j] = out[n - m + j] * (1 - w) + raw[b + j] * w; }
+    from = b + m;
+  }
+  for (let i = from; i < raw.length; i++) out[n++] = raw[i];
+  for (let j = 0; j < Math.min(X, n); j++) out[n - 1 - j] *= j / X; // fade-out στο τέλος
+  return { pcm: out.subarray(0, n), cuts };
+}
+
+// CLI χωρίς επεισόδιο (βήμα VO, πριν γραφτεί ο κώδικας) — βλ. usage στην κορυφή
+if (require.main === module) {
+  const [cmd, file, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
+  if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]]'); process.exit(1); }
+  const at = Number(opt('at') || 0), gap = opt('gap');
+  let src = file;
+  if (gap) {
+    const keep = {}; for (const p of (opt('keep') || '').split(',').filter(Boolean)) { const [k, s] = p.split(':'); keep[Number(k)] = s === undefined ? undefined : Number(s); }
+    const out = opt('out') || file.replace(/(\.\w+)?$/, '_tight.mp3'), V = voLoad(file), { pcm, cuts } = voTight(V.raw, V.phr, Number(gap), keep);
+    const enc = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'f32le', '-ar', String(SFX.SR), '-ac', '1', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '192k', out], { input: Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength) });
+    if (enc.status !== 0) throw new Error(`vo: δεν γράφεται το ${out}: ${enc.stderr}`);
+    console.log(`σφίξιμο: ${cuts.length} παύσεις → ${gap}s · ${(V.raw.length / SFX.SR).toFixed(2)}s → ${(pcm.length / SFX.SR).toFixed(2)}s → ${out}`);
+    src = out;
+  }
+  voPrint(src, voLoad(src, at), at);
+}

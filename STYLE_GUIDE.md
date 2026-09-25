@@ -114,17 +114,12 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 ## 5d. VO — ElevenLabs «Stratos»
 - Φωνή: **Stratos** (ElevenLabs voice design, voice_id `4djcgN1Upzan46ZOCATJ`, νέος Αθηναίος 25–35, χιουμοριστικός μάστορας). Ίδια σε ΟΛΑ τα επεισόδια.
 - Μοντέλο `eleven_v3` με audio tags (`[casual]`, `[sighs]`, `[chuckles]`, `[amused]`, `[friendly]`, `[playful]`). Αριθμοί ολογράφως («Ογδόντα»), ακρωνύμια φωνητικά για το TTS («πι ντι εφ, ες βι τζι, ή έι άι») — στα captions γράφονται κανονικά.
-- **Ένα αρχείο ανά επεισόδιο** (όλο το VO σε ένα generation, max 2 takes: το πλάνο επιτρέπει 2 ταυτόχρονα). Ο Αλέξανδρος κατεβάζει το MP3 και το ανεβάζει στο chat (το container δεν φτάνει το ElevenLabs storage).
-- Στο chat: silence detect → σφίξιμο παύσεων (όχι πριν τα punchlines) → `vo/<ep>_vo.mp3` (μπαίνει στο git) → χρονισμοί φράσεων σε σχόλιο στην κορυφή του επεισοδίου.
+- **Ένα αρχείο ανά επεισόδιο** (όλο το VO σε ένα generation, max 2 takes: το πλάνο επιτρέπει 2 ταυτόχρονα). Ο Αλέξανδρος το βγάζει στο ElevenLabs και λέει πού είναι το MP3 (π.χ. `~/Downloads`). Δοκιμή: generation από το Claude Code με τον ElevenLabs connector (`creative_generate_speech`, `eleven_v3`, voice_id παραπάνω, **`generations_count` 1–2** — το default 4 = 4× κόστος) → download του MP3 → ίδια ροή.
+- `node render.js vo <mp3>` → φράσεις + παύσεις → `node render.js vo <mp3> --gap 0.3 --keep N --out vo/<ep>_vo.mp3 --at 0.2`: κάθε παύση > 0,3s γίνεται 0,3s, εκτός από την παύση πριν από punchline (`--keep N` = μένει ως έχει, `N:0.45` = 0,45s) → `vo/<ep>_vo.mp3` (μπαίνει στο git) + χρονισμοί φράσεων σε χρόνο video → σχόλιο στην κορυφή του επεισοδίου. Μετά: `node ep.js vo` (ίδιος πίνακας από το `VO_FILE`).
 - Επεισόδιο: `render.js({ ..., VO_FILE: 'vo/<ep>_vo.mp3', VO_AT: 0.2, VO_GAIN })` → `_vo.wav` stem + `_mix.wav` (VO+SFX) στο MP4. Το `lipsync()` ακολουθεί αυτόματα την ένταση της φωνής (`ST.VOENV`)· το `VO` array μένει κενό. Τα SFX κάνουν αυτόματα ducking κάτω από τη φωνή (§5c). VO μεγαλύτερο από το video → warning στο lint.
 
-## 6. Workflow (για να μην καίμε tokens σε λάθη)
-1. **Σενάριο** σε πίνακα: Χρόνος | Εικόνα | VO | Κείμενο/SFX → έγκριση.
-2. Κώδικας επεισοδίου (τι υπάρχει στο engine: `node api.js`, όχι ολόκληρα αρχεία) → `node ep.js sheet` (12 frames + safe-zone overlay + lint warnings σε κόκκινο) → έλεγχος: τίποτα σημαντικό στο κόκκινο. Για διορθώσεις: `preview t1 t2` μόνο στα σημεία που αλλάζουν.
-3. `node ep.js lint` → πρέπει να βγει **«lint ✔ καθαρό»** πριν το render (ανατομία χεριών, χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone, αριθμός επεισοδίου «#N» σε κείμενο, caption πάνω από 2 γραμμές, loop τέλος ≠ αρχή).
-4. VO (§5d): generation στη φωνή Stratos → upload MP3 → `vo/<ep>_vo.mp3` + timings σκηνών/captions/SFX πάνω στις πραγματικές φράσεις.
-5. `node ep.js render` → MP4 με VO + SFX + stems + `<ep>_sfx.md` + **timing sheet** (`<ep>_timing_sheet.md`). Αλλαγή μόνο στον ήχο → `node ep.js sfx`.
-6. Εγγραφή στο `EPISODES.md` (+ `BACKLOG.md` για ό,τι θέλει engine) → `bash ship.sh <ep> "<msg>"` → ένα `<ep>.patch` (lint gate μέσα· αν άλλαξε το engine και `regress` σε όλα τα επεισόδια). Το chat δεν κάνει push· το Claude Code κάνει `git am` + push (βλ. CLAUDE.md).
+## 6. Workflow
+Βήματα → **CLAUDE.md** (Claude Code: 1 επεισόδιο = 1 session) · **CHAT.md** (chat: ιδέες/σενάρια). Πριν το render το `lint` πρέπει να βγει **«lint ✔ καθαρό»**: ανατομία χεριών (HANDS.md), χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone, «#N» σε κείμενο, caption 3+ γραμμών, loop τέλος ≠ αρχή, SFX/VO εκτός video.
 
 ## 7. Σειρές
 **Χωρίς αριθμό επεισοδίου στο βίντεο** (ούτε «#2» στο `seriesTag`, ούτε στα captions, ούτε στο VO): ο Αλέξανδρος ανεβάζει τα επεισόδια με όποια σειρά θέλει. Στο βίντεο μπαίνει μόνο το όνομα της σειράς, π.χ. `seriesTag(ctx, lt, 'Πώς φτιάχνεται;')`. Ο αριθμός υπάρχει μόνο στο όνομα αρχείου (`pf03_…`). Αν γράψεις «#N» σε κείμενο, το lint βγάζει warning.
