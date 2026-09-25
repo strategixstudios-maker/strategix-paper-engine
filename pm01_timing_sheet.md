@@ -1,4 +1,4 @@
-# pm01 — ORGANIC «Πριν / Μετά» #1 · Η τζαμαρία · 16,8s
+# pm01 — ORGANIC «Πριν / Μετά» · Η τζαμαρία · 16,8s
 Ίδιο μαγαζί Α (άδειο τζάμι) vs Β (ANNA CAFÉ σε navy βινύλιο). Χωρίς αριθμούς/ισχυρισμούς — μόνο η διαδικασία (plotter → weeding → transfer tape → τζάμι). CTA = comment bait «Α ή Β; Και γιατί;».
 VO: `vo/pm01_vo.mp3` @ 0,1s — ElevenLabs `eleven_v3`, φωνή **Stratos** (4djcgN1Upzan46ZOCATJ), take 2/2 · παύσεις σφιγμένες στα 0,3s (0,42s πριν το «Ένα αυτοκόλλητο») → 17,6 → 16,0s. Μουσική: CapCut.
 SFX: νέα presets `plotter` · `peel` · `squeegee` (sfx.js) + ducking default.

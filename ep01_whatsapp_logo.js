@@ -1,4 +1,4 @@
-// ORGANIC «Ο πελάτης είπε...» #1 — Το λογότυπο από WhatsApp · host: Στράτος · v2: VO ElevenLabs «Stratos» + SFX · 24,9s
+// ORGANIC «Ο πελάτης είπε...» — Το λογότυπο από WhatsApp · host: Στράτος · v2: VO ElevenLabs «Stratos» + SFX · 24,9s
 const L = require('./lib.js');
 const { C, ST, W, H, cut, rectPts, rrPts, circlePts, starPts, txt, pop, caption, captionSeq, burst, check, rng, clamp, lerp, prog, easeOut, easeIn, easeInOut, spring, lipsync, blinkNow } = L;
 const { S, stratos, handPos } = require('./stratos.js');
@@ -47,7 +47,7 @@ function sA(ctx, lt) { // 0–5,8 · phone: logo arrives → pinch-zoom → 80 p
   stamp(ctx, lt, 4.9, 600, 1250, '80 pixel', -0.08);
   if (lt > 3.3) { const k = easeOut(prog(lt, 3.3, 3.7)); stratos(ctx, 230, lerp(2400, 1500, k), 0.8, { seed: 1000, legs: false, arms: [0.1, 0.1], mouth: lipsync(VO, 'shock'), eyes: 'shock', brows: 1.2, look: 10 }); }
   captionSeq(ctx, lt, [[0.05, 'Ο πελάτης μου στέλνει το λογότυπο...'], [2.85, '...από WhatsApp.'], [4.5, 'Ογδόντα pixel.']]);
-  seriesTag(ctx, lt, 'Ο πελάτης είπε... #1');
+  seriesTag(ctx, lt, 'Ο πελάτης είπε...');
 }
 function sB(ctx, lt) { // 5,8–8,25 · messages keep coming, eye twitch, coffee shaking
   wallShelf(ctx);

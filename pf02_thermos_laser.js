@@ -1,4 +1,4 @@
-// «Πώς φτιάχνεται;» #2 — Χάραξη σε θερμός (CO2 laser + rotary) · host: Στράτος · VO ElevenLabs «Stratos» + SFX (−6 dB + ducking κάτω από το VO) · 25,0s
+// «Πώς φτιάχνεται;» — Χάραξη σε θερμός (CO2 laser + rotary) · host: Στράτος · VO ElevenLabs «Stratos» + SFX (−6 dB + ducking κάτω από το VO) · 25,0s
 const L = require('./lib.js');
 const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, captionSeq, check, lerp, prog, easeOut, easeIn, easeInOut, spring, lipsync, blinkNow } = L;
 const { stratos, handPos } = require('./stratos.js');
@@ -14,7 +14,7 @@ const { BRAND, TH, thermos, thermosPhase, rotary, layersInset, kostasLogo, laser
 // 23,40 και φτιάχνουμε τα δικά σου. (–24,5)
 // SFX: ducking = default του render.js (όλα −6 dB · όσα πέφτουν πάνω σε φράση άλλα −7 dB, φράσεις αυτόματα από το VO)
 const VO = [];
-const TAG = 'Πώς φτιάχνεται; #2';
+const TAG = 'Πώς φτιάχνεται;';
 const lp = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
 const MID = (TH.top + TH.bot) / 2; // κέντρο συνολικού μήκους (σώμα+καπάκι) σε τοπικές μονάδες
 

@@ -1,4 +1,4 @@
-# «Πώς φτιάχνεται;» #2 — Χάραξη σε θερμός · 25,0s · 1080×1920 30fps
+# «Πώς φτιάχνεται;» — Χάραξη σε θερμός · 25,0s · 1080×1920 30fps
 VO: `vo/pf02_vo.mp3` @ 0,2s — ElevenLabs `eleven_v3`, φωνή **Stratos** (voice_id 4djcgN1Upzan46ZOCATJ), παύσεις σφιγμένες + atempo 1.06 (27,6 → 24,4s). Μουσική: CapCut.
 SFX: −6 dB + ducking −7 dB πάνω στις φράσεις (`duck()` στο επεισόδιο, όπως ad_afisa v2) → ~17 dB κάτω από το VO.
 Θερμός: powder coat navy, χάραξη CO2 με rotary (αφαιρεί τη βαφή → ανοξείδωτο). Demo logo: KOSTAS COFFEE.

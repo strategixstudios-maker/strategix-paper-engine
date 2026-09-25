@@ -44,7 +44,7 @@ const L = require('./lib.js'); const { lipsync, blinkNow } = L;
 const { stratos } = require('./stratos.js'); const P = require('./props.js');
 const VO = []; // lip-sync από την ένταση του VO_FILE
 function s1(ctx, lt) { P.tiles(ctx); stratos(ctx, 540, 1100, 1, { legs: false, mouth: lipsync(VO), blink: blinkNow() });
-  L.captionSeq(ctx, lt, [[0.1, 'Hook εδώ'], [2.4, 'Δεύτερο κομμάτι']]); P.seriesTag(ctx, lt, 'Σειρά #N'); }
+  L.captionSeq(ctx, lt, [[0.1, 'Hook εδώ'], [2.4, 'Δεύτερο κομμάτι']]); P.seriesTag(ctx, lt, 'Όνομα σειράς'); } // χωρίς #N (STYLE_GUIDE §7)
 require('./render.js')({ name: 'ep02', SCENES: [[s1, 4.5]], WIPES: 'all', VO_FILE: 'vo/ep02_vo.mp3', VO_AT: 0.2,
   SFX: [[0.3, 'pop'], [2.4, 'ding']] }); // wipes → auto whoosh · με VO → auto ducking των SFX
 ```

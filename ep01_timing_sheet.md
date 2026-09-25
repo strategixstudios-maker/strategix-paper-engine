@@ -1,4 +1,4 @@
-# ep01 v2 — «Ο πελάτης είπε...» #1 Το λογότυπο από WhatsApp · 24,9s
+# ep01 v2 — «Ο πελάτης είπε...» · Το λογότυπο από WhatsApp · 24,9s
 VO: `vo/ep01_vo.mp3` @ 0,2s — ElevenLabs `eleven_v3`, φωνή **Stratos** (voice_id 4djcgN1Upzan46ZOCATJ), παύσεις σφιγμένες (26,2 → 23,8s). Μουσική: CapCut.
 
 | Σκηνή | Χρόνος | VO | Caption |

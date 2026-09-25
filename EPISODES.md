@@ -1,10 +1,10 @@
 # Επεισόδια — log
 
-Ένα block ανά επεισόδιο (νεότερο κάτω). **Δεν φορτώνεται αυτόματα**: άνοιξέ το όταν χρειάζεσαι αρίθμηση σειράς, προηγούμενο επεισόδιο ή ιδέες που έχουν ήδη γίνει.
+Ένα block ανά επεισόδιο (νεότερο κάτω). **Δεν φορτώνεται αυτόματα**: άνοιξέ το όταν χρειάζεσαι το επόμενο ID αρχείου (`pf03`…), προηγούμενο επεισόδιο ή ιδέες που έχουν ήδη γίνει.
 
 Μορφή νέας εγγραφής (3–6 γραμμές, χωρίς πίνακα VO — οι χρονισμοί ζουν στο timing sheet):
 ```
-### <ΣΕΙΡΑ> — «Τίτλος» #N · vX (διάρκεια) · `<ep>.js`
+### <ΣΕΙΡΑ> — «Τίτλος» · vX (διάρκεια) · `<ep>.js`
 Hook / τι δείχνει · landing + CTA · νέα props ή αλλαγές engine · ό,τι μάθαμε (αν θέλει engine → BACKLOG.md).
 Timing sheet: `<ep>_timing_sheet.md`.
 ```
@@ -24,11 +24,11 @@ Pre-v2 (βλ. BACKLOG.md). Χωρίς timing sheet — VO:
 | 14,1–15,6 | ...και μένει σαν καινούργιο. |
 | 15,95–18,5 | Φούτερ με το λογότυπό σου. Πάρε προσφορά στο strategixstudios.com. |
 
-### ORGANIC — «Ο πελάτης είπε...» #1 Το λογότυπο από WhatsApp · v2 (24,9s) · `ep01_whatsapp_logo.js`
+### ORGANIC — «Ο πελάτης είπε...» · Το λογότυπο από WhatsApp · v2 (24,9s) · `ep01_whatsapp_logo.js`
 Πρώτο επεισόδιο με VO ElevenLabs «Stratos» (`vo/ep01_vo.mp3`) + SFX, safe zones διορθωμένα. «Minecraft» → «χάλια» (stamp «ΧΑΛΙΑ»). Tip: λογότυπο σε PDF/SVG/AI (vector) · comment bait σε γραφίστες.
 Timing sheet: `ep01_timing_sheet.md`. (Το MP4 βγήκε πριν το `DUCK`· νέο render/`sfx` → SFX με ducking.)
 
-### ORGANIC/AD — «Πώς φτιάχνεται;» #1 Χάραξη σε notebook (27,6s) · `pf01_notebook_laser.js`
+### ORGANIC/AD — «Πώς φτιάχνεται;» · Χάραξη σε notebook (27,6s) · `pf01_notebook_laser.js`
 Laser CO2, navy δερματίνη + ANNA CAFÉ, CTA «Στείλε μήνυμα». Νέα props: `notebook` (NB geometry), `laserMachine`, `laserFX`, `smoke`, `honeycomb`, `laserHeadTop`, `uiSlider`, `giftBox`, `stratosBack`, `msgOut`. `cafeLogo(..., col)`. Pre-v2 (βλ. BACKLOG.md).
 Timing sheet: `pf01_timing_sheet.md`.
 
@@ -37,12 +37,12 @@ Landing: strategixstudios.com/ektyposi-afisas — από 13 €, ματ 250gr, �
 v2: κόπηκε το «Γνωστό σενάριο» (+facepalm) για ≤ 20s · SFX −6 dB + ducking −7 dB πάνω στις φράσεις — τα SFX «πατούσαν» το VO (ήταν μόλις ~3 dB κάτω). Το `duck()` έγινε default του engine (`DUCK` στο render.js).
 Timing sheet: `ad_afisa_timing_sheet.md`.
 
-### ORGANIC/AD — «Πώς φτιάχνεται;» #2 Χάραξη σε θερμός (25,0s) · `pf02_thermos_laser.js`
+### ORGANIC/AD — «Πώς φτιάχνεται;» · Χάραξη σε θερμός (25,0s) · `pf02_thermos_laser.js`
 CO2 laser + **rotary**, navy powder-coat θερμός → η δέσμη αφαιρεί τη βαφή, βγαίνει ασημί ανοξείδωτο. KOSTAS COFFEE, CTA «Στείλε μήνυμα». VO `vo/pf02_vo.mp3` (atempo 1.06). SFX −6 dB + ducking κάτω από το VO (2η φορά μετά το ad_afisa → `DUCK` στο engine).
 Νέα props: `thermos` (κυλινδρική προβολή χάραξης: `engrave`, `phase`, `thermosPhase(p)`, `TH` geometry), `rotary` (πρόσοψη / `top` κάτοψη), `layersInset` (τομή βαφή → ανοξείδωτο), `kostasLogo` (μεταφέρθηκε από το ep01, `mono` για χάραξη).
 Timing sheet: `pf02_timing_sheet.md`.
 
-### ORGANIC — «Πριν / Μετά» #1 Η τζαμαρία (16,8s) · `pm01_vitrina.js`
+### ORGANIC — «Πριν / Μετά» · Η τζαμαρία (16,8s) · `pm01_vitrina.js`
 Split Α (άδειο τζάμι) | Β (ANNA CAFÉ σε βινύλιο) → montage plotter → weeding → transfer tape → τζάμι → περαστικός σταματάει στο Β, μέρα → νύχτα (φωτισμένο τζάμι) → CTA comment bait «Α ή Β; Και γιατί;» πάνω στο ίδιο split (αόρατο loop). Ξεκίνησε ως «Weeding ASMR» — ο ψίθυρος στο VO βγήκε cringe, κράτησα μόνο assets + ήχους.
 Νέα SFX presets: `plotter`, `peel` (`speed`), `squeegee` (`strokes`). Νέα props στο επεισόδιο (1η χρήση): vinyl layers (`logoC`/`accOnly`/`wasteLayer`/`tapeLayer`), γενικό `peel()` (καθρεφτισμένο flap), `sheet`, `plotterRail`, `squeegee`, `pencil`, `shopfront`/`onGlass`, `shop`/`street`/`awning`, `splitLabels`, `walker`.
 Timing sheet: `pm01_timing_sheet.md`.

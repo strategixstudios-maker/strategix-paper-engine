@@ -1,4 +1,4 @@
-// «Πώς φτιάχνεται;» #1 — Χάραξη σε notebook (laser) · host: Στράτος · 27.6s
+// «Πώς φτιάχνεται;» — Χάραξη σε notebook (laser) · host: Στράτος · 27.6s
 const L = require('./lib.js');
 const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, caption, burst, check, lerp, prog, easeOut, easeIn, easeInOut, spring, lipsync, blinkNow } = L;
 const { stratos, handPos } = require('./stratos.js');
@@ -6,7 +6,7 @@ const { BRAND, NB, notebook, laserMachine, laserFX, smoke, honeycomb, laserHeadT
   reach, sparkle, stamp, seriesTag, ctaButton, pip, wallShelf, starsBG, bgFlat, cafeLogo } = require('./props.js');
 
 const VO = [[0.2, 2.3], [2.6, 4.6], [4.8, 7.0], [7.4, 10.2], [10.4, 11.4], [11.8, 14.8], [15.2, 16.0], [16.3, 18.3], [18.7, 21.4], [21.8, 26.8]];
-const TAG = 'Πώς φτιάχνεται; #1';
+const TAG = 'Πώς φτιάχνεται;';
 const lp = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
 
 // ---------- shared shots ----------

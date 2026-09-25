@@ -1,4 +1,4 @@
-// ORGANIC — «Πριν / Μετά» #1 · Η τζαμαρία · host: Στράτος · VO ElevenLabs «Stratos» + SFX (plotter · peel · squeegee)
+// ORGANIC — «Πριν / Μετά» · Η τζαμαρία · host: Στράτος · VO ElevenLabs «Stratos» + SFX (plotter · peel · squeegee)
 // Ίδιο μαγαζί, ίδια τζαμαρία: Α = άδειο τζάμι, Β = λογότυπο σε βινύλιο. Montage: plotter → weeding → transfer tape → τζάμι.
 // Χωρίς αριθμούς/ισχυρισμούς (μόνο η διαδικασία). CTA = comment bait «Α ή Β; Και γιατί;».
 const L = require('./lib.js');
@@ -182,7 +182,7 @@ const d = k => { const ks = Object.keys(S), i = ks.indexOf(k); return S[ks[i + 1
 function sA(ctx, lt) { // hook: split Α | Β
   street(ctx, lt); splitLabels(ctx, lt, 0.1);
   captionSeq(ctx, lt, [[0.05, 'Ίδιο μαγαζί. Ίδια τζαμαρία.'], [rel('diafora', 'a') - 0.05, 'Μία διαφορά.']]);
-  seriesTag(ctx, lt, 'Πριν / Μετά #1');
+  seriesTag(ctx, lt, 'Πριν / Μετά');
 }
 function sB(ctx, lt) { // Στράτος ανάμεσα, δείχνει το Β
   street(ctx, lt);
@@ -239,7 +239,7 @@ function sH(ctx, lt) { // CTA: split Α | Β + Στράτος «ζυγαριά»
   const w = Math.sin(lt * 3.2) * 0.12;
   stratos(ctx, 540, 1080, 0.62, { seed: 1000, legs: false, arms: [0.5 + w, 0.5 - w], elbowL: -1.1, elbowR: -1.1, handL: 'open', handR: 'open', hintL: 'shrug', hintR: 'shrug', mouth: lipsync(VO, 'smile'), blink: blinkNow(), eyes: 'dot', brows: 0.8, look: 0 });
   captionSeq(ctx, lt, [[0.05, 'Εσύ ποιο μαγαζί θα διάλεγες;'], [rel('giati', 'h'), 'Α ή Β; Γράψε και γιατί.']]);
-  seriesTag(ctx, lt, 'Πριν / Μετά #1');
+  seriesTag(ctx, lt, 'Πριν / Μετά');
 }
 function sI(ctx, lt) { sA(ctx, 99); } // loop → frame 0 (labels ήδη ανοιχτά — σχεδόν αόρατο loop)
 

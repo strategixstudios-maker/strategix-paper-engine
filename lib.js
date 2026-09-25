@@ -70,7 +70,13 @@ function cut(ctx, pts, fill, o = {}) {
   if (o.scribble) { ctx.save(); path(ctx, pf); ctx.clip(); scribble(ctx, bbox(pf), o.scribble, s); ctx.restore(); }
   return pf;
 }
+// lint: αριθμός επεισοδίου σε κείμενο του βίντεο («#2») — τα επεισόδια ανεβαίνουν με όποια σειρά, άρα μόνο το όνομα της σειράς (STYLE_GUIDE §7)
+function lintText(ctx, s, x, y) {
+  const m = ST.lint && String(s).match(/#\s*\d+/); if (!m) return;
+  const t = ctx.getTransform(); ST.warn.push({ msg: `κείμενο με «${m[0]}» → χωρίς αριθμό επεισοδίου (§7)`, x: t.a * x + t.c * y + t.e, y: t.b * x + t.d * y + t.f });
+}
 function txt(ctx, s, x, y, o = {}) {
+  lintText(ctx, s, x, y);
   ctx.save(); ctx.font = o.font || '64px Hand'; ctx.textAlign = o.align || 'center'; ctx.textBaseline = 'middle';
   ctx.translate(x, y); if (o.rot) ctx.rotate(o.rot);
   if (o.edge) { ctx.lineJoin = 'round'; ctx.lineWidth = o.edge; ctx.strokeStyle = o.edgeC || '#fff'; ctx.strokeText(s, 0, 0); }
@@ -159,6 +165,7 @@ const CAP = { font: 76, lh: 92, w: 940, y: SAFE.top + 8 }; // γεωμετρία
 // caption strip: Hand 76px, max ~2 lines (split long VO with captionSeq). Sets ST.capBottom for seriesTag.
 function caption(ctx, text, lt, start = 0.15, o = {}) {
   const p = easeOut(prog(lt, start, start + 0.4)); if (p <= 0) return;
+  lintText(ctx, text, W / 2, (o.y ?? CAP.y) + 60);
   const fs = o.fs || CAP.font, lh = Math.round(fs * 1.21);
   ctx.save(); ctx.font = `${fs}px Hand`; const lines = wrap(ctx, text, CAP.w - 90), h = lines.length * lh + 50, y = o.y ?? CAP.y;
   ctx.translate(lerp(-1150, (W - CAP.w) / 2, p), y); ctx.rotate(-0.012);
