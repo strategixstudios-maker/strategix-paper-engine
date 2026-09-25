@@ -159,7 +159,7 @@ function sHook(ctx, lt) {
   if (out < 1) grip(ctx, sqY, out);
   if (down > 0.02) platen(ctx, down);
   if (lt > 2.05) { sparkle(ctx, FCX - 96, FCY - 70, 1.0, lt, 2.1, 71); sparkle(ctx, FCX + 104, FCY + 60, 0.9, lt, 2.17, 72); sparkle(ctx, FCX + 30, FCY - 150, 0.8, lt, 2.24, 73); }
-  caption(ctx, 'Αυτό είναι η μεταξοτυπία', lt, -1); seriesTag(ctx, lt + 1, TAG);   // ήδη στο frame 0 (loop)
+  caption(ctx, 'Αυτό είναι η μεταξοτυπία', lt, -1); seriesTag(ctx, lt + 1, TAG);   // ήδη στο frame 0 (loop) · η ετικέτα σειράς μόνο εδώ
 }
 
 // S1 — QUESTION / rewind  (VO: «Αλλά πώς γίνεται;»)
@@ -169,7 +169,7 @@ function sQuestion(ctx, lt) {
   // «?» που σκάει
   pop(ctx, lt, 0.15, FCX, FCY, () => txt(ctx, ';', 0, 60, { font: 'bold 320px Round', color: C.sky }));
   pip(ctx, ...PIP, VO);
-  caption(ctx, 'Αλλά πώς γίνεται;', lt, 0.1); seriesTag(ctx, lt, TAG);
+  caption(ctx, 'Αλλά πώς γίνεται;', lt, 0.1);
 }
 
 // S2 — βήμα 1: το σχέδιο σε film  (VO: «Πρώτα, το σχέδιό σου τυπώνεται σε μια διαφάνεια.»)
@@ -178,7 +178,7 @@ function sFilm(ctx, lt) {
   const k = easeOut(prog(lt, 0.15, 0.9));
   filmPositive(ctx, (1 - k) * -820);
   if (k > 0.9) reach(ctx, FCX + 150, FCY + 250, 300, 760, { seed: 810, hand: 'open', side: -1 });
-  caption(ctx, '1 · Το σχέδιο σε film', lt, 0.12); seriesTag(ctx, lt, TAG);
+  caption(ctx, '1 · Το σχέδιο σε film', lt, 0.12);
 }
 
 // S3 — βήμα 2: emulsion coat  (VO: «Το τελάρο περνιέται με φωτοευαίσθητο υγρό.»)
@@ -194,7 +194,7 @@ function sEmul(ctx, lt) {
   });
   // coating bar + χέρι
   if (coat > 0 && coat < 1) { const y = FCY - IH + (IH * 2) * coat; squeegee(ctx, y); reach(ctx, FCX + FW - 60, y - 10, 420, 720, { seed: 820, hand: 'grip', side: -1 }); }
-  caption(ctx, '2 · Emulsion', lt, 0.12); seriesTag(ctx, lt, TAG);
+  caption(ctx, '2 · Emulsion', lt, 0.12);
 }
 
 // S4 — βήμα 3: έκθεση σε φως  (VO: «Φως. Ό,τι κρύβει το σχέδιο, μένει μαλακό.»)
@@ -209,7 +209,7 @@ function sLight(ctx, lt) {
   ctx.strokeStyle = `rgba(255,255,255,${0.5 * g})`; ctx.lineWidth = 6; ctx.lineCap = 'round';       // ακτίνες
   for (let a = 0; a < 6; a++) { const an = a / 6 * Math.PI * 2 + lt * 0.4; ctx.beginPath(); ctx.moveTo(FCX + Math.cos(an) * 210, FCY - 40 + Math.sin(an) * 210); ctx.lineTo(FCX + Math.cos(an) * 320, FCY - 40 + Math.sin(an) * 320); ctx.stroke(); }
   ctx.restore();
-  caption(ctx, '3 · Έκθεση σε φως', lt, 0.12); seriesTag(ctx, lt, TAG);
+  caption(ctx, '3 · Έκθεση σε φως', lt, 0.12);
 }
 
 // S5 — βήμα 4: ξέπλυμα → ανοίγει το «S» στο πλέγμα  (VO: «Ξέπλυμα — και το σχέδιο ανοίγει στο πλέγμα.»)
@@ -232,7 +232,7 @@ function sWash(ctx, lt) {
     for (let i = 0; i < 9; i++) { const s = L.rng(i + Math.floor(lt * 22)); ctx.globalAlpha = 0.5 + 0.4 * s; const dx = (s - 0.5) * 220, dy = s * 90; L.path(ctx, circlePts(FCX + dx, y + dy - 30, 5 + s * 4)); ctx.fill(); }
     ctx.restore();
   }
-  caption(ctx, '4 · Ξέπλυμα', lt, 0.12); seriesTag(ctx, lt, TAG);
+  caption(ctx, '4 · Ξέπλυμα', lt, 0.12);
 }
 
 // S6 — βήμα 5: πέρασμα → σήκωμα → επόμενο tee → τελάρο κάτω → σπάτουλα «έτοιμη» (= frame 0, seamless loop)
@@ -253,7 +253,7 @@ function sPass(ctx, lt) {
   if (lt >= 4.9) press(ctx, SQ0, { lift: drop, alpha: fadeIn });
   if (lt >= 6.0) grip(ctx, SQ0, handIn);
   captionSeq(ctx, lt, [[0.12, '5 · Πέρασμα'], [2.4, 'Ένας από τους παλιότερους τρόπους'], [4.65, 'Κι από τους πιο γερούς.'], [6.72, 'Αυτό είναι η μεταξοτυπία']]);
-  seriesTag(ctx, lt, TAG);
+  if (lt >= 6.72) seriesTag(ctx, (lt - 6.72) * 1.5, TAG);             // ετικέτα σειράς μόνο με το caption του hook (loop)
 }
 
 const SCENES = [[sHook, 2.6], [sQuestion, 1.45], [sFilm, 2.7], [sEmul, 2.55], [sLight, 3.1], [sWash, 3.05], [sPass, 7.1]];

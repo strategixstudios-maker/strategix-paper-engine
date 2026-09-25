@@ -56,7 +56,7 @@ module.exports = function run(ep) {
   };
   function frame(ctx, t) {
     ST.T = t; ST.B = Math.floor(t * 12);
-    let i = STARTS.length - 1; while (i > 0 && t < STARTS[i]) i--;
+    let i = STARTS.length - 1; while (i > 0 && t < STARTS[i]) i--; ST.SCENE = i;
     ctx.save(); ep.SCENES[i][0](ctx, t - STARTS[i]); ctx.restore();
     for (const k of wipes) { // torn-paper wipe
       const d = t - STARTS[k]; if (Math.abs(d) >= TR) continue;

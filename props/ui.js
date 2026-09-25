@@ -22,9 +22,11 @@ function speech(ctx, x, y, w, h, lines, o = {}) { // speech bubble with tail poi
 function stamp(ctx, lt, st, x, y, word, rot, col = BRAND, fs = 76) { // big popping label
   pop(ctx, lt, st, x, y, () => { ctx.font = `bold ${fs}px Round`; const tw = ctx.measureText(word).width + 80; cut(ctx, rrPts(-tw / 2, -fs * 0.82, tw, fs * 1.64, 22), col, { seed: 40 + word.length, amp: 3, edgeW: 9 }); txt(ctx, word, 0, 4, { font: `bold ${fs}px Round`, color: '#fff' }); }, rot);
 }
+// μόνο στο hook (δηλώνει το είδος του βίντεο)· αλλού μόνο μαζί με caption του hook (π.χ. στο τέλος ενός seamless loop) — αλλιώς lint
 function seriesTag(ctx, lt, label, x, y) { // sticker on the caption's bottom-right corner (inside the safe zone) unless x,y given
   ctx.font = '40px Hand'; const tw = ctx.measureText(label).width + 56;
   x = x ?? L.SAFE.right - 40 - tw / 2; y = y ?? (ST.capBottom ? ST.capBottom + 6 : L.SAFE.top + 40);
+  if (ST.lint && lt > 0) { const c0 = ST.CAP0 = ST.CAP0 || new Set(); if (!ST.SCENE) c0.add(ST.capText); else if (c0.size && !c0.has(ST.capText)) ST.warn.push({ msg: `seriesTag μόνο στο hook, όχι σε κάθε caption (${ST.capText ? '«' + ST.capText.slice(0, 18) + '…»' : 'χωρίς caption'})`, x, y }); }
   pop(ctx, lt, 0, x, y, () => { cut(ctx, rrPts(-tw / 2, -38, tw, 76, 20), C.navy, { seed: 30, amp: 3 }); txt(ctx, label, 0, 2, { font: '40px Hand', color: '#fff' }); }, 0.04);
 }
 // αστεράκι ✨ που σκάει στο start και πάλλεται
