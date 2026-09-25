@@ -133,31 +133,45 @@ function filmPositive(ctx, dx = 0) {
   ctx.restore();
 }
 
-// -------------------- heat-press platen (κατεβαίνει από πάνω) --------------------
-function platen(ctx, down) {
-  const w = 218 * lerp(0.8, 1.0, down), h = 246 * lerp(0.8, 1.0, down);
-  ctx.save(); ctx.globalAlpha = 0.28 * down; ctx.fillStyle = '#04102a'; L.path(ctx, rrPts(FCX - w, FCY - h + 26, w * 2, h * 2, 24)); ctx.fill(); ctx.restore();
-  ctx.save(); ctx.globalAlpha = 0.5 * down;                                   // ημιδιάφανο platen → φαίνεται το «S»
-  cut(ctx, rrPts(FCX - w, FCY - h, w * 2, h * 2, 22), '#1B3168', { seed: 7700, amp: 2, edgeW: 8, shadow: false }); ctx.restore();
-  ctx.save(); ctx.globalAlpha = 0.55 * down; ctx.strokeStyle = C.sky; ctx.lineWidth = 5; ctx.lineCap = 'round';   // heat waves
-  for (let i = -1; i <= 1; i++) { const yy = FCY + i * 66; ctx.beginPath(); for (let x = -108; x <= 108; x += 8) ctx.lineTo(FCX + x, yy + Math.sin(x * 0.06 + down * 3) * 7); ctx.stroke(); }
+// -------------------- πιστόλι πιεστικού νερού (κάτοψη) --------------------
+const WD = [ARM[0] / Math.hypot(...ARM), ARM[1] / Math.hypot(...ARM)];    // κατεύθυνση λόγχης: από τον πίδακα προς το χέρι (κάτω-δεξιά)
+// h = σημείο που χτυπάει ο πίδακας · jet 0..1 (ένταση) · out 0..1 = το χέρι φεύγει/μπαίνει κατά μήκος του μπράτσου
+function washer(ctx, h, lt, jet, out = 0) {
+  const k = 900 * out, N = [h[0] + WD[0] * (210 + k), h[1] + WD[1] * (210 + k)], px = -WD[1], py = WD[0];
+  if (jet > 0.02) {                                                          // πίδακας + ομίχλη + σταγόνες
+    const T = [N[0] - WD[0] * 26, N[1] - WD[1] * 26];
+    ctx.save(); ctx.globalAlpha = 0.5 * jet; ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(T[0] + px * 5, T[1] + py * 5); ctx.lineTo(h[0] + px * 40, h[1] + py * 40); ctx.lineTo(h[0] - px * 40, h[1] - py * 40); ctx.lineTo(T[0] - px * 5, T[1] - py * 5); ctx.fill();
+    ctx.globalAlpha = 0.9 * jet; ctx.strokeStyle = '#fff'; ctx.lineCap = 'round'; ctx.lineWidth = 7; ctx.setLineDash([34, 22]); ctx.lineDashOffset = lt * 1100;
+    ctx.beginPath(); ctx.moveTo(T[0], T[1]); ctx.lineTo(h[0], h[1]); ctx.stroke(); ctx.setLineDash([]);
+    for (let i = 0; i < 7; i++) { const r = L.rng(i * 7 + L.ST.B * 31); ctx.globalAlpha = 0.3 * jet; L.path(ctx, circlePts(h[0] + (r - 0.5) * 120, h[1] + (L.rng(i + 50 + L.ST.B) - 0.5) * 90, 18 + 26 * r)); ctx.fill(); }
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < 16; i++) { const a = L.rng(i * 13 + L.ST.FRAME * 3) * Math.PI * 2, dd = 50 + 150 * L.rng(i * 5 + L.ST.FRAME * 7); ctx.globalAlpha = (0.7 + 0.3 * L.rng(i + L.ST.FRAME)) * jet; L.path(ctx, circlePts(h[0] + Math.cos(a) * dd, h[1] + Math.sin(a) * dd * 0.8, 5 + 6 * L.rng(i * 3 + L.ST.FRAME))); ctx.fill(); }
+    ctx.globalAlpha = 0.9 * jet; ctx.strokeStyle = '#fff'; ctx.lineWidth = 6;                   // πιτσιλιά
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + L.ST.B, r0 = 44, r1 = 64 + 22 * L.rng(i + L.ST.B * 9); ctx.beginPath(); ctx.moveTo(h[0] + Math.cos(a) * r0, h[1] + Math.sin(a) * r0); ctx.lineTo(h[0] + Math.cos(a) * r1, h[1] + Math.sin(a) * r1); ctx.stroke(); }
+    ctx.restore();
+  }
+  ctx.save(); ctx.translate(N[0], N[1]); ctx.rotate(Math.atan2(WD[1], WD[0]) - Math.PI / 2);   // τοπικό +y = προς το χέρι
+  cut(ctx, rrPts(-9, 0, 18, 330, 8), '#B9C2D3', { seed: 8600, amp: 1, edgeW: 4 });                    // λόγχη
+  cut(ctx, rrPts(-15, -28, 30, 40, 8), '#26356A', { seed: 8601, amp: 1, edgeW: 4 });              // μπεκ
+  cut(ctx, rrPts(-40, 318, 80, 130, 22), '#26356A', { seed: 8602, amp: 2, edgeW: 6 });            // σώμα πιστολιού
+  cut(ctx, rrPts(-26, 336, 52, 26, 10), BRAND, { seed: 8603, amp: 1, edgeW: 3, shadow: false });
   ctx.restore();
+  reach(ctx, N[0] + WD[0] * 410, N[1] + WD[1] * 410, ...ARM, { seed: 830, hand: 'grip', side: -1 });
 }
 
 // ============================== SCENES ==============================
 // «έτοιμο» = frame 0 = τέλος: τελάρο κάτω στο λευκό tee, μελάνι + σπάτουλα πάνω, χέρι στη λαβή → seamless loop (LOOP: 'cut')
 
-// S0 — HOOK: η σπάτουλα τυπώνει → σηκώνεται το τελάρο → μπλε «S» → heat-press cure  (VO: «Αυτό είναι η μεταξοτυπία.»)
+// S0 — HOOK: η σπάτουλα τυπώνει → σηκώνεται το τελάρο → μπλε «S» καθαρό (τίποτα ημιδιάφανο από πάνω) + ✨  (VO: «Αυτό είναι η μεταξοτυπία.»)
 function sHook(ctx, lt) {
   const sqY = lerp(SQ0, SQ1, easeInOut(prog(lt, 0.12, 1.0)));             // πέρασμα
   const out = easeIn(prog(lt, 1.0, 1.25));                                 // το χέρι αφήνει τη λαβή
   const lift = easeInOut(prog(lt, 1.08, 1.5)), alpha = 1 - easeIn(prog(lt, 1.18, 1.55));
-  const down = easeInOut(prog(lt, 1.72, 1.95)) * (1 - easeInOut(prog(lt, 2.08, 2.3)));
   matBG(ctx);
   teeFlat(ctx, lt > 1.0 ? { print: 1, wet: lt < 1.85, bump: prog(lt, 1.28, 1.6) } : {});
   if (alpha > 0.01) press(ctx, sqY, { lift, alpha });
   if (out < 1) grip(ctx, sqY, out);
-  if (down > 0.02) platen(ctx, down);
   if (lt > 2.05) { sparkle(ctx, FCX - 96, FCY - 70, 1.0, lt, 2.1, 71); sparkle(ctx, FCX + 104, FCY + 60, 0.9, lt, 2.17, 72); sparkle(ctx, FCX + 30, FCY - 150, 0.8, lt, 2.24, 73); }
   caption(ctx, 'Αυτό είναι η μεταξοτυπία', lt, -1); seriesTag(ctx, lt + 1, TAG);   // ήδη στο frame 0 (loop) · η ετικέτα σειράς μόνο εδώ
 }
@@ -212,26 +226,31 @@ function sLight(ctx, lt) {
   caption(ctx, '3 · Έκθεση σε φως', lt, 0.12);
 }
 
-// S5 — βήμα 4: ξέπλυμα → ανοίγει το «S» στο πλέγμα  (VO: «Ξέπλυμα — και το σχέδιο ανοίγει στο πλέγμα.»)
+// S5 — βήμα 4: ξέπλυμα με πιεστικό νερό → το «S» ανοίγει εκεί που περνάει ο πίδακας  (VO: «Ξέπλυμα — και το σχέδιο ανοίγει στο πλέγμα.»)
+// ο πίδακας σαρώνει ζιγκ-ζαγκ top→down· βρέχει όλο το emulsion, αλλά ανοίγει μόνο το «S» (το υπόλοιπο σκλήρυνε στο φως)
+const jetAt = u => [FCX + 185 * Math.sin(u * Math.PI * 5), lerp(FCY - SR - 30, FCY + SR + 30, u)];
 function sWash(ctx, lt) {
   matBG(ctx);
-  const open = easeInOut(prog(lt, 0.5, 1.9));              // το «S» ανοίγει top→down
+  const u = easeInOut(prog(lt, 0.5, 2.1)), jet = prog(lt, 0.45, 0.55) * (1 - prog(lt, 2.1, 2.2));
+  const h = jetAt(u), out = 1 - easeOut(prog(lt, 0.1, 0.5)) + easeIn(prog(lt, 2.2, 2.6));
+  const washed = c => {                                                     // ό,τι έχει περάσει ο πίδακας: ό,τι είναι πάνω από το μέτωπο + ίχνος
+    c.beginPath(); if (lt >= 2.1) { c.rect(0, 0, W, H); return; }
+    c.rect(0, 0, W, h[1] - 50);
+    for (let k = 0; k <= 60; k++) { const q = jetAt(u * k / 60); c.moveTo(q[0] + 80, q[1]); c.arc(q[0], q[1], 80, 0, Math.PI * 2); }
+  };
   frame(ctx, {
     inner: c => {
       interiorBase(c, EMUL, 7512);
-      c.save(); c.beginPath(); c.rect(FCX - SR - 60, FCY - SR - 40, 2 * (SR + 60), (2 * SR + 80) * open); c.clip();
-      brandMark(c, FCX, FCY, SR, C.navy);                   // ανοιχτό «S» (φαίνεται το mat από κάτω)
-      meshGrid(c); c.restore();
+      if (lt > 0.5) {
+        c.save(); washed(c); c.clip();
+        c.fillStyle = `rgba(30,60,150,${lt < 2.1 ? 0.14 : 0.14 * (1 - prog(lt, 2.1, 3.0))})`; c.fillRect(FCX - IW, FCY - IH, IW * 2, IH * 2);   // βρεγμένο emulsion
+        brandMark(c, FCX, FCY, SR, C.navy);                                  // ανοιχτό «S» (φαίνεται το mat από κάτω)
+        c.restore();
+      }
+      meshGrid(c);
     }
   });
-  // spray νερού
-  if (open > 0 && open < 1) {
-    const y = FCY - SR + (2 * SR) * open;
-    reach(ctx, FCX + 130, y - 30, 380, 740, { seed: 830, hand: 'point', side: -1 });
-    ctx.save(); ctx.fillStyle = C.sky;
-    for (let i = 0; i < 9; i++) { const s = L.rng(i + Math.floor(lt * 22)); ctx.globalAlpha = 0.5 + 0.4 * s; const dx = (s - 0.5) * 220, dy = s * 90; L.path(ctx, circlePts(FCX + dx, y + dy - 30, 5 + s * 4)); ctx.fill(); }
-    ctx.restore();
-  }
+  if (out < 1) washer(ctx, h, lt, jet, out);
   caption(ctx, '4 · Ξέπλυμα', lt, 0.12);
 }
 
@@ -267,12 +286,12 @@ require('./render.js')({
     [0.10, 'squeegee', { dur: 0.95, note: 'hook: η σπάτουλα τυπώνει' }],
     [1.08, 'lid', { note: 'σηκώνει το τελάρο' }],
     [1.30, 'pop', { note: 'reveal «S»' }],
-    [1.80, 'thud', { note: 'heat-press κατεβαίνει' }],
-    [2.10, 'shimmer', { note: 'cure ✨' }],
+    [2.10, 'shimmer', { note: '✨' }],
     [4.25, 'slide', { dur: 0.7, note: 'film μπαίνει' }],
     [6.95, 'squeegee', { dur: 1.4, note: 'emulsion coat' }],
     [9.50, 'beep', { count: 1, note: 'φως on' }], [9.65, 'air', { dur: 2.0, note: 'έκθεση σε φως' }],
-    [12.65, 'air', { dur: 1.8, note: 'ξέπλυμα spray' }],
+    [12.86, 'click', { gain: 0.6, note: 'σκανδάλη πιστολιού' }],
+    [12.90, 'spray', { dur: 1.62, note: 'ξέπλυμα με πιεστικό νερό' }],
     [15.72, 'squeegee', { dur: 1.35, note: 'πέρασμα μελάνι' }],
     [17.30, 'lid', { note: 'σηκώνει το τελάρο' }],
     [17.60, 'pop', { note: 'reveal «S»' }],
