@@ -125,7 +125,17 @@ function lintStratos(ctx, o, aL, aR) {
 }
 // hand centre in world coords (matches arm(): shoulder pivot, elbow at 150, hand centre ≈ 288)
 function handPos(side, ang, s, x, y, elbow = 0) { const th = -side * ang, te = th + side * elbow; return [x + s * (side * 148 - 150 * Math.sin(th) - 138 * Math.sin(te)), y + s * (24 + 150 * Math.cos(th) + 138 * Math.cos(te))]; }
-module.exports = { S, head, arm, hand, finger, stratos, handPos };
+// ---------- πόζες με keyframes (ms01 → pm02) ----------
+// ηρεμία: βάση για κάθε κλειδί που λείπει από μια πόζα
+const REST_POSE = { aL: 0.12, aR: 0.12, eL: 0, eR: 0, brows: 0.3, look: 0 };
+// POSES = [[t, { aL, aR, eL, eR, hL, hR, iL, iR, eyes, brows, look, front }], ...] → opts για stratos() τη στιγμή t. Γωνίες/φρύδια/βλέμμα: blend (blend s, default 0,28)
+// από την προηγούμενη πόζα· χέρια (hL/hR), hints (iL/iR), eyes, front (armRFront) αλλάζουν στη μέση του blend. rest = βάση για ό,τι λείπει (default REST_POSE)
+function poseAt(POSES, t, rest = REST_POSE, blend = 0.28) {
+  let i = 0; while (i + 1 < POSES.length && t >= POSES[i + 1][0]) i++;
+  const [t1, b] = POSES[i], a = i ? POSES[i - 1][1] : b, p = L.easeInOut(L.prog(t, t1, t1 + blend)), q = p < 0.5 ? a : b, m = k => L.lerp(a[k] ?? rest[k] ?? 0, b[k] ?? rest[k] ?? 0, p);
+  return { arms: [m('aL'), m('aR')], elbowL: m('eL'), elbowR: m('eR'), handL: q.hL || 'relaxed', handR: q.hR || 'relaxed', hintL: q.iL, hintR: q.iR, eyes: q.eyes || 'dot', brows: m('brows'), look: m('look'), armRFront: !!q.front };
+}
+module.exports = { S, head, arm, hand, finger, stratos, handPos, REST_POSE, poseAt };
 
 // ---------- character sheet ----------
 if (require.main === module) {
