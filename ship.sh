@@ -10,7 +10,9 @@ git config user.email >/dev/null || git config user.email "chat@strategix.local"
 BASE=$(git rev-parse origin/main)
 git add -A
 # lint gate: κάθε επεισόδιο που άλλαξε πρέπει να βγαίνει «lint ✔ καθαρό»
-for f in $(git diff --cached --name-only --diff-filter=AM "$BASE" | grep -E '^(ad|ep|pf|pm)[^/]*\.js$' | grep -v '_legacy' || true); do
+# επεισόδιο = .js στη ρίζα που καλεί το render.js, όχι _legacy (χωρίς λίστα prefixes: νέα σειρά μπαίνει αυτόματα · ίδιο κριτήριο με το regress.js)
+for f in $(git diff --cached --name-only --diff-filter=AM "$BASE" | grep -E '^[^/]+\.js$' | grep -v '_legacy' || true); do
+  grep -qE "^[^/]*require\('\./render\.js'\)\(" "$f" || continue
   echo "lint $f"; node "$f" lint || { [ -n "$FORCE" ] || { echo "✘ $f όχι καθαρό (FORCE=1 για παράκαμψη)"; exit 1; }; }
 done
 # engine gate: άλλαξε engine/props → περιγραφές props + regress σε ΟΛΑ τα επεισόδια (νέο crash / νέο lint warning = stop)

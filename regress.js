@@ -10,9 +10,10 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 
 const ROOT = __dirname, TMP = path.join(os.tmpdir(), 'strategix-regress');
 const sh = (cmd, cwd = ROOT) => execSync(cmd, { cwd, encoding: 'utf8', maxBuffer: 1 << 28 });
-const isEp = f => /^(ad|ep|pf)[^/]*\.js$/.test(f) && !f.includes('_legacy'); // ίδιο φίλτρο με το ship.sh
+// επεισόδιο = .js στη ρίζα που καλεί το render (γραμμή που δεν είναι σχόλιο), όχι _legacy — χωρίς λίστα prefixes: νέα σειρά μπαίνει αυτόματα · ίδιο κριτήριο με το ship.sh
+const isEp = (f, dir = ROOT) => /^[^/]+\.js$/.test(f) && !f.includes('_legacy') && fs.existsSync(path.join(dir, f)) && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(dir, f), 'utf8'));
 const argv = process.argv.slice(2), fresh = argv.includes('--fresh'), only = [], refs = [];
-for (const a of argv.filter(a => a !== '--fresh')) { const f = a.endsWith('.js') ? a : a + '.js'; (isEp(f) && fs.existsSync(path.join(ROOT, f)) ? only : refs).push(isEp(f) ? f : a); }
+for (const a of argv.filter(a => a !== '--fresh')) { const f = a.endsWith('.js') ? a : a + '.js'; isEp(f) ? only.push(f) : refs.push(a); }
 const base = refs[0] || 'HEAD', hash = sh(`git rev-parse --verify "${base}^{commit}"`).trim();
 
 // ---------- δύο αντίγραφα: base (git archive, cache) + working tree (tracked + νέα αρχεία, χωρίς ignored) ----------
@@ -31,7 +32,7 @@ for (const f of sh('git ls-files -co --exclude-standard -z').split('\0').filter(
   fs.mkdirSync(path.dirname(path.join(CUR, f)), { recursive: true }); fs.copyFileSync(src, path.join(CUR, f));
 }
 link(CUR);
-const eps = [...new Set([...fs.readdirSync(B), ...fs.readdirSync(CUR)].filter(isEp))].filter(f => !only.length || only.includes(f)).sort();
+const eps = [...new Set([...fs.readdirSync(B).filter(f => isEp(f, B)), ...fs.readdirSync(CUR).filter(f => isEp(f, CUR))])].filter(f => !only.length || only.includes(f)).sort();
 
 // ---------- ένα επεισόδιο σε ένα tree: lint → sheet clean → sfx ----------
 const run = (dir, args) => new Promise(res => {
