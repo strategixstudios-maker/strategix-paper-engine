@@ -26,7 +26,7 @@ Pre-v2 (βλ. BACKLOG.md). Χωρίς timing sheet — VO:
 
 ### ORGANIC — «Ο πελάτης είπε...» · Το λογότυπο από WhatsApp · v2 (24,9s) · `ep01_whatsapp_logo.js`
 Πρώτο επεισόδιο με VO ElevenLabs «Stratos» (`vo/ep01_vo.mp3`) + SFX, safe zones διορθωμένα. «Minecraft» → «χάλια» (stamp «ΧΑΛΙΑ»). Tip: λογότυπο σε PDF/SVG/AI (vector) · comment bait σε γραφίστες.
-Timing sheet: `ep01_timing_sheet.md`. (Το MP4 βγήκε πριν το `DUCK`· νέο render/`sfx` → SFX με ducking.)
+Timing sheet: `ep01_timing_sheet.md`. v2.1: ρολά/μηνύματα/ρολόι 80px πιο κάτω (δεν πέφτουν στο caption, 6,2s) · «φωτό της ταμπέλας» χωράει στο συννεφάκι (`msgBubble` αυτόματο πλάτος) · νέο render με ducking.
 
 ### ORGANIC/AD — «Πώς φτιάχνεται;» · Χάραξη σε notebook (27,6s) · `pf01_notebook_laser.js`
 Laser CO2, navy δερματίνη + ANNA CAFÉ, CTA «Στείλε μήνυμα». Νέα props: `notebook` (NB geometry), `laserMachine`, `laserFX`, `smoke`, `honeycomb`, `laserHeadTop`, `uiSlider`, `giftBox`, `stratosBack`, `msgOut`. `cafeLogo(..., col)`. Pre-v2 (βλ. BACKLOG.md).

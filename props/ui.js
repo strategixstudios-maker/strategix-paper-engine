@@ -3,10 +3,12 @@ const L = require('../lib.js');
 const { C, ST, W, cut, rrPts, circlePts, starPts, txt, pop } = L;
 const { BRAND } = require('./core.js');
 
-function msgBubble(ctx, x, y, w, h, text, o = {}) { // incoming chat message
+function msgBubble(ctx, x, y, w, h, text, o = {}) { // incoming chat message · το πλάτος μεγαλώνει όσο χρειάζεται για να χωρέσει το κείμενο
+  const font = `${o.fs || 40}px Round`;
+  if (text) { ctx.save(); ctx.font = font; w = Math.max(w, ctx.measureText(text).width + 56); ctx.restore(); }
   cut(ctx, [[x + 10, y + 16], [x - 22, y + 4], [x + 18, y + 44]], '#fff', { seed: (o.seed || 1) + 1, amp: 1.5, edgeW: 5 });
   cut(ctx, rrPts(x, y, w, h, 26), '#fff', { seed: o.seed || 1, amp: 2, edgeW: 6 });
-  if (text) { ctx.save(); ctx.font = `${o.fs || 40}px Round`; ctx.fillStyle = C.ink; ctx.textBaseline = 'middle'; ctx.fillText(text, x + 28, y + h / 2 - 6); ctx.restore(); }
+  if (text) { ctx.save(); ctx.font = font; ctx.fillStyle = C.ink; ctx.textBaseline = 'middle'; ctx.fillText(text, x + 28, y + h / 2 - 6); ctx.restore(); }
   txt(ctx, o.time || '21:47', x + w - 52, y + h - 20, { font: '22px Round', color: '#8A94A8' });
 }
 function speech(ctx, x, y, w, h, lines, o = {}) { // speech bubble with tail pointing to (tx,ty) relative

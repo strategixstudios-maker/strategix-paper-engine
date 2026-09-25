@@ -50,8 +50,8 @@ function sA(ctx, lt) { // 0–5,8 · phone: logo arrives → pinch-zoom → 80 p
   seriesTag(ctx, lt, 'Ο πελάτης είπε...');
 }
 function sB(ctx, lt) { // 5,8–8,25 · messages keep coming, eye twitch, coffee shaking
-  wallShelf(ctx);
-  cut(ctx, circlePts(880, 760, 80), '#fff', { seed: 60, amp: 2 }); ctx.save(); ctx.strokeStyle = C.navy; ctx.lineWidth = 7; ctx.lineCap = 'round'; for (const [len, sp] of [[56, 6], [38, 0.5]]) { const a = lt * sp; ctx.beginPath(); ctx.moveTo(880, 760); ctx.lineTo(880 + Math.sin(a) * len, 760 - Math.cos(a) * len); ctx.stroke(); } ctx.restore();
+  wallShelf(ctx, { y: 640 }); // ρολά κάτω από το caption 2 γραμμών
+  cut(ctx, circlePts(880, 840, 80), '#fff', { seed: 60, amp: 2 }); ctx.save(); ctx.strokeStyle = C.navy; ctx.lineWidth = 7; ctx.lineCap = 'round'; for (const [len, sp] of [[56, 6], [38, 0.5]]) { const a = lt * sp; ctx.beginPath(); ctx.moveTo(880, 840); ctx.lineTo(880 + Math.sin(a) * len, 840 - Math.cos(a) * len); ctx.stroke(); } ctx.restore();
   const tw = lt > 1.5 ? Math.sin(lt * 60) * 6 : 0;
   stratos(ctx, 540, 1250, 0.95, { seed: 1000, legs: false, arms: [0.15, 0.15], mouth: lipsync(VO, 'flat'), eyes: lt > 1.5 && Math.sin(lt * 30) > 0 ? 'tired' : 'shock', brows: lt > 1.5 ? -0.4 : 1, look: tw });
   cut(ctx, rectPts(-40, 1520, W + 80, 500), C.paper, { seed: 61, scribble: '#E3DCCB' });
@@ -60,8 +60,8 @@ function sB(ctx, lt) { // 5,8–8,25 · messages keep coming, eye twitch, coffee
   ctx.save(); ctx.translate(800 + shake, 1430); ctx.rotate(shake * 0.01);
   cut(ctx, rrPts(-60, -80, 120, 140, 16), C.navy, { seed: 63, amp: 1.5, edgeW: 6 }); txt(ctx, 'S', 0, -8, { font: '52px Brand', color: '#fff' });
   ctx.strokeStyle = C.navy; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(66, -20, 26, -1.3, 1.3); ctx.stroke(); ctx.restore();
-  pop(ctx, lt, 0.25, 90, 560, () => msgBubble(ctx, 0, 0, 640, 110, 'Λίγο πιο... μοντέρνο;', { seed: 64, time: '21:48' }), -0.03);
-  pop(ctx, lt, 1.35, 150, 720, () => msgBubble(ctx, 0, 0, 640, 110, 'Για αύριο το θέλουμε!', { seed: 65, time: '21:48' }), 0.03);
+  pop(ctx, lt, 0.25, 90, 640, () => msgBubble(ctx, 0, 0, 640, 110, 'Λίγο πιο... μοντέρνο;', { seed: 64, time: '21:48' }), -0.03);
+  pop(ctx, lt, 1.35, 150, 790, () => msgBubble(ctx, 0, 0, 640, 110, 'Για αύριο το θέλουμε!', { seed: 65, time: '21:48' }), 0.03);
   caption(ctx, 'Και φυσικά... το θέλει για αύριο.', lt, 0.05);
 }
 const PRESS = [0.3, 0.55, 0.8, 1.05, 1.3];

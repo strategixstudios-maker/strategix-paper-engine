@@ -17,11 +17,12 @@ function tiles(ctx) { // laundry / bathroom tiles + navy floor
   ctx.restore();
   cut(ctx, rectPts(-40, 1740, W + 80, 300), C.navy, { seed: 6, scribble: '#1B2D62', edgeW: 8 });
 }
-function wallShelf(ctx) { // workshop wall with vinyl rolls on a shelf
+function wallShelf(ctx, o = {}) { // workshop wall with vinyl rolls on a shelf · o.y = πάνω άκρη ραφιού (default 560 · 640 → τα ρολά βγαίνουν κάτω από caption 2 γραμμών)
+  const y = o.y ?? 560;
   bgFlat(ctx, C.blue, '#3456B0', 11);
-  cut(ctx, rectPts(-40, 560, W + 80, 40), C.paper, { seed: 12, amp: 2, edgeW: 6 });
+  cut(ctx, rectPts(-40, y, W + 80, 40), C.paper, { seed: 12, amp: 2, edgeW: 6 });
   const cols = [C.sky, BRAND, C.paper, '#F4D98A', C.mid];
-  for (let i = 0; i < 7; i++) cut(ctx, circlePts(110 + i * 140, 500, 56, 56, 24), cols[i % 5], { seed: 13 + i, amp: 2, edgeW: 6 });
+  for (let i = 0; i < 7; i++) cut(ctx, circlePts(110 + i * 140, y - 60, 56, 56, 24), cols[i % 5], { seed: 13 + i, amp: 2, edgeW: 6 });
 }
 // φόντο με αστεράκια που αναβοσβήνουν (ζώνη πάνω + κάτω)
 function starsBG(ctx, lt, col = C.blue, scrib = '#3456B0') {
