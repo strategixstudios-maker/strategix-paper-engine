@@ -9,6 +9,7 @@
 //       node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]] -> ίδιο πριν γραφτεί το επεισόδιο ·
 //                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (punchlines)
 // LOOP: true → ουρά 0,3s με wipe που καταλήγει ακριβώς στο frame 0 (το lint ελέγχει ότι τέλος = αρχή: caption + εικόνα)
+//       'cut' → seamless, χωρίς wipe: η τελευταία σκηνή καταλήγει στην κατάσταση του frame 0 (ουρά 2 frames· το lint ελέγχει το τελευταίο frame της σκηνής)
 // SFX: auto whoosh σε κάθε wipe + ep.SFX = [[t, 'preset', {gain, pan, seed, dur, note}], ...] (βλ. sfx.js). AUTO_SFX:false → μόνο τα χειροκίνητα.
 // VO:  ep.VO_FILE = 'vo/<ep>_vo.mp3' (στο repo), VO_AT = offset s, VO_GAIN. → <n>_vo.wav stem + <n>_mix.wav (VO+SFX) στο MP4, lip-sync από την ένταση (ST.VOENV).
 // DUCK (default με VO): όλα τα SFX ×mix 0.5 (−6 dB) και όσα πέφτουν πάνω σε φράση ×duck 0.45 (άλλα −7 dB). Φράσεις αυτόματα από την ένταση του VO.
@@ -23,11 +24,12 @@ const LOOP_BLOCKS = 12; // loop lint: max περιοχές 40×40 px που αλ
 const NOISE = [0, 1, 2].map(k => { const c = L.createCanvas(360, 640), x = c.getContext('2d'), im = x.createImageData(360, 640), r = rng(k + 5); for (let i = 0; i < im.data.length; i += 4) { const v = 205 + r() * 50; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c; });
 
 module.exports = function run(ep) {
-  // LOOP (§5.7): ουρά που γυρίζει στο frame 0, ώστε το τέλος να δένει με την αρχή · true = torn-paper wipe (+ auto whoosh) · 'cut' = κόψιμο · LOOP_DUR (default 0.3s = wipe + 2 frames)
+  // LOOP (§5.7): ουρά που γυρίζει στο frame 0, ώστε το τέλος να δένει με την αρχή · true = torn-paper wipe (+ auto whoosh) · 'cut' = seamless κόψιμο · LOOP_DUR (default 0.3s = wipe + 2 frames · 'cut': 2 frames)
+  const CUT = ep.LOOP === 'cut';
   if (ep.LOOP) {
     const s0 = ep.SCENES[0][0], n = ep.SCENES.length;
     if (ep.WIPES === 'all') ep.WIPES = ep.SCENES.map((_, i) => i).slice(1);
-    ep.SCENES = [...ep.SCENES, [ctx => s0(ctx, 0), ep.LOOP_DUR || Math.max(0.3, (ep.TR || 0.22) + 0.08)]];
+    ep.SCENES = [...ep.SCENES, [ctx => s0(ctx, 0), ep.LOOP_DUR || (CUT ? 2 / FPS : Math.max(0.3, (ep.TR || 0.22) + 0.08))]];
     if (ep.LOOP !== 'cut') ep.WIPES = [...(ep.WIPES || []), n];
   }
   const STARTS = []; let acc = 0; for (const [, d] of ep.SCENES) { STARTS.push(acc); acc += d; }
@@ -77,15 +79,15 @@ module.exports = function run(ep) {
     const draw = t => { ST.FRAME = Math.round(t * FPS); ST.capBottom = null; ST.capText = null; ST.warn = []; ctx.clearRect(0, 0, W, H); frame(ctx, t); if (guide && mode !== 'render') { L.safeGuide(ctx); drawWarn(); } for (const w of ST.warn) { const r = WARN.get(w.msg); r ? (r[1] = t) : WARN.set(w.msg, [t, t]); } };
     const report = () => { if (!WARN.size) { console.log('lint ✔ καθαρό'); return 0; } console.log(`lint: ${WARN.size} warning(s)`); for (const [m, [a, b]] of WARN) console.log(`  ${a.toFixed(1)}–${b.toFixed(1)}s  ${m}`); return 1; };
     const avoidWipe = t => { for (const k of wipes) if (Math.abs(t - STARTS[k]) < TR + 0.05) return STARTS[k] + TR + 0.1; return t; };
-    // loop (§5.7): το τελευταίο frame πρέπει να δένει με το πρώτο — ίδιο caption + ίδια εικόνα (μικρογραφία 27×48: χωρίς boil/grain)
+    // loop (§5.7): το τελευταίο frame πρέπει να δένει με το πρώτο — ίδιο caption + ίδια εικόνα (μικρογραφία 27×48: χωρίς boil/grain) · 'cut': το τελευταίο frame της σκηνής πριν από την ουρά
     const snap = t => { draw(t); const d = ctx.getImageData(0, 0, W, H).data, g = new Float32Array(27 * 48 * 3);
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, k = (Math.floor(y / 40) * 27 + Math.floor(x / 40)) * 3; g[k] += d[i]; g[k + 1] += d[i + 1]; g[k + 2] += d[i + 2]; }
       return { cap: ST.capText, g }; };
     const loopCheck = () => {
-      const a = snap(0), b = snap(TOTAL - 1 / FPS), q = s => s ? `«${s.length > 24 ? s.slice(0, 24) + '…' : s}»` : 'χωρίς caption';
+      const a = snap(0), b = snap((CUT ? STARTS[STARTS.length - 1] : TOTAL) - 1 / FPS), q = s => s ? `«${s.length > 24 ? s.slice(0, 24) + '…' : s}»` : 'χωρίς caption';
       let big = 0; for (let k = 0; k < a.g.length; k += 3) if (Math.abs(a.g[k] - b.g[k]) + Math.abs(a.g[k + 1] - b.g[k + 1]) + Math.abs(a.g[k + 2] - b.g[k + 2]) > 0.2 * 3 * 1600 * 255) big++;
-      if (a.cap !== b.cap) WARN.set(`loop: caption στο τέλος ${q(b.cap)} ≠ αρχή ${q(a.cap)} → LOOP: true`, [TOTAL, TOTAL]);
-      if (big > LOOP_BLOCKS) WARN.set(`loop: το τελευταίο frame δεν δένει με το πρώτο (${big} περιοχές αλλάζουν) → LOOP: true`, [TOTAL, TOTAL]);
+      if (a.cap !== b.cap) WARN.set(`loop: caption στο τέλος ${q(b.cap)} ≠ αρχή ${q(a.cap)} → LOOP: true | 'cut'`, [TOTAL, TOTAL]);
+      if (big > LOOP_BLOCKS) WARN.set(`loop: το τελευταίο frame δεν δένει με το πρώτο (${big} περιοχές αλλάζουν) → LOOP: true | 'cut'`, [TOTAL, TOTAL]);
     };
     if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); loopCheck(); process.exitCode = report(); return; }
     if (mode === 'sfx') {

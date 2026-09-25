@@ -1,4 +1,4 @@
-// «Πώς φτιάχνεται;» — Μεταξοτυπία (screen printing) · top-down σε cutting mat · host: Στράτος (reach + pip) · VO ElevenLabs «Stratos» + SFX · ~22,4s
+// «Πώς φτιάχνεται;» — Μεταξοτυπία (screen printing) · top-down σε cutting mat · host: Στράτος (reach + pip) · VO ElevenLabs «Stratos» + SFX · 22,6s · seamless loop
 const L = require('./lib.js');
 const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, caption, captionSeq, logoMark,
   lerp, clamp, prog, easeOut, easeIn, easeInOut, spring } = L;
@@ -22,7 +22,10 @@ const SR = 150;                          // ακτίνα «S»
 const TCY = 904;                         // κέντρο tee (ελαφρώς πιο κάτω)
 const FRAME = '#3C4F86';                 // αλουμίνιο τελάρου (steel blue)
 const EMUL = '#A9C6F7';                  // φωτοευαίσθητο (emulsion) coat
-const PARK = FCY + FH - 44;              // squeegee σε ηρεμία (κάτω)
+const INK = '#2447C8';                   // μπλε μελάνι (στο πλέγμα / bead)
+const SQW = IW - 22;                     // half πλάτος σπάτουλας (χωράει μέσα στο τελάρο)
+const SQ0 = 572, SQ1 = 1100;             // σπάτουλα: αρχή (πάνω, «έτοιμη») / τέλος του περάσματος (κάτω)
+const ARM = [440, 720];                  // το χέρι μπαίνει από κάτω-δεξιά
 
 // -------------------- background: cutting mat στα χρώματά μας --------------------
 function matBG(ctx) {
@@ -44,18 +47,20 @@ function matBG(ctx) {
 const TEE = [[-80, -350], [-300, -345], [-390, -315], [-380, -205], [-300, -225], [-300, 360], [-292, 442],
   [292, 442], [300, 360], [300, -225], [380, -205], [390, -315], [300, -345], [80, -350], [0, -300]];
 function teeFlat(ctx, o = {}) {
+  ctx.save(); ctx.translate(o.dx || 0, 0);
   ctx.save(); ctx.translate(FCX, TCY);
   cut(ctx, TEE, C.paper, { seed: 7200, amp: 3, edgeW: 8, scribble: '#E7E2D4' });
   // γιακάς
   ctx.strokeStyle = '#DAD5C6'; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(0, -318, 78, 0.25, Math.PI - 0.25); ctx.stroke();
   ctx.restore();
   if (o.print > 0) printedS(ctx, o.print, o);                              // μπλε «S» πάνω στο tee
+  ctx.restore();
 }
-// μπλε «S» τυπωμένο, reveal top→down (frac), προαιρετικά «υγρό» sheen
+// μπλε «S» τυπωμένο, reveal top→down (frac), προαιρετικά «υγρό» sheen · o.bump 0..1 = παλμός όταν αποκαλύπτεται
 function printedS(ctx, frac, o = {}) {
   ctx.save();
   ctx.beginPath(); ctx.rect(FCX - SR - 60, FCY - SR - 60, 2 * (SR + 60), (2 * SR + 120) * clamp(frac)); ctx.clip();
-  const sc = o.pop ? spring(o.pop) : 1; ctx.translate(FCX, FCY); ctx.scale(sc, sc); ctx.translate(-FCX, -FCY);
+  const sc = o.pop ? spring(o.pop) : 1 + 0.08 * Math.sin(Math.PI * clamp(o.bump || 0)); ctx.translate(FCX, FCY); ctx.scale(sc, sc); ctx.translate(-FCX, -FCY);
   logoMark(ctx, FCX, FCY, SR, BRAND);
   if (o.wet) { ctx.globalAlpha = 0.35; ctx.fillStyle = '#BFD4FB'; L.path(ctx, circlePts(FCX - 34, FCY - 40, 30, 44)); ctx.fill(); ctx.globalAlpha = 1; }
   ctx.restore();
@@ -63,14 +68,18 @@ function printedS(ctx, frac, o = {}) {
 
 // -------------------- τελάρο (screen frame) --------------------
 // o.lift 0..1 (σηκώνεται + fade), o.inner(ctx) ζωγραφίζει το εσωτερικό (πλέγμα/emulsion/film...)
+let OFF = null;                          // offscreen: το τελάρο που σβήνει σβήνει σαν ένα κομμάτι (όχι στρώσεις που διαφαίνονται)
 function frame(ctx, o = {}) {
   const lift = o.lift || 0, alpha = o.alpha != null ? o.alpha : 1;
   const cy = FCY - lift * 160;
-  if (lift > 0.03) { ctx.save(); ctx.globalAlpha = 0.30 * clamp(lift * 1.5); ctx.fillStyle = '#04102a'; L.path(ctx, rrPts(FCX - FW, FCY - FH + 34, FW * 2, FH * 2, 30)); ctx.fill(); ctx.restore(); }
-  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(0, cy - FCY);
-  cut(ctx, rrPts(FCX - FW, FCY - FH, FW * 2, FH * 2, 30), FRAME, { seed: 7500, amp: 2, edgeW: 8 });   // πλαίσιο
-  (o.inner || meshInner)(ctx);                                                                          // εσωτερικό (inset)
-  ctx.restore();
+  if (lift > 0.03) { ctx.save(); ctx.globalAlpha = 0.30 * clamp(lift * 1.5) * alpha; ctx.fillStyle = '#04102a'; L.path(ctx, rrPts(FCX - FW, FCY - FH + 34, FW * 2, FH * 2, 30)); ctx.fill(); ctx.restore(); }
+  const c = alpha < 1 ? (OFF = OFF || L.createCanvas(W, H)).getContext('2d') : ctx;
+  if (c !== ctx) c.clearRect(0, 0, W, H);
+  c.save(); c.translate(0, cy - FCY);
+  cut(c, rrPts(FCX - FW, FCY - FH, FW * 2, FH * 2, 30), FRAME, { seed: 7500, amp: 2, edgeW: 8 });     // πλαίσιο
+  (o.inner || meshInner)(c);                                                                            // εσωτερικό (inset)
+  c.restore();
+  if (c !== ctx) { ctx.save(); ctx.globalAlpha = alpha; ctx.drawImage(OFF, 0, 0); ctx.restore(); }
 }
 function interiorBase(ctx, col, seed, scrib) {
   cut(ctx, rrPts(FCX - IW, FCY - IH, IW * 2, IH * 2, 14), col, { seed, amp: 1.5, edgeW: 5, scribble: scrib || null });
@@ -83,13 +92,36 @@ function meshGrid(ctx) {
   ctx.restore();
 }
 const meshInner = ctx => { interiorBase(ctx, '#EDEBE3', 7510, '#DBD8CE'); meshGrid(ctx); };
-// «rest»: πλέγμα με μπλε μελάνι στο «S» (μόλις πέρασε το μελάνι) — για hook & τέλος (loop frame)
-const inkedInner = ctx => { interiorBase(ctx, '#EDEBE3', 7510, '#DBD8CE'); meshGrid(ctx); logoMark(ctx, FCX, FCY, SR, '#2447C8'); };
+// στένσιλ (μετά το ξέπλυμα): emulsion + ανοιχτό «S» → φαίνεται το λευκό tee · inkY = ως εκεί έχει περάσει το μελάνι (μπλε)
+function stencilInner(ctx, inkY) {
+  interiorBase(ctx, EMUL, 7512);
+  logoMark(ctx, FCX, FCY, SR, '#F3F0E8');
+  if (inkY > FCY - SR - 30) { ctx.save(); ctx.beginPath(); ctx.rect(FCX - SR - 60, FCY - SR - 60, 2 * (SR + 60), inkY - (FCY - SR - 60)); ctx.clip(); logoMark(ctx, FCX, FCY, SR, INK); ctx.restore(); }
+  meshGrid(ctx);
+}
 
 // -------------------- squeegee (κάτοψη: μπάρα + λάμα) --------------------
-function squeegee(ctx, y) {
-  cut(ctx, rrPts(FCX - (FW - 12), y - 34, (FW - 12) * 2, 44, 16), '#26356A', { seed: 7600, amp: 2, edgeW: 6 });
-  cut(ctx, rrPts(FCX - (FW - 18), y + 10, (FW - 18) * 2, 16, 6), C.pale, { seed: 7601, amp: 1, edgeW: 3, shadow: false });
+// w = half πλάτος (default: όσο το τελάρο — emulsion coat) · στο πέρασμα SQW (μέσα στο πλέγμα)
+function squeegee(ctx, y, w = FW - 12) {
+  cut(ctx, rrPts(FCX - w, y - 34, w * 2, 44, 16), '#26356A', { seed: 7600, amp: 2, edgeW: 6 });
+  cut(ctx, rrPts(FCX - (w - 6), y + 10, (w - 6) * 2, 16, 6), C.pale, { seed: 7601, amp: 1, edgeW: 3, shadow: false });
+}
+// κορδόνι μελανιού (ink bead) μπροστά από τη λάμα, στο y (πάνω άκρη)
+function inkBead(ctx, y) {
+  const pts = []; for (let x = -SQW + 20; x <= SQW - 20; x += 24) pts.push([FCX + x, y + 2 + 3 * Math.sin(x * 0.05)]);
+  for (let x = SQW - 20; x >= -SQW + 20; x -= 24) pts.push([FCX + x, y + 30 + 6 * Math.sin(x * 0.037 + 1)]);
+  cut(ctx, pts, INK, { seed: 7620, amp: 2.5, step: 18, edgeW: 3, sx: 3, sy: 4 });
+  ctx.save(); ctx.globalAlpha = 0.45; ctx.strokeStyle = '#7C9AF5'; ctx.lineWidth = 4; ctx.lineCap = 'round';   // γυαλάδα (υγρό)
+  ctx.beginPath(); ctx.moveTo(FCX - SQW + 50, y + 11); ctx.lineTo(FCX - 40, y + 10); ctx.stroke(); ctx.restore();
+}
+// το τελάρο πάνω στο tee: στένσιλ + μελάνι + σπάτουλα στο sqY · lift/alpha: σηκώνεται μαζί με ό,τι έχει πάνω του
+function press(ctx, sqY, o = {}) {
+  frame(ctx, { lift: o.lift, alpha: o.alpha, inner: c => { stencilInner(c, sqY + 18); inkBead(c, sqY + 30); squeegee(c, sqY, SQW); } });
+}
+// το χέρι του Στράτου στη λαβή · out 0..1 = φεύγει/μπαίνει κατά μήκος του μπράτσου
+function grip(ctx, sqY, out = 0) {
+  const n = Math.hypot(...ARM), k = 900 * out;
+  reach(ctx, FCX + SQW - 40 + ARM[0] / n * k, sqY - 12 + ARM[1] / n * k, ...ARM, { seed: 840, hand: 'grip', side: -1 });
 }
 
 // -------------------- film positive (διαφάνεια + μαύρο «S») --------------------
@@ -113,22 +145,21 @@ function platen(ctx, down) {
 }
 
 // ============================== SCENES ==============================
-// helper: «rest» = τελάρο κάτω στο tee, squeegee parked (hook@0 ≡ pass end → seamless loop)
-function restOnTee(ctx) { matBG(ctx); teeFlat(ctx); frame(ctx, { inner: inkedInner }); squeegee(ctx, PARK); }
+// «έτοιμο» = frame 0 = τέλος: τελάρο κάτω στο λευκό tee, μελάνι + σπάτουλα πάνω, χέρι στη λαβή → seamless loop (LOOP: 'cut')
 
-// S0 — HOOK: τελάρο κάτω → σηκώνεται → μπλε «S» → heat-press cure  (VO: «Αυτό είναι η μεταξοτυπία.»)
+// S0 — HOOK: η σπάτουλα τυπώνει → σηκώνεται το τελάρο → μπλε «S» → heat-press cure  (VO: «Αυτό είναι η μεταξοτυπία.»)
 function sHook(ctx, lt) {
-  const lift = easeInOut(prog(lt, 0.5, 1.25));
-  const alpha = 1 - easeIn(prog(lt, 1.0, 1.55));
-  const revealed = lift > 0.1;
-  const down = easeInOut(prog(lt, 1.5, 1.8)) * (1 - easeInOut(prog(lt, 2.0, 2.3)));
+  const sqY = lerp(SQ0, SQ1, easeInOut(prog(lt, 0.12, 1.0)));             // πέρασμα
+  const out = easeIn(prog(lt, 1.0, 1.25));                                 // το χέρι αφήνει τη λαβή
+  const lift = easeInOut(prog(lt, 1.08, 1.5)), alpha = 1 - easeIn(prog(lt, 1.18, 1.55));
+  const down = easeInOut(prog(lt, 1.72, 1.95)) * (1 - easeInOut(prog(lt, 2.08, 2.3)));
   matBG(ctx);
-  teeFlat(ctx, revealed ? { print: 1, wet: lt < 1.9, pop: prog(lt, 1.05, 1.4) } : {});
-  if (alpha > 0.02) frame(ctx, { inner: inkedInner, lift, alpha });
-  if (lift < 0.15) squeegee(ctx, PARK);
+  teeFlat(ctx, lt > 1.0 ? { print: 1, wet: lt < 1.85, bump: prog(lt, 1.28, 1.6) } : {});
+  if (alpha > 0.01) press(ctx, sqY, { lift, alpha });
+  if (out < 1) grip(ctx, sqY, out);
   if (down > 0.02) platen(ctx, down);
-  if (lt > 2.0) { sparkle(ctx, FCX - 96, FCY - 70, 1.0, lt, 2.06, 71); sparkle(ctx, FCX + 104, FCY + 60, 0.9, lt, 2.16, 72); sparkle(ctx, FCX + 30, FCY - 150, 0.8, lt, 2.26, 73); }
-  caption(ctx, 'Αυτό είναι η μεταξοτυπία', lt, 0.15); seriesTag(ctx, lt, TAG);
+  if (lt > 2.05) { sparkle(ctx, FCX - 96, FCY - 70, 1.0, lt, 2.1, 71); sparkle(ctx, FCX + 104, FCY + 60, 0.9, lt, 2.17, 72); sparkle(ctx, FCX + 30, FCY - 150, 0.8, lt, 2.24, 73); }
+  caption(ctx, 'Αυτό είναι η μεταξοτυπία', lt, -1); seriesTag(ctx, lt + 1, TAG);   // ήδη στο frame 0 (loop)
 }
 
 // S1 — QUESTION / rewind  (VO: «Αλλά πώς γίνεται;»)
@@ -204,43 +235,49 @@ function sWash(ctx, lt) {
   caption(ctx, '4 · Ξέπλυμα', lt, 0.12); seriesTag(ctx, lt, TAG);
 }
 
-// S6 — βήμα 5: πέρασμα στο tee + κλείσιμο (τελάρο ΚΑΤΩ → loop)  (VO: πέρασμα + «...πιο γερούς.»)
+// S6 — βήμα 5: πέρασμα → σήκωμα → επόμενο tee → τελάρο κάτω → σπάτουλα «έτοιμη» (= frame 0, seamless loop)
+// (VO: «Τώρα, το μελάνι περνάει μόνο από εκεί.» · «Ένας από τους παλιότερους τρόπους εκτύπωσης.» · «Κι ακόμα, από τους πιο γερούς.»)
 function sPass(ctx, lt) {
-  matBG(ctx); teeFlat(ctx, {});
-  const sqStart = FCY - FH + 60, sqEnd = PARK;
-  const travel = easeInOut(prog(lt, 0.25, 2.0));           // η σπάτουλα κατεβαίνει
-  const sqY = lerp(sqStart, sqEnd, travel);
-  const inkFrac = clamp((sqY - (FCY - SR)) / (2 * SR));
-  // τελάρο (πλέγμα ανοιχτό) — δείχνει το μπλε μελάνι μέχρι τη σπάτουλα
-  frame(ctx, {
-    inner: c => {
-      interiorBase(c, '#EDEBE3', 7510, '#DBD8CE'); meshGrid(c);
-      c.save(); c.beginPath(); c.rect(FCX - SR - 60, FCY - SR - 60, 2 * (SR + 60), (sqY - (FCY - SR - 60))); c.clip();
-      logoMark(c, FCX, FCY, SR, '#2447C8'); c.restore();
-    }
-  });
-  squeegee(ctx, sqY);
-  if (travel < 1) reach(ctx, FCX + FW - 70, sqY - 12, 440, 720, { seed: 840, hand: 'grip', side: -1 });
-  captionSeq(ctx, lt, [[0.12, '5 · Πέρασμα'], [2.4, 'Ένας από τους παλιότερους τρόπους'], [4.65, 'Κι από τους πιο γερούς.']]);
+  const sqY = lerp(SQ0, SQ1, easeInOut(prog(lt, 0.3, 1.6)));              // πέρασμα (αργό: το μελάνι μόνο στο «S»)
+  const out = easeIn(prog(lt, 1.6, 1.85));
+  const lift = easeInOut(prog(lt, 1.85, 2.3)), alpha = 1 - easeIn(prog(lt, 1.95, 2.35));
+  const swapOut = easeIn(prog(lt, 3.9, 4.5)), swapIn = easeOut(prog(lt, 4.2, 4.85));   // το τυπωμένο φεύγει, έρχεται λευκό
+  const drop = 1 - easeInOut(prog(lt, 5.0, 5.55)), fadeIn = easeOut(prog(lt, 4.9, 5.2)); // τελάρο κάτω, σπάτουλα ήδη πάνω
+  const handIn = 1 - easeOut(prog(lt, 6.0, 6.45));                          // το χέρι πιάνει τη λαβή
+  matBG(ctx);
+  if (lt < 4.5) teeFlat(ctx, lt > 1.6 ? { print: 1, wet: lt < 3.2, bump: prog(lt, 2.15, 2.45), dx: -1200 * swapOut } : {});
+  if (lt >= 4.2) teeFlat(ctx, { dx: 1200 * (1 - swapIn) });
+  if (lt < 2.4 && alpha > 0.01) press(ctx, sqY, { lift, alpha });
+  if (lt < 1.85) grip(ctx, sqY, out);
+  if (lt > 2.5 && lt < 3.9) { sparkle(ctx, FCX - 96, FCY - 70, 1.0, lt, 2.6, 74); sparkle(ctx, FCX + 104, FCY + 60, 0.9, lt, 2.72, 75); sparkle(ctx, FCX + 30, FCY - 150, 0.8, lt, 2.84, 76); }
+  if (lt >= 4.9) press(ctx, SQ0, { lift: drop, alpha: fadeIn });
+  if (lt >= 6.0) grip(ctx, SQ0, handIn);
+  captionSeq(ctx, lt, [[0.12, '5 · Πέρασμα'], [2.4, 'Ένας από τους παλιότερους τρόπους'], [4.65, 'Κι από τους πιο γερούς.'], [6.72, 'Αυτό είναι η μεταξοτυπία']]);
   seriesTag(ctx, lt, TAG);
 }
 
-const SCENES = [[sHook, 2.6], [sQuestion, 1.45], [sFilm, 2.7], [sEmul, 2.55], [sLight, 3.1], [sWash, 3.05], [sPass, 6.95]];
+const SCENES = [[sHook, 2.6], [sQuestion, 1.45], [sFilm, 2.7], [sEmul, 2.55], [sLight, 3.1], [sWash, 3.05], [sPass, 7.1]];
 const WIPES = [1, 2, 3, 4, 5, 6];
 
 require('./render.js')({
   name: 'pf03_metaxotypia',
-  SCENES, WIPES, LOOP: true,
+  SCENES, WIPES, LOOP: 'cut',                // seamless: το τέλος = η σπάτουλα έτοιμη να τυπώσει = frame 0
   VO_FILE: 'vo/pf03_vo.mp3', VO_AT: 0.15,
   SFX: [
-    [0.55, 'lid', { note: 'σηκώνει το τελάρο' }],
-    [1.15, 'pop', { note: 'reveal «S»' }],
-    [1.75, 'thud', { note: 'heat-press κατεβαίνει' }],
-    [2.30, 'shimmer', { note: 'cure ✨' }],
+    [0.10, 'squeegee', { dur: 0.95, note: 'hook: η σπάτουλα τυπώνει' }],
+    [1.08, 'lid', { note: 'σηκώνει το τελάρο' }],
+    [1.30, 'pop', { note: 'reveal «S»' }],
+    [1.80, 'thud', { note: 'heat-press κατεβαίνει' }],
+    [2.10, 'shimmer', { note: 'cure ✨' }],
     [4.25, 'slide', { dur: 0.7, note: 'film μπαίνει' }],
     [6.95, 'squeegee', { dur: 1.4, note: 'emulsion coat' }],
     [9.50, 'beep', { count: 1, note: 'φως on' }], [9.65, 'air', { dur: 2.0, note: 'έκθεση σε φως' }],
     [12.65, 'air', { dur: 1.8, note: 'ξέπλυμα spray' }],
-    [15.70, 'squeegee', { dur: 1.4, note: 'πέρασμα μελάνι' }],
+    [15.72, 'squeegee', { dur: 1.35, note: 'πέρασμα μελάνι' }],
+    [17.30, 'lid', { note: 'σηκώνει το τελάρο' }],
+    [17.60, 'pop', { note: 'reveal «S»' }],
+    [18.05, 'shimmer', { note: '✨' }],
+    [19.35, 'slide', { dur: 0.9, note: 'επόμενο tee' }],
+    [20.98, 'thud', { gain: 0.8, note: 'τελάρο κάτω → «έτοιμο» (loop)' }],
   ],
 });
