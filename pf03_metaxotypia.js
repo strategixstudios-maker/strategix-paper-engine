@@ -2,7 +2,7 @@
 const L = require('./lib.js');
 const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, caption, captionSeq, brandMark,
   lerp, clamp, prog, easeOut, easeIn, easeInOut, spring } = L;
-const { BRAND, reach, sparkle, seriesTag, pip, PIP } = require('./props.js');
+const { BRAND, reach, sparkle, seriesTag, pip, PIP, tshirt } = require('./props.js');
 
 // VO = vo/pf03_vo.mp3 @ 0,15s (ElevenLabs eleven_v3, φωνή «Stratos», παύσεις ήδη σφιγμένες, χωρίς atempo: 22,05s).
 // Χρονισμοί φράσεων (raw, silence detect):
@@ -43,16 +43,10 @@ function matBG(ctx) {
   ctx.restore();
 }
 
-// -------------------- λευκό t-shirt flat-lay --------------------
-const TEE = [[-80, -350], [-300, -345], [-390, -315], [-380, -205], [-300, -225], [-300, 360], [-292, 442],
-  [292, 442], [300, 360], [300, -225], [380, -205], [390, -315], [300, -345], [80, -350], [0, -300]];
+// -------------------- λευκό t-shirt flat-lay (props/textile.js → tshirt) --------------------
 function teeFlat(ctx, o = {}) {
   ctx.save(); ctx.translate(o.dx || 0, 0);
-  ctx.save(); ctx.translate(FCX, TCY);
-  cut(ctx, TEE, C.paper, { seed: 7200, amp: 3, edgeW: 8, scribble: '#E7E2D4' });
-  // γιακάς
-  ctx.strokeStyle = '#DAD5C6'; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(0, -318, 78, 0.25, Math.PI - 0.25); ctx.stroke();
-  ctx.restore();
+  tshirt(ctx, FCX, TCY, 1, 0, { seed: 7200 });
   if (o.print > 0) printedS(ctx, o.print, o);                              // μπλε «S» πάνω στο tee
   ctx.restore();
 }
