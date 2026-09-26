@@ -10,6 +10,7 @@
 //                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (0.03 = κολλητά, punchline · 0.45 = αλλαγή σκηνής)
 //       node render.js vo <mp3> --splice <new.mp3> --from N [--to M] [--tempo 1.06] [--out …] -> οι φράσεις N..M (αρίθμηση του `vo <mp3>`) γίνονται το new.mp3
 //                                      (νέο take μόνο μιας ατάκας · ίδια ένταση με το υπόλοιπο VO · μετά, αν δοθεί, το --gap σφίγγει και τις παύσεις του)
+//       διάλογος: <mp3>.who.json (από το vo.js) → ομιλητής ανά φράση στο `vo` · το --gap γράφει και το <out>.who.json → ST.VOWHO → lipsync(VO, rest, 'rena')
 // LOOP: true → ουρά 0,3s με wipe που καταλήγει ακριβώς στο frame 0 (το lint ελέγχει ότι τέλος = αρχή: caption + εικόνα)
 //       false → ρητά χωρίς loop (μόνο κατ' απαίτηση, π.χ. pf04): το lint δεν ελέγχει τέλος = αρχή · χωρίς LOOP → ο έλεγχος τρέχει (warning)
 //       'cut' → seamless, χωρίς wipe: η τελευταία σκηνή καταλήγει στην κατάσταση του frame 0 (ουρά 2 frames· το lint ελέγχει το τελευταίο frame της σκηνής)
@@ -40,7 +41,7 @@ module.exports = function run(ep) {
   const wipes = ep.WIPES === 'all' ? STARTS.map((_, i) => i).slice(1) : (ep.WIPES || []);
   // VO: track στο μήκος του video + envelope για lip-sync + φράσεις για ducking (voLoad, κάτω)
   let VO = null;
-  if (ep.VO_FILE) { VO = voLoad(ep.VO_FILE, ep.VO_AT || 0, ep.VO_GAIN ?? 1, TOTAL); ST.VOENV = VO.env; }
+  if (ep.VO_FILE) { VO = voLoad(ep.VO_FILE, ep.VO_AT || 0, ep.VO_GAIN ?? 1, TOTAL); ST.VOENV = VO.env; ST.VOWHO = VO.who = voWho(ep.VO_FILE, ep.VO_AT || 0); }
   // SFX cues: whoosh με peak στην αλλαγή σκηνής (−0.27s) για κάθε wipe + τα χειροκίνητα του επεισοδίου → ducking κάτω από το VO
   const DK = ep.DUCK === false ? null : ep.DUCK || (VO ? {} : null), PHR = DK && (DK.phrases || (VO ? VO.phr : []));
   const duck = ([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * (DK.mix ?? 0.5) * (on ? (DK.duck ?? 0.45) : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; };
@@ -73,7 +74,7 @@ module.exports = function run(ep) {
   if (require.main !== module.parent) return { frame, TOTAL };
   (async () => {
     const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d');
-    if (mode === 'vo') return VO ? voPrint(ep.VO_FILE, VO, ep.VO_AT || 0, TOTAL) : console.log('vo: το επεισόδιο δεν έχει VO_FILE');
+    if (mode === 'vo') return VO ? voPrint(ep.VO_FILE, VO, ep.VO_AT || 0, TOTAL, VO.who) : console.log('vo: το επεισόδιο δεν έχει VO_FILE');
     const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
     ST.lint = mode !== 'render';
     const WARN = new Map(); // msg -> [firstT, lastT]
@@ -128,11 +129,16 @@ function voLoad(file, at = 0, g = 1, total, af) {
   return { raw, v, env, phr, end: at + raw.length / SFX.SR };
 }
 
-// `vo`: φράσεις σε χρόνο video → σχόλιο στην κορυφή του επεισοδίου / timing sheet / SFX cues
-function voPrint(file, VO, at, total) {
+// διάλογος (er01): <mp3>.who.json = [[a, b, 'rena'], ...] σε χρόνο αρχείου → σε χρόνο video (+at) · null αν δεν υπάρχει
+const whoFile = f => f.replace(/\.\w+$/, '.who.json');
+function voWho(file, at = 0) { const w = whoFile(file); return fs.existsSync(w) ? JSON.parse(fs.readFileSync(w, 'utf8')).map(([a, b, n]) => [a + at, b + at, n]) : null; }
+const whoOf = (who, [a, b]) => { let best = '', ov = 0; for (const [x, y, n] of who || []) { const o = Math.min(b, y) - Math.max(a, x); if (o > ov) { ov = o; best = n; } } return best; };
+
+// `vo`: φράσεις σε χρόνο video → σχόλιο στην κορυφή του επεισοδίου / timing sheet / SFX cues (+ ομιλητής σε διάλογο)
+function voPrint(file, VO, at, total, who) {
   const f = x => x.toFixed(2), P = VO.phr;
   console.log(`VO ${file} @ ${f(at)}s → τέλος ${f(VO.end)}s` + (total ? ` · video ${f(total)}s` + (VO.end > total ? ' ✘ VO μεγαλύτερο από το video' : '') : '') + ` · ${P.length} φράσεις`);
-  P.forEach(([a, b], i) => console.log(`${String(i + 1).padStart(3)}  ${f(a)}–${f(b)}` + (i ? `   παύση ${f(a - P[i - 1][1])}` : '')));
+  P.forEach(([a, b], i) => console.log(`${String(i + 1).padStart(3)}  ${f(a)}–${f(b)}` + (who ? `  ${whoOf(who, [a, b]).padEnd(8)}` : '') + (i ? `   παύση ${f(a - P[i - 1][1])}` : '')));
 }
 
 // σφίξιμο παυσών: παύση > gap → gap (μένουν gap/2 μετά τη φράση + gap/2 πριν την επόμενη, crossfade 10ms) · ουρά → gap · keep { N: s | undefined }
@@ -154,6 +160,8 @@ function voTight(raw, phr, gap, keep = {}) {
   for (let j = 0; j < Math.min(X, n); j++) out[n - 1 - j] *= j / X; // fade-out στο τέλος
   return { pcm: out.subarray(0, n), cuts };
 }
+// χρόνος πριν → μετά το σφίξιμο (για το .who.json του διαλόγου): αφαιρούνται τα κομμάτια των cuts πριν από το t
+const tightT = (cuts, t) => t - cuts.reduce((s, [a, b]) => s + Math.max(0, Math.min(t, b) - a), 0);
 
 // αλλαγή ατάκας (pf03 v3 → pf04 v2): οι φράσεις from..to του file → η ομιλία του add (χωρίς σιωπές στις άκρες, atempo αν δοθεί, ίδιο RMS ομιλίας με το file)
 // η παύση πριν τη φράση from και μετά τη φράση to μένουν ως έχουν · crossfade 10ms στις ενώσεις
@@ -176,18 +184,20 @@ if (require.main === module) {
   const [cmd, file, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
   if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--splice <new.mp3> --from N [--to M] [--tempo 1.06]] [--gap 0.3 [--keep 4,7:0.5]] [--out vo/<ep>_vo.mp3]'); process.exit(1); }
   const at = Number(opt('at') || 0), gap = opt('gap');
-  let src = file;
+  let src = file, who = voWho(file);
   if (opt('splice')) {
     const out = opt('out') || file.replace(/(\.\w+)?$/, '_splice.mp3'), fr = Number(opt('from')), S = voSplice(file, opt('splice'), fr, Number(opt('to') || fr), opt('tempo'));
     voWrite(S.pcm, out); src = out;
     console.log(`splice: φράσεις ${fr}..${opt('to') || fr} → ${opt('splice')} (${S.dur.toFixed(2)}s, ${S.gain >= 0 ? '+' : ''}${S.gain.toFixed(1)} dB${opt('tempo') ? ', atempo ' + opt('tempo') : ''}) από ${S.from.toFixed(2)}s → ${out}`);
+    if (who) { console.log('splice: διάλογος → το .who.json δεν μεταφέρεται (όλο το VO ξανά, §5d)'); who = null; }
   }
   if (gap) {
     const keep = {}; for (const p of (opt('keep') || '').split(',').filter(Boolean)) { const [k, s] = p.split(':'); keep[Number(k)] = s === undefined ? undefined : Number(s); }
     const out = opt('out') || src.replace(/(\.\w+)?$/, '_tight.mp3'), V = voLoad(src), { pcm, cuts } = voTight(V.raw, V.phr, Number(gap), keep);
     voWrite(pcm, out);
     console.log(`σφίξιμο: ${cuts.length} παύσεις → ${gap}s · ${(V.raw.length / SFX.SR).toFixed(2)}s → ${(pcm.length / SFX.SR).toFixed(2)}s → ${out}`);
+    if (who) { who = who.map(([a, b, n]) => [+tightT(cuts, a).toFixed(3), +tightT(cuts, b).toFixed(3), n]); fs.writeFileSync(whoFile(out), JSON.stringify(who)); console.log(`διάλογος: ${who.length} ατάκες → ${whoFile(out)}`); }
     src = out;
   }
-  voPrint(src, voLoad(src, at), at);
+  voPrint(src, voLoad(src, at), at, undefined, who && who.map(([a, b, n]) => [a + at, b + at, n]));
 }

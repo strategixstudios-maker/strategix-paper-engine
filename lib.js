@@ -225,7 +225,9 @@ function handPen(ctx, px, py, seed) {
 // ---------- lip-sync ----------
 // lip-sync: VO = [[start,end],...] in seconds. Returns a mouth shape for current ST.T
 // Με VO αρχείο (render.js → ST.VOENV) το στόμα ακολουθεί την ένταση της φωνής (αλλαγή σχήματος στα 11fps).
-function lipsync(VO, rest = 'smile') { const t = ST.T;
+// Διάλογος (ST.VOWHO από το vo/<ep>_vo.who.json): who = 'stratos' | 'phoebus' | 'rena' → το στόμα κινείται μόνο στις δικές του ατάκες.
+function lipsync(VO, rest = 'smile', who) { const t = ST.T;
+  if (who && ST.VOWHO && !ST.VOWHO.some(([a, b, w]) => w === who && t >= a && t <= b)) return rest;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
 const blinkNow = () => (ST.T % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() })

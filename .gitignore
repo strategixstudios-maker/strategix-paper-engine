@@ -11,6 +11,7 @@ HANDS_SHEET.png
 *.wav
 *.mp3
 *_sfx.md
+/*.who.json
 
 # VO sources (μπαίνουν στο git)
 !vo/*.mp3
