@@ -8,7 +8,10 @@
 //       node ep.js vo               -> φράσεις του VO_FILE σε χρόνο video (σχόλιο στην κορυφή / timing sheet / SFX cues), χωρίς render
 //       node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]] -> ίδιο πριν γραφτεί το επεισόδιο ·
 //                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (0.03 = κολλητά, punchline · 0.45 = αλλαγή σκηνής)
+//       node render.js vo <mp3> --splice <new.mp3> --from N [--to M] [--tempo 1.06] [--out …] -> οι φράσεις N..M (αρίθμηση του `vo <mp3>`) γίνονται το new.mp3
+//                                      (νέο take μόνο μιας ατάκας · ίδια ένταση με το υπόλοιπο VO · μετά, αν δοθεί, το --gap σφίγγει και τις παύσεις του)
 // LOOP: true → ουρά 0,3s με wipe που καταλήγει ακριβώς στο frame 0 (το lint ελέγχει ότι τέλος = αρχή: caption + εικόνα)
+//       false → ρητά χωρίς loop (μόνο κατ' απαίτηση, π.χ. pf04): το lint δεν ελέγχει τέλος = αρχή · χωρίς LOOP → ο έλεγχος τρέχει (warning)
 //       'cut' → seamless, χωρίς wipe: η τελευταία σκηνή καταλήγει στην κατάσταση του frame 0 (ουρά 2 frames· το lint ελέγχει το τελευταίο frame της σκηνής)
 // SFX: auto whoosh σε κάθε wipe + ep.SFX = [[t, 'preset', {gain, pan, seed, dur, note}], ...] (βλ. sfx.js). AUTO_SFX:false → μόνο τα χειροκίνητα.
 // VO:  ep.VO_FILE = 'vo/<ep>_vo.mp3' (στο repo), VO_AT = offset s, VO_GAIN. → <n>_vo.wav stem + <n>_mix.wav (VO+SFX) στο MP4, lip-sync από την ένταση (ST.VOENV).
@@ -89,7 +92,7 @@ module.exports = function run(ep) {
       if (a.cap !== b.cap) WARN.set(`loop: caption στο τέλος ${q(b.cap)} ≠ αρχή ${q(a.cap)} → LOOP: true | 'cut'`, [TOTAL, TOTAL]);
       if (big > LOOP_BLOCKS) WARN.set(`loop: το τελευταίο frame δεν δένει με το πρώτο (${big} περιοχές αλλάζουν) → LOOP: true | 'cut'`, [TOTAL, TOTAL]);
     };
-    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); loopCheck(); process.exitCode = report(); return; }
+    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); if (ep.LOOP !== false) loopCheck(); process.exitCode = report(); return; }
     if (mode === 'sfx') {
       const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : ''));
       if (fs.existsSync(mp4)) { const tmp = mp4.replace(/\.mp4$/, '') + '.tmp.mp4'; const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp]); if (r.status === 0) { fs.renameSync(tmp, mp4); console.log('remux', mp4); } else console.log('✘ remux', String(r.stderr)); }
@@ -111,8 +114,8 @@ module.exports = function run(ep) {
 };
 
 // VO: decode → track στο μήκος του video (total, default όλο το αρχείο) + envelope ανά frame (RMS / p95) για lip-sync + φράσεις για ducking / `vo`
-function voLoad(file, at = 0, g = 1, total) {
-  const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', file, '-ac', '1', '-ar', String(SFX.SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
+function voLoad(file, at = 0, g = 1, total, af) {
+  const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', file, ...(af ? ['-af', af] : []), '-ac', '1', '-ar', String(SFX.SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
   if (r.status !== 0) throw new Error(`VO: δεν διαβάζεται το ${file}`);
   const raw = new Float32Array(r.stdout.buffer.slice(r.stdout.byteOffset, r.stdout.byteOffset + r.stdout.length));
   const TOTAL = total ?? at + raw.length / SFX.SR, N = Math.ceil(TOTAL * SFX.SR), v = new Float32Array(N), j0 = Math.round(at * SFX.SR);
@@ -152,17 +155,37 @@ function voTight(raw, phr, gap, keep = {}) {
   return { pcm: out.subarray(0, n), cuts };
 }
 
+// αλλαγή ατάκας (pf03 v3 → pf04 v2): οι φράσεις from..to του file → η ομιλία του add (χωρίς σιωπές στις άκρες, atempo αν δοθεί, ίδιο RMS ομιλίας με το file)
+// η παύση πριν τη φράση from και μετά τη φράση to μένουν ως έχουν · crossfade 10ms στις ενώσεις
+function voSplice(file, add, from, to = from, tempo) {
+  const SR = SFX.SR, A = voLoad(file), B = voLoad(add, 0, 1, undefined, tempo ? `atempo=${tempo}` : undefined), n = A.phr.length;
+  if (!(from >= 1 && to >= from && to <= n)) throw new Error(`vo --splice: φράσεις ${from}..${to} εκτός (το ${file} έχει ${n})`);
+  const rms = V => { let s = 0, c = 0; for (const [a, b] of V.phr) for (let i = Math.floor(a * SR); i < Math.min(V.raw.length, b * SR); i++) { s += V.raw[i] ** 2; c++; } return Math.sqrt(s / Math.max(1, c)); };
+  const g = rms(A) / (rms(B) || 1), I = t => Math.max(0, Math.round(t * SR));
+  const a0 = I(A.phr[from - 1][0] - 0.03), a1 = Math.min(A.raw.length, I(A.phr[to - 1][1] + 0.03));
+  const b0 = I(B.phr[0][0] - 0.03), b1 = Math.min(B.raw.length, I(B.phr[B.phr.length - 1][1] + 0.06));
+  const parts = [A.raw.subarray(0, a0), B.raw.subarray(b0, b1).map(x => x * g), A.raw.subarray(a1)], X = Math.round(0.01 * SR);
+  const out = new Float32Array(parts.reduce((k, p) => k + p.length, 0)); let o = 0;
+  for (const [k, p] of parts.entries()) { const m = k ? Math.min(X, o, p.length) : 0; for (let j = 0; j < m; j++) { const w = (j + 1) / (m + 1); out[o - m + j] = out[o - m + j] * (1 - w) + p[j] * w; } out.set(p.subarray(m), o); o += p.length - m; }
+  return { pcm: out.subarray(0, o), gain: 20 * Math.log10(g), dur: (b1 - b0) / SR, from: A.phr[from - 1][0] };
+}
+const voWrite = (pcm, out) => { const enc = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'f32le', '-ar', String(SFX.SR), '-ac', '1', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '192k', out], { input: Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength) }); if (enc.status !== 0) throw new Error(`vo: δεν γράφεται το ${out}: ${enc.stderr}`); };
+
 // CLI χωρίς επεισόδιο (βήμα VO, πριν γραφτεί ο κώδικας) — βλ. usage στην κορυφή
 if (require.main === module) {
   const [cmd, file, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
-  if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]]'); process.exit(1); }
+  if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--splice <new.mp3> --from N [--to M] [--tempo 1.06]] [--gap 0.3 [--keep 4,7:0.5]] [--out vo/<ep>_vo.mp3]'); process.exit(1); }
   const at = Number(opt('at') || 0), gap = opt('gap');
   let src = file;
+  if (opt('splice')) {
+    const out = opt('out') || file.replace(/(\.\w+)?$/, '_splice.mp3'), fr = Number(opt('from')), S = voSplice(file, opt('splice'), fr, Number(opt('to') || fr), opt('tempo'));
+    voWrite(S.pcm, out); src = out;
+    console.log(`splice: φράσεις ${fr}..${opt('to') || fr} → ${opt('splice')} (${S.dur.toFixed(2)}s, ${S.gain >= 0 ? '+' : ''}${S.gain.toFixed(1)} dB${opt('tempo') ? ', atempo ' + opt('tempo') : ''}) από ${S.from.toFixed(2)}s → ${out}`);
+  }
   if (gap) {
     const keep = {}; for (const p of (opt('keep') || '').split(',').filter(Boolean)) { const [k, s] = p.split(':'); keep[Number(k)] = s === undefined ? undefined : Number(s); }
-    const out = opt('out') || file.replace(/(\.\w+)?$/, '_tight.mp3'), V = voLoad(file), { pcm, cuts } = voTight(V.raw, V.phr, Number(gap), keep);
-    const enc = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'f32le', '-ar', String(SFX.SR), '-ac', '1', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '192k', out], { input: Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength) });
-    if (enc.status !== 0) throw new Error(`vo: δεν γράφεται το ${out}: ${enc.stderr}`);
+    const out = opt('out') || src.replace(/(\.\w+)?$/, '_tight.mp3'), V = voLoad(src), { pcm, cuts } = voTight(V.raw, V.phr, Number(gap), keep);
+    voWrite(pcm, out);
     console.log(`σφίξιμο: ${cuts.length} παύσεις → ${gap}s · ${(V.raw.length / SFX.SR).toFixed(2)}s → ${(pcm.length / SFX.SR).toFixed(2)}s → ${out}`);
     src = out;
   }

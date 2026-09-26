@@ -211,9 +211,22 @@ const P = {
     }
     return n;
   },
+  // κεντητική μηχανή: γρήγορο «τακ-τακ» βελόνας + κροτάλισμα take-up lever + βουητό μοτέρ · o.spm βελονιές/λεπτό (default 850) · ανεβαίνει/πέφτει στροφές στην αρχή/τέλος
+  stitch(o, r) {
+    const d = o.dur ?? 3, spm = o.spm ?? 850, n = buf(d), ck = biquad().set('bp', 3400, 2.2), th = biquad().set('lp', 240, 0.8), lv = biquad().set('bp', 1700, 1.4), hum = biquad().set('lp', 700, 0.7);
+    let ph = 0;
+    for (let i = 0; i < n.length; i++) {
+      const t = i / SR, ramp = Math.max(0, Math.min(1, t / 0.35, (d - t) / 0.3)), f = spm / 60 * (0.45 + 0.55 * ramp);
+      ph += f / SR; const cyc = ph % 1, t1 = cyc / f, t2 = ((cyc + 0.5) % 1) / f, w = W(r);
+      const click = ck.run(w) * Math.exp(-t1 / 0.0035) * 1.5, thump = th.run(w) * Math.exp(-t1 / 0.012) * 3, lever = lv.run(w) * Math.exp(-t2 / 0.003) * 0.6;
+      const motor = hum.run(Math.sin(TAU * ph * 2) * 0.5 + Math.sin(TAU * ph * 6) * 0.25 + w * 0.08) * 0.7;
+      n[i] = Math.tanh(1.4 * (click + thump + lever + motor)) * Math.min(1, ramp * 3);
+    }
+    return n;
+  },
 };
 // default gains (σχετική ένταση στο stem)
-const GAIN = { plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
+const GAIN = { stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
 
 function norm(x, pk = 0.7) { let m = 0; for (const v of x) m = Math.max(m, Math.abs(v)); if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= pk / m; return x; }
 function make(name, o = {}) {
@@ -242,7 +255,7 @@ module.exports = { SR, P, GAIN, make, mix, writeWav };
 if (require.main === module) {
   const [cmd = 'demo', seed] = process.argv.slice(2);
   if (cmd === 'demo') {
-    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }]];
+    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }], ['stitch', { dur: 2.5 }]];
     let t = 0.3; const cues = [];
     for (const [nm, o = {}] of list) { const len = make(nm, o)[0].length / SR; cues.push([t, nm, o]); console.log(`${t.toFixed(1).padStart(5)}s  ${nm}${o.seed ? ' (seed ' + o.seed + ')' : ''}`); t += len + 0.6; }
     writeWav('sfx_demo.wav', mix(cues, t + 0.3)); console.log('sfx_demo.wav', t.toFixed(1) + 's');
