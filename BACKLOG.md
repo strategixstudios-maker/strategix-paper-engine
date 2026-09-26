@@ -9,3 +9,6 @@
 - [ms01] Κάμερα με keyframes πάνω στο `o.cam` → στη 2η χρήση `camPath([[t, cam], ...], t)` σε props/studio.js (οι πόζες έγιναν ήδη `poseAt(POSES, t)` στο stratos.js, pm02).
 - [pm02] 1η χρήση μέσα στο επεισόδιο: `dtfPrinter` (πρόσοψη, CMYK + W, film που βγαίνει), `film` DTF (πούδρα + ξεκόλλημα), `platen` (θερμοπρέσα κάτοψη + ατμός), `artwork` (demo σχέδιο 4 χρωμάτων με separations/ντεγκραντέ), `regMark` → στη 2η χρήση → props/dtf.js · props/logos.js.
 - [pm02] Σκίσιμο οθόνης (`tearFrom`: η προηγούμενη σκηνή παγωμένη σκίζεται στη μέση) → στη 2η χρήση μετάβαση του render.js (π.χ. `TEARS: [sceneIndex]` δίπλα στα `WIPES`, auto `tear` SFX).
+- [er] Φωνές Φοίβου + Ρένας → ElevenLabs voice design (3 previews ανά χαρακτήρα, διαλέγει ο Αλέξανδρος) → voice_id + κλειδωμένες ρυθμίσεις δίπλα στο `STRATOS` στο vo.js · πριν από το 1ο skit.
+- [er] VO διαλόγου: `vo/<ep>.txt` με ομιλητές (`ΦΟΙΒΟΣ: …`) → όλος ο διάλογος σε ένα generation (ElevenLabs text-to-dialogue, eleven_v3 — επιβεβαίωση στο API) · χρονισμοί φράσεων ανά ομιλητή → `lipsync` ανά χαρακτήρα (σήμερα `ST.VOENV` = μία φωνή).
+- [er] Captions διαλόγου: ταμπελάκι με όνομα/χρώμα ομιλητή στο `captionSeq` · talking-head κάδρο ανά χαρακτήρα (σταθερή γωνία) + `snapZoom()` (απότομο zoom στο πρόσωπο, mockumentary) → στο 1ο skit inline, στη 2η χρήση στο engine.

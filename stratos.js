@@ -1,6 +1,6 @@
 // ΣΤΡΑΤΟΣ — Strategix Studios mascot (paper cut-out rig)
 const L = require('./lib.js');
-const { C, cut, rectPts, rrPts, circlePts, txt, logoMark, check } = L;
+const { C, cut, cutGroup, rectPts, rrPts, circlePts, txt, logoMark, check } = L;
 
 const S = { // χρώματα του Στράτου (skin, beanie, tee, apron, jeans...)
   skin: '#F2C29C', skinD: '#DDA37C', hair: '#2E211C', beanie: '#E8B04A', beanieD: '#C99130',
@@ -10,7 +10,7 @@ const S = { // χρώματα του Στράτου (skin, beanie, tee, apron, j
 // mouth: smile | closed | A | E | O | shock | flat | grin
 // eyes: dot | happy | shock | tired ; brows: 0 neutral, >0 raised, <0 frown
 function head(ctx, x, y, s, o = {}) {
-  const sd = (o.seed || 1000), look = o.look || 0, mouth = o.mouth || 'smile', eyes = o.eyes || 'dot', br = o.brows || 0;
+  const sd = (o.seed || 1000), look = o.look || 0;
   ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
   // ears
   for (const ex of [-124, 124]) cut(ctx, circlePts(ex, -178, 28, 32, 16), S.skin, { seed: sd + (ex > 0 ? 1 : 2), amp: 2, edgeW: 7 });
@@ -29,26 +29,38 @@ function head(ctx, x, y, s, o = {}) {
   for (let xx = -140; xx < 150; xx += 22) { ctx.beginPath(); ctx.moveTo(xx, -296); ctx.lineTo(xx, -236); ctx.stroke(); } ctx.restore();
   cut(ctx, rrPts(58, -286, 50, 40, 8), S.apron, { seed: sd + 8, amp: 1, edgeW: 5, shadow: false });
   txt(ctx, 'S', 83, -265, { font: '30px Brand', color: '#fff' });
+  face(ctx, o);
+  // moustache — the signature piece
+  const m = [[-76, -118], [-60, -136], [-34, -142], [-10, -134], [0, -128], [10, -134], [34, -142], [60, -136], [76, -118], [66, -108], [40, -114], [16, -110], [0, -116], [-16, -110], [-40, -114], [-66, -108]];
+  cut(ctx, m.map(([a, b]) => [a + look * .6, b]), S.hair, { seed: sd + 14, amp: 2.5, step: 12, edgeW: 6 });
+  ctx.restore();
+}
+// φρύδια, μάτια, μάγουλα, μύτη, στόμα — κοινά σε όλους τους χαρακτήρες (crew.js) · σε συντεταγμένες κεφαλιού (κέντρο 0,-185, r ≈ 125)
+// o: ό,τι δέχεται το head() + f = { hair (φρύδια), skin, skinD, lip (χρώμα γραμμής στόματος), lash (βλεφαρίδες), browY, browW }
+function face(ctx, o = {}, f = {}) {
+  const sd = (o.seed || 1000), look = o.look || 0, mouth = o.mouth || 'smile', eyes = o.eyes || 'dot', br = o.brows || 0;
+  const hair = f.hair || S.hair, skin = f.skin || S.skin, skinD = f.skinD || S.skinD, bw = f.browW || 60;
   // brows
   for (const [bx, sg] of [[-48, -1], [48, 1]]) {
-    ctx.save(); ctx.translate(bx + look * .6, -218 - Math.max(0, br) * 10); ctx.rotate(sg * br * 0.18);
-    cut(ctx, rrPts(-30, -9, 60, 18, 9), S.hair, { seed: sd + 9 + sg, amp: 1.5, edge: false, shadow: false }); ctx.restore();
+    ctx.save(); ctx.translate(bx + look * .6, (f.browY || -218) - Math.max(0, br) * 10); ctx.rotate(sg * br * 0.18);
+    cut(ctx, rrPts(-bw / 2, -9, bw, 18, 9), hair, { seed: sd + 9 + sg, amp: 1.5, edge: false, shadow: false }); ctx.restore();
   }
   // eyes
   for (const ex of [-46, 46]) {
     ctx.save(); ctx.translate(ex + look, -180);
     if (eyes === 'happy') { ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, 6, 15, 1.15 * Math.PI, 1.85 * Math.PI); ctx.stroke(); }
     else if (eyes === 'shock') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 24, 0, 7); ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 0, 9, 0, 7); ctx.fill(); }
-    else if (eyes === 'tired') { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 2, 14, 0, 7); ctx.fill(); cut(ctx, rectPts(-20, -22, 40, 20), S.skin, { seed: sd + 12, amp: 1, edge: false, shadow: false }); ctx.strokeStyle = C.ink; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-17, -2); ctx.lineTo(17, -2); ctx.stroke(); }
+    else if (eyes === 'tired') { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 2, 14, 0, 7); ctx.fill(); cut(ctx, rectPts(-20, -22, 40, 20), skin, { seed: sd + 12, amp: 1, edge: false, shadow: false }); ctx.strokeStyle = C.ink; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-17, -2); ctx.lineTo(17, -2); ctx.stroke(); }
     else { ctx.scale(1, o.blink ? 0.12 : 1); ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 0, 15, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5, -5, 5, 0, 7); ctx.fill(); }
+    if (f.lash && eyes !== 'happy') { const sg = ex > 0 ? 1 : -1; ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.lineCap = 'round'; for (const k of [0, 1]) { ctx.beginPath(); ctx.moveTo(sg * (9 + k * 6), -11 + k * 5); ctx.lineTo(sg * (19 + k * 7), -19 + k * 4); ctx.stroke(); } }
     ctx.restore();
   }
   // cheeks + nose
   ctx.globalAlpha = 0.75; ctx.fillStyle = C.cheek; for (const cx of [-80, 80]) { ctx.beginPath(); ctx.arc(cx + look * .5, -128, 22, 0, 7); ctx.fill(); } ctx.globalAlpha = 1;
-  cut(ctx, circlePts(look * .7, -148, 24, 20, 18), S.skinD, { seed: sd + 13, amp: 1.5, edge: false, shadow: false });
-  // mouth (under the moustache)
+  cut(ctx, circlePts(look * .7, -148, 24, 20, 18), skinD, { seed: sd + 13, amp: 1.5, edge: false, shadow: false });
+  // mouth (under the moustache, όταν υπάρχει)
   const mx = look * .5, my = -96;
-  ctx.fillStyle = '#5A1F24'; ctx.strokeStyle = C.ink; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.fillStyle = '#5A1F24'; ctx.strokeStyle = f.lip || C.ink; ctx.lineWidth = 7; ctx.lineCap = 'round';
   const oval = (w, h) => { ctx.beginPath(); ctx.ellipse(mx, my + h * .35, w, h, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#F08A94'; ctx.beginPath(); ctx.ellipse(mx, my + h * .9, w * .6, h * .35, 0, 0, 7); ctx.fill(); };
   if (mouth === 'A') oval(30, 30);
   else if (mouth === 'E') oval(38, 16);
@@ -58,27 +70,36 @@ function head(ctx, x, y, s, o = {}) {
   else if (mouth === 'flat') { ctx.beginPath(); ctx.moveTo(mx - 24, my + 8); ctx.lineTo(mx + 24, my + 4); ctx.stroke(); }
   else if (mouth === 'closed') { ctx.beginPath(); ctx.moveTo(mx - 22, my + 4); ctx.quadraticCurveTo(mx, my + 14, mx + 22, my + 4); ctx.stroke(); }
   else { ctx.beginPath(); ctx.arc(mx, my - 14, 34, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke(); }
-  // moustache — the signature piece
-  const m = [[-76, -118], [-60, -136], [-34, -142], [-10, -134], [0, -128], [10, -134], [34, -142], [60, -136], [76, -118], [66, -108], [40, -114], [16, -110], [0, -116], [-16, -110], [-40, -114], [-66, -108]];
-  cut(ctx, m.map(([a, b]) => [a + look * .6, b]), S.hair, { seed: sd + 14, amp: 2.5, step: 12, edgeW: 6 });
-  ctx.restore();
 }
 // hands → hands.js (views palm/back/side, auto view, lint). Kept re-exported for compatibility.
-const { hand, finger, resolveView, lintArm } = require('./hands.js');
+const { hand, handParts, capsule, finger, resolveView, lintArm, LINE } = require('./hands.js');
 // arm pivots at the shoulder; ang 0 = straight down (radians, + = outward). o.elbow bends the forearm (+ = towards the body centre)
-// draw order: upper arm → forearm → hand → SLEEVE on top (arm always comes out of the sleeve)
+// v4: μπράτσο + πήχης + χέρι = ΕΝΑ κομμάτι χαρτί (cutGroup): ο αγκώνας είναι λεπτή πτυχή, όχι σκαλοπάτι · SLEEVE on top (arm always comes out of the sleeve)
+// o.pal (crew.js) = { shoulder (default 148), sleeve, sleeveD, long (μακρύ μανίκι: μανίκι ώμου + πήχη ένα κομμάτι, πτυχές αγκώνα, μανσέτα), cuff } — default = Στράτος (t-shirt)
 function arm(ctx, side, ang, o = {}) {
-  const sd = (o.seed || 1100) + (side > 0 ? 0 : 50), el = o.elbow || 0;
-  ctx.save(); ctx.translate(side * 148, 24); ctx.rotate(-side * ang);
-  cut(ctx, rrPts(-27, 30, 54, 144, 26), S.skin, { seed: sd + 1, amp: 2, edgeW: 6 });
-  ctx.save(); ctx.translate(0, 150); ctx.rotate(side * el); ctx.translate(0, -150);
-  cut(ctx, rrPts(-26, 126, 52, 138, 25), S.skin, { seed: sd + 3, amp: 2, edgeW: 6 });
-  const type = o.hand || 'relaxed';
-  hand(ctx, type, side, sd + 2, resolveView(type, o.view, ang - el));
-  ctx.restore();
-  const cap = []; for (let i = 0; i <= 10; i++) { const a = Math.PI + i / 10 * Math.PI; cap.push([Math.cos(a) * 48, Math.sin(a) * 40]); }
-  const sl = cut(ctx, [...cap, [58, 110], [-58, 110]], S.tee, { seed: sd, amp: 2, edgeW: 6 });
-  ctx.save(); L.path(ctx, sl); ctx.clip(); ctx.fillStyle = S.teeD; ctx.fillRect(-70, 94, 140, 20); ctx.restore();
+  const sd = (o.seed || 1100) + (side > 0 ? 0 : 50), el = o.elbow || 0, p = o.pal || {}, E = 150, fr = side * el;
+  const sleeve = p.sleeve || S.tee, sleeveD = p.sleeveD || S.teeD, type = o.hand || 'relaxed';
+  const H = handParts(type, side, sd + 2, resolveView(type, o.view, ang - el));
+  const c = Math.cos(fr), s = Math.sin(fr), fore = pts => pts.map(([x, y]) => [x * c - (y - E) * s, E + x * s + (y - E) * c]); // πλαίσιο πήχη → πλαίσιο μπράτσου
+  const inFore = fn => { ctx.save(); ctx.translate(0, E); ctx.rotate(fr); ctx.translate(0, -E); fn(); ctx.restore(); };
+  const fold = (col, w, rs) => { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; const a0 = side > 0 ? 1.5 : 1.1; // πτυχή στην έξω πλευρά του αγκώνα
+    rs.forEach(([dy, r]) => { ctx.beginPath(); ctx.arc(-side * 4, E + dy, r, a0 * Math.PI, (a0 + 0.4) * Math.PI); ctx.stroke(); }); ctx.restore(); };
+  ctx.save(); ctx.translate(side * (p.shoulder || 148), 24); ctx.rotate(-side * ang);
+  if (p.long) {
+    cutGroup(ctx, [[capsule(0, 14, E - 14, 34, 31), sleeve, { seed: sd + 1, amp: 2 }], [fore(capsule(0, E, 84, 31, 28)), sleeve, { seed: sd + 3, amp: 2 }]], { edgeW: 6 });
+    inFore(() => {
+      fold(sleeveD, 5, [[14, 22], [30, 16]]);
+      cutGroup(ctx, H.pieces, { edgeW: 5, line: LINE }); H.details(ctx);
+      cut(ctx, rrPts(-31, 214, 62, 34, 14), p.cuff || sleeveD, { seed: sd + 4, amp: 1.5, edgeW: 5 }); // μανσέτα: το χέρι βγαίνει από μέσα
+    });
+  } else {
+    cutGroup(ctx, [[capsule(0, 10, E - 10, 29, 26), S.skin, { seed: sd + 1, amp: 2 }], [fore(capsule(0, E, 96, 26, 21)), S.skin, { seed: sd + 3, amp: 2 }],
+      ...H.pieces.map(([q, f, oo]) => [fore(q), f, oo])], { edgeW: 6, line: LINE });
+    inFore(() => { fold(LINE, 3, [[18, 22]]); H.details(ctx); });
+    const cap = []; for (let i = 0; i <= 12; i++) { const a = Math.PI + i / 12 * Math.PI; cap.push([Math.cos(a) * 50, 10 + Math.sin(a) * 34]); }
+    const sl = cut(ctx, [...cap, [57, 118], [-57, 118]], sleeve, { seed: sd, amp: 2, edgeW: 6 }); // μανίκι-σωλήνας: ο θόλος ως τη γραμμή του ώμου, ανοίγει προς το στρίφωμα
+    ctx.save(); L.path(ctx, sl); ctx.clip(); ctx.fillStyle = sleeveD; ctx.fillRect(-70, 102, 140, 20); ctx.restore();
+  }
   ctx.restore();
 }
 // full body. y = shoulder line. arms: [leftAng, rightAng]
@@ -110,11 +131,12 @@ function stratos(ctx, x, y, s, o = {}) {
   ctx.restore();
 }
 // rig-level lint (runs only when ST.lint is on: sheet / preview guide / lint mode). Pushes {msg, x, y} to ST.warn in canvas px.
-function lintStratos(ctx, o, aL, aR) {
+// r (crew.js) = { headY (κέντρο κεφαλιού, default -175), headR (default 128), shoulder (default 148) }
+function lintStratos(ctx, o, aL, aR, r = {}) {
   const m = ctx.getTransform(), P = ([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f], sc = Math.hypot(m.a, m.b);
-  const head = P([0, -175]), hr = 128 * sc, S0 = L.SAFE;
+  const head = P([0, r.headY ?? -175]), hr = (r.headR || 128) * sc, S0 = L.SAFE;
   for (const [side, ang, el, type, view, hint] of [[-1, aL, o.elbowL || 0, o.handL || 'relaxed', o.viewL, o.hintL || ''], [1, aR, o.elbowR || 0, o.handR || 'relaxed', o.viewR, o.hintR || '']]) {
-    const hp = P(handPos(side, ang, 1, 0, 0, el)), msgs = lintArm({ side, ang, elbow: el, type, view, hint });
+    const hp = P(handPos(side, ang, 1, 0, 0, el, r.shoulder)), msgs = lintArm({ side, ang, elbow: el, type, view, hint });
     const behindHead = side < 0 || !o.armRFront;
     if (behindHead && Math.hypot(hp[0] - head[0], hp[1] - head[1]) < hr) msgs.push(`${side > 0 ? 'R' : 'L'}: χέρι κρύβεται πίσω από το κεφάλι → ${side > 0 ? 'armRFront:true' : 'άλλη γωνία'}`);
     const onCanvas = hp[0] > -40 && hp[0] < L.W + 40 && hp[1] > -40 && hp[1] < L.H + 40; // off-canvas = not visible = no safe-zone issue
@@ -123,8 +145,8 @@ function lintStratos(ctx, o, aL, aR) {
     for (const msg of msgs) L.ST.warn.push({ msg, x: hp[0], y: hp[1] });
   }
 }
-// hand centre in world coords (matches arm(): shoulder pivot, elbow at 150, hand centre ≈ 288)
-function handPos(side, ang, s, x, y, elbow = 0) { const th = -side * ang, te = th + side * elbow; return [x + s * (side * 148 - 150 * Math.sin(th) - 138 * Math.sin(te)), y + s * (24 + 150 * Math.cos(th) + 138 * Math.cos(te))]; }
+// hand centre in world coords (matches arm(): shoulder pivot, elbow at 150, hand centre ≈ 288) · sh = ώμος (crew.js: RIG[who].shoulder)
+function handPos(side, ang, s, x, y, elbow = 0, sh = 148) { const th = -side * ang, te = th + side * elbow; return [x + s * (side * sh - 150 * Math.sin(th) - 138 * Math.sin(te)), y + s * (24 + 150 * Math.cos(th) + 138 * Math.cos(te))]; }
 // ---------- πόζες με keyframes (ms01 → pm02) ----------
 // ηρεμία: βάση για κάθε κλειδί που λείπει από μια πόζα
 const REST_POSE = { aL: 0.12, aR: 0.12, eL: 0, eR: 0, brows: 0.3, look: 0 };
@@ -135,7 +157,7 @@ function poseAt(POSES, t, rest = REST_POSE, blend = 0.28) {
   const [t1, b] = POSES[i], a = i ? POSES[i - 1][1] : b, p = L.easeInOut(L.prog(t, t1, t1 + blend)), q = p < 0.5 ? a : b, m = k => L.lerp(a[k] ?? rest[k] ?? 0, b[k] ?? rest[k] ?? 0, p);
   return { arms: [m('aL'), m('aR')], elbowL: m('eL'), elbowR: m('eR'), handL: q.hL || 'relaxed', handR: q.hR || 'relaxed', hintL: q.iL, hintR: q.iR, eyes: q.eyes || 'dot', brows: m('brows'), look: m('look'), armRFront: !!q.front };
 }
-module.exports = { S, head, arm, hand, finger, stratos, handPos, REST_POSE, poseAt };
+module.exports = { S, head, face, arm, hand, finger, stratos, handPos, lintRig: lintStratos, REST_POSE, poseAt };
 
 // ---------- character sheet ----------
 if (require.main === module) {

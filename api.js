@@ -1,11 +1,11 @@
 // api.js — κατάλογος του engine: τι υπάρχει και πού, χωρίς να διαβάζεις ολόκληρα αρχεία.
-// node api.js           → όλα: lib · stratos · props/* (μία γραμμή ανά όνομα) + SFX presets + επιλογές render.js
+// node api.js           → όλα: lib · stratos · crew · props/* (μία γραμμή ανά όνομα) + SFX presets + επιλογές render.js
 // node api.js <λέξη>    → ό,τι ταιριάζει σε όνομα / περιγραφή / αρχείο, με πλήρη περιγραφή + αρχείο:γραμμή (μετά: sed -n 'a,bp' αρχείο)
 // node api.js --check   → κάθε export του props/ έχει περιγραφή (gate στο ship.sh όταν αλλάζουν props)
 // Περιγραφή = σχόλιο στην ίδια γραμμή (// ...) ή τα σχόλια ακριβώς από πάνω. Γραμμή «// ---- τίτλος ----» = ενότητα.
 const fs = require('fs'), path = require('path');
 const ROOT = __dirname, PDIR = path.join(ROOT, 'props');
-const MODS = ['lib.js', 'stratos.js', ...fs.readdirSync(PDIR).filter(f => f.endsWith('.js')).sort().map(f => 'props/' + f)];
+const MODS = ['lib.js', 'stratos.js', 'crew.js', ...fs.readdirSync(PDIR).filter(f => f.endsWith('.js')).sort().map(f => 'props/' + f)];
 
 function parens(s, i) { let d = 0; for (let j = i; j < s.length; j++) { if (s[j] === '(') d++; else if (s[j] === ')' && --d === 0) return s.slice(i + 1, j); } return ''; }
 function entries(rel) {

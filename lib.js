@@ -70,6 +70,18 @@ function cut(ctx, pts, fill, o = {}) {
   if (o.scribble) { ctx.save(); path(ctx, pf); ctx.clip(); scribble(ctx, bbox(pf), o.scribble, s); ctx.restore(); }
   return pf;
 }
+// πολλά κομμάτια κολλημένα σε ΕΝΑ φύλλο (χέρι, συνεχές μπράτσο): κοινή σκιά + λευκή σκισμένη άκρη μόνο γύρω από την ένωση, χωρίς εσωτερικές άκρες
+// pieces = [[pts, fill, { seed, amp, step, scribble }], ...] · g = { shadow, edge, edgeW, edgeC, line (λεπτό περίγραμμα μέσα στη λευκή άκρη), lineW, sx, sy }
+function cutGroup(ctx, pieces, g = {}) {
+  const cw = p => { let a = 0; for (let i = 0, n = p.length; i < n; i++) { const [x1, y1] = p[i], [x2, y2] = p[(i + 1) % n]; a += x1 * y2 - x2 * y1; } return a < 0 ? p.slice().reverse() : p; }; // ίδια φορά → η ένωση γεμίζει μία φορά
+  const P = pieces.map(([pts, fill, o = {}]) => { const s = (o.seed || 1) + ST.B * 7919, amp = o.amp ?? 4, step = o.step ?? 20; return { pf: cw(tear(pts, s, amp, step)), pw: cw(tear(pts, s + 13, amp * 1.6, step)), fill, o, s }; });
+  const all = k => { ctx.beginPath(); for (const p of P) { const q = p[k]; ctx.moveTo(q[0][0], q[0][1]); for (let i = 1; i < q.length; i++) ctx.lineTo(q[i][0], q[i][1]); ctx.closePath(); } };
+  if (g.shadow !== false) { ctx.save(); ctx.translate(g.sx ?? 7, g.sy ?? 9); all('pw'); ctx.fillStyle = 'rgba(5,10,30,0.22)'; ctx.fill(); ctx.restore(); }
+  if (g.edge !== false) { all('pw'); ctx.lineJoin = 'round'; ctx.lineWidth = g.edgeW ?? 10; ctx.strokeStyle = g.edgeC || '#FBFAF6'; ctx.stroke(); ctx.fillStyle = g.edgeC || '#FBFAF6'; ctx.fill(); }
+  if (g.line) { all('pf'); ctx.lineJoin = 'round'; ctx.lineWidth = g.lineW ?? 4; ctx.strokeStyle = g.line; ctx.stroke(); }
+  for (const p of P) { path(ctx, p.pf); ctx.fillStyle = p.fill; ctx.fill(); if (p.o.scribble) { ctx.save(); path(ctx, p.pf); ctx.clip(); scribble(ctx, bbox(p.pf), p.o.scribble, p.s); ctx.restore(); } }
+  return P.map(p => p.pf);
+}
 // lint: αριθμός επεισοδίου σε κείμενο του βίντεο («#2») — τα επεισόδια ανεβαίνουν με όποια σειρά, άρα μόνο το όνομα της σειράς (STYLE_GUIDE §7)
 function lintText(ctx, s, x, y) {
   const m = ST.lint && String(s).match(/#\s*\d+/); if (!m) return;
@@ -217,4 +229,4 @@ function lipsync(VO, rest = 'smile') { const t = ST.T;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
 const blinkNow = () => (ST.T % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() })
-module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};
+module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,cutGroup,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};

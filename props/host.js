@@ -1,16 +1,16 @@
 // props/host.js — ο Στράτος εκτός rig: χέρι που μπαίνει στο κάδρο, PiP, από πίσω
 const L = require('../lib.js');
-const { C, cut, rectPts, rrPts, circlePts, lipsync, blinkNow } = L;
-const { S, stratos, hand } = require('../stratos.js');
+const { C, cut, cutGroup, rectPts, rrPts, circlePts, lipsync, blinkNow } = L;
+const { S, stratos } = require('../stratos.js');
+const { handParts, capsule, LINE } = require('../hands.js');
 
 // ---------- hands entering frame (Στράτος' arm, same style) ----------
 // fingertip / grip point at (tx,ty); the arm comes from the direction (dx,dy). hand: point | fist | open
 function reach(ctx, tx, ty, dx, dy, o = {}) {
   const type = o.hand || 'point', side = o.side || 1, len = Math.hypot(dx, dy), ux = -dx / len, uy = -dy / len;
-  const tip = type === 'point' ? [-side * 26, 392] : type === 'open' ? [0, 352] : [0, 330];
+  const H = handParts(type, side, (o.seed || 60) + 2), tip = H.tip; // άκρη δαχτύλου / σημείο λαβής από τη γεωμετρία του χεριού (hands.js v4)
   ctx.save(); ctx.translate(tx, ty); ctx.rotate(Math.atan2(-ux, uy)); ctx.translate(-tip[0], -tip[1]);
-  cut(ctx, rrPts(-27, 30, 54, 232, 26), S.skin, { seed: (o.seed || 60) + 1, amp: 2, edgeW: 6 });
-  hand(ctx, type, side, (o.seed || 60) + 2);
+  cutGroup(ctx, [[capsule(0, 30, 216, 27, 22), S.skin, { seed: (o.seed || 60) + 1, amp: 2 }], ...H.pieces], { edgeW: 6, line: LINE }); H.details(ctx); // πήχης + χέρι = ένα κομμάτι
   const sl = cut(ctx, [[-50, -1700], [50, -1700], [58, 96], [-58, 96]], S.tee, { seed: (o.seed || 60), amp: 2, edgeW: 6 }); // sleeve always over the arm
   ctx.save(); L.path(ctx, sl); ctx.clip(); ctx.fillStyle = S.teeD; ctx.fillRect(-70, 78, 140, 20); ctx.restore();
   ctx.restore();
