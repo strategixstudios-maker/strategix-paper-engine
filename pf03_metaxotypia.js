@@ -1,15 +1,17 @@
-// «Πώς φτιάχνεται;» — Μεταξοτυπία (screen printing) · top-down σε cutting mat · host: Στράτος (reach + pip) · VO ElevenLabs «Stratos» + SFX · 22,6s · seamless loop
+// «Πώς φτιάχνεται;» — Μεταξοτυπία (screen printing) · top-down σε cutting mat · host: Στράτος (reach + pip) · VO ElevenLabs «Stratos» + SFX · 27,9s · seamless loop
 const L = require('./lib.js');
 const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, caption, captionSeq, brandMark,
   lerp, clamp, prog, easeOut, easeIn, easeInOut, spring } = L;
-const { BRAND, reach, sparkle, seriesTag, pip, PIP, tshirt } = require('./props.js');
+const { BRAND, reach, sparkle, seriesTag, pip, PIP, tshirt, stamp } = require('./props.js');
 
-// VO = vo/pf03_vo.mp3 @ 0,15s (ElevenLabs eleven_v3, φωνή «Stratos», παύσεις ήδη σφιγμένες, χωρίς atempo: 22,05s).
-// Χρονισμοί φράσεων (raw, silence detect):
-// 0,00 Αυτό είναι η μεταξοτυπία. | 2,49 Αλλά πώς γίνεται; | 3,96 Πρώτα, το σχέδιό σου τυπώνεται σε μια διαφάνεια.
-// 6,78 Το τελάρο περνιέται με φωτοευαίσθητο υγρό. | 9,45 Φως. Ό,τι κρύβει το σχέδιο, μένει μαλακό.
-// 12,47 Ξέπλυμα — και το σχέδιο ανοίγει στο πλέγμα. | 15,47 Τώρα, το μελάνι περνάει μόνο από εκεί.
-// 17,83 Ένας από τους παλιότερους τρόπους εκτύπωσης. | 20,11 Κι ακόμα, από τους πιο γερούς.
+// VO = vo/pf03_vo.mp3 @ 0,15s (ElevenLabs eleven_v3, φωνή «Stratos», παύσεις ήδη σφιγμένες: 27,24s).
+// v3 (2026-09-26): το βήμα 3 ξαναγράφτηκε πιο αναλυτικό — νέο take κολλημένο στη θέση του «Φως. Ό,τι κρύβει…» (atempo 1.06, +1,5 dB), τα υπόλοιπα όπως ήταν (+5,25s).
+// Χρονισμοί φράσεων (video):
+// 0,23 Αυτό είναι η μεταξοτυπία. | 2,63 Αλλά πώς γίνεται; | 4,10 Πρώτα, το σχέδιό σου τυπώνεται σε μια διαφάνεια.
+// 6,90 Το τελάρο περνιέται με φωτοευαίσθητο υγρό. | 9,57 Βάζουμε το φιλμ πάνω στο τελάρο, | 11,60 και ανάβει το UV φως.
+// 12,97 Όπου περνάει το φως, το υγρό σκληραίνει. | 15,27 Κάτω από το μαύρο σχέδιο, μένει μαλακό.
+// 17,87 Ξέπλυμα — και το σχέδιο ανοίγει στο πλέγμα. | 20,87 Τώρα, το μελάνι περνάει μόνο από εκεί.
+// 23,20 Ένας από τους παλιότερους τρόπους εκτύπωσης. | 25,50 Κι ακόμα, από τους πιο γερούς.
 // SFX ducking = default του render.js (VO present).
 const VO = [];
 const TAG = 'Πώς φτιάχνεται;';
@@ -21,7 +23,8 @@ const IW = FW - FB, IH = FH - FB;        // half interior (πλέγμα)
 const SR = 150;                          // ακτίνα «S»
 const TCY = 904;                         // κέντρο tee (ελαφρώς πιο κάτω)
 const FRAME = '#3C4F86';                 // αλουμίνιο τελάρου (steel blue)
-const EMUL = '#A9C6F7';                  // φωτοευαίσθητο (emulsion) coat
+const EMUL = '#A9C6F7';                  // φωτοευαίσθητο (emulsion) coat — σκληρυμένο (μετά το φως)
+const FRESH = '#D3E2FB';                 // φρέσκο emulsion πριν από το φως (πιο ανοιχτό · σκουραίνει στην έκθεση)
 const INK = '#2447C8';                   // μπλε μελάνι (στο πλέγμα / bead)
 const SQW = IW - 22;                     // half πλάτος σπάτουλας (χωράει μέσα στο τελάρο)
 const SQ0 = 572, SQ1 = 1100;             // σπάτουλα: αρχή (πάνω, «έτοιμη») / τέλος του περάσματος (κάτω)
@@ -197,7 +200,7 @@ function sEmul(ctx, lt) {
     inner: c => {
       interiorBase(c, '#EDEBE3', 7510, '#DBD8CE'); meshGrid(c);
       c.save(); c.beginPath(); c.rect(FCX - IW, FCY - IH, IW * 2, (IH * 2) * coat); c.clip();
-      interiorBase(c, EMUL, 7512); c.restore();
+      interiorBase(c, FRESH, 7512); c.restore();
     }
   });
   // coating bar + χέρι
@@ -205,19 +208,87 @@ function sEmul(ctx, lt) {
   caption(ctx, '2 · Emulsion', lt, 0.12);
 }
 
-// S4 — βήμα 3: έκθεση σε φως  (VO: «Φως. Ό,τι κρύβει το σχέδιο, μένει μαλακό.»)
-function sLight(ctx, lt) {
-  matBG(ctx);
-  frame(ctx, { inner: c => { interiorBase(c, EMUL, 7512); brandMark(c, FCX, FCY, SR, C.ink); } }); // emulsion + film (μαύρο S)
-  const g = easeOut(prog(lt, 0.2, 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(lt * 20)));
-  ctx.save();
-  const grd = ctx.createRadialGradient(FCX, FCY - 40, 40, FCX, FCY - 40, 560);
-  grd.addColorStop(0, `rgba(255,255,255,${0.72 * g})`); grd.addColorStop(0.5, `rgba(220,231,250,${0.28 * g})`); grd.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = grd; ctx.fillRect(0, 250, W, 1230);
-  ctx.strokeStyle = `rgba(255,255,255,${0.5 * g})`; ctx.lineWidth = 6; ctx.lineCap = 'round';       // ακτίνες
-  for (let a = 0; a < 6; a++) { const an = a / 6 * Math.PI * 2 + lt * 0.4; ctx.beginPath(); ctx.moveTo(FCX + Math.cos(an) * 210, FCY - 40 + Math.sin(an) * 210); ctx.lineTo(FCX + Math.cos(an) * 320, FCY - 40 + Math.sin(an) * 320); ctx.stroke(); }
+// S4 — βήμα 3: έκθεση σε UV φως (v3: αναλυτικό — φιλμ πάνω στο τελάρο → UV λάμπες → όπου περνάει το φως σκληραίνει → κάτω από το «S» μένει μαλακό)
+// (VO: «Βάζουμε το φιλμ πάνω στο τελάρο, και ανάβει το UV φως.» 0,27 · «Όπου περνάει το φως, το υγρό σκληραίνει.» 3,67 · «Κάτω από το μαύρο σχέδιο, μένει μαλακό.» 5,97)
+// Το emulsion σκουραίνει στο φως (FRESH → EMUL, όπως στην πραγματικότητα) · κάτω από το μαύρο «S» μένει FRESH (λανθάνουσα εικόνα → ανοίγει στο ξέπλυμα)
+const UV = '#7B5CFF', UVL = '#E6DEFF';           // UV φως (μωβ: εξαίρεση στην παλέτα, έτσι το αναγνωρίζει ο θεατής)
+const TUBES = [150, 930];                          // UV λάμπες δίπλα στο τελάρο (κάτοψη)
+// διαφάνεια πάνω στο τελάρο: καθαρό acetate (φαίνεται το emulsion από κάτω) + μαύρο «S»
+function acetate(ctx, ox = 0, oy = 0, rot = 0) {
+  ctx.save(); ctx.translate(FCX + ox, FCY + oy); ctx.rotate(rot); ctx.translate(-FCX, -FCY);
+  ctx.globalAlpha = 0.22; cut(ctx, rrPts(FCX - 272, FCY - 336, 544, 672, 12), '#E4EEFC', { seed: 7800, amp: 1.5, edgeW: 5, shadow: false });
+  ctx.globalAlpha = 0.18; ctx.fillStyle = '#fff'; L.path(ctx, rrPts(FCX - 250, FCY - 316, 110, 632, 8)); ctx.fill();   // γυαλάδα
+  ctx.globalAlpha = 1; brandMark(ctx, FCX, FCY, SR, C.ink);
   ctx.restore();
-  caption(ctx, '3 · Έκθεση σε φως', lt, 0.12);
+}
+// UV λάμπες (σβηστές / αναμμένες) + ακτίνες προς το τελάρο · uv 0..1
+function uvLamps(ctx, lt, uv) {
+  for (const x of TUBES) {
+    cut(ctx, rrPts(x - 34, 540, 68, 640, 28), '#26356A', { seed: 8700 + x, amp: 2, edgeW: 6 });           // βάση
+    cut(ctx, rrPts(x - 15, 566, 30, 588, 15), uv > 0.05 ? UVL : '#8E8AB0', { seed: 8710 + x, amp: 1, edgeW: 3, shadow: false });   // σωλήνας
+  }
+  if (uv <= 0.01) return;
+  ctx.save(); ctx.globalCompositeOperation = 'screen';
+  for (const x of TUBES) {                                                   // φωτοστέφανο λάμπας (έλλειψη, μαλακές άκρες)
+    ctx.save(); ctx.translate(x, 860); ctx.scale(1, 2.5);
+    const g = ctx.createRadialGradient(0, 0, 10, 0, 0, 160);
+    g.addColorStop(0, `rgba(160,130,255,${0.8 * uv})`); g.addColorStop(1, 'rgba(123,92,255,0)');
+    ctx.fillStyle = g; ctx.fillRect(-160, -160, 320, 320); ctx.restore();
+  }
+  ctx.strokeStyle = `rgba(200,185,255,${0.8 * uv})`; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.setLineDash([26, 30]); ctx.lineDashOffset = -lt * 260;   // ακτίνες λάμπα → τελάρο
+  for (let i = 0; i < 6; i++) {
+    const y = 600 + i * 104;
+    ctx.beginPath(); ctx.moveTo(TUBES[0] + 40, y); ctx.lineTo(FCX - IW + 30, y + (FCY - y) * 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(TUBES[1] - 40, y); ctx.lineTo(FCX + IW - 30, y + (FCY - y) * 0.15); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.globalCompositeOperation = 'source-over';
+  L.path(ctx, rrPts(FCX - FW, FCY - FH, FW * 2, FH * 2, 30)); ctx.clip();   // το τελάρο λούζεται στο UV (μωβ απόχρωση)
+  const r = ctx.createRadialGradient(FCX, FCY, 60, FCX, FCY, 460);
+  r.addColorStop(0, `rgba(123,92,255,${0.2 * uv})`); r.addColorStop(1, `rgba(123,92,255,${0.34 * uv})`);
+  ctx.fillStyle = r; ctx.fillRect(FCX - FW, FCY - FH, FW * 2, FH * 2);
+  ctx.restore();
+}
+// χρονόμετρο έκθεσης: χάρτινος κύκλος «UV» + δακτύλιος που γεμίζει · p 0..1
+function uvTimer(ctx, lt, p, out) {
+  if (out >= 1) return;
+  ctx.save(); ctx.translate(FCX, 1318); ctx.scale(1 - out, 1 - out); ctx.translate(-FCX, -1318);
+  pop(ctx, lt, 2.4, FCX, 1318, () => {
+    cut(ctx, circlePts(0, 0, 66), C.paper, { seed: 8720, amp: 2, edgeW: 6 });
+    ctx.strokeStyle = 'rgba(123,92,255,0.18)'; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(0, 0, 48, 0, Math.PI * 2); ctx.stroke();
+    if (p > 0) { ctx.strokeStyle = UV; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, 0, 48, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); ctx.stroke(); }
+    txt(ctx, 'UV', 0, 2, { font: 'bold 38px Brand', color: UV });
+  });
+  ctx.restore();
+}
+function sLight(ctx, lt) {
+  const k = easeOut(prog(lt, 0.25, 1.1));                                   // το φιλμ μπαίνει (όπως στο βήμα 1)
+  const pat = 1 - easeOut(prog(lt, 0.95, 1.25)) + easeIn(prog(lt, 1.75, 2.15));   // χέρι: ακουμπάει το φιλμ και φεύγει
+  const dark = easeInOut(prog(lt, 2.1, 2.5)) * (1 - easeInOut(prog(lt, 5.75, 6.1)));   // σκοτάδι όσο είναι αναμμένο το UV
+  const on = lt >= 2.55 && lt < 5.75 ? (lt < 2.8 && Math.sin(lt * 95) < -0.2 ? 0.35 : 1) : 0;   // UV ανάβει (τρεμόπαιγμα) → σβήνει
+  const cure = easeInOut(prog(lt, 3.8, 5.4));                               // σκλήρυνση: FRESH → EMUL (εκτός από κάτω από το «S»)
+  const peel = easeIn(prog(lt, 6.25, 6.9)), grab = 1 - easeOut(prog(lt, 5.9, 6.25));   // το φιλμ τραβιέται προς το χέρι
+  const DIR = [ARM[0] / Math.hypot(...ARM), ARM[1] / Math.hypot(...ARM)], pd = 1150 * peel;
+  matBG(ctx);
+  frame(ctx, { inner: c => {
+    interiorBase(c, FRESH, 7512);
+    if (cure > 0) { c.save(); c.globalAlpha = cure; interiorBase(c, EMUL, 7512); c.restore(); brandMark(c, FCX, FCY, SR, FRESH); }
+  } });
+  if (peel < 1) acetate(ctx, (1 - k) * -820 + DIR[0] * pd, DIR[1] * pd, 0.14 * peel);
+  if (pat < 1) reach(ctx, FCX + 150 + 300 / 811 * 900 * pat, FCY + 250 + 760 / 811 * 900 * pat, 300, 760, { seed: 810, hand: 'open', side: -1 });
+  if (dark > 0) {                                                           // σκοτάδι γύρω · το τελάρο μένει στο φως (φαίνεται η σκλήρυνση)
+    const q = rrPts(FCX - FW, FCY - FH, FW * 2, FH * 2, 30);
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.moveTo(...q[0]); for (const pt of q) ctx.lineTo(...pt); ctx.closePath();
+    ctx.fillStyle = `rgba(5,12,32,${0.62 * dark})`; ctx.fill('evenodd');
+  }
+  uvLamps(ctx, lt, on);
+  if (on > 0) brandMark(ctx, FCX, FCY, SR, C.ink);                          // το μαύρο «S» μπλοκάρει το φως: μένει σκοτεινό
+  if (lt > 5.9 && peel < 1) reach(ctx, FCX + 230 + DIR[0] * (pd + 900 * grab), FCY + 300 + DIR[1] * (pd + 900 * grab), ...ARM, { seed: 850, hand: 'grip', side: -1 });
+  uvTimer(ctx, lt, prog(lt, 2.6, 5.75), easeIn(prog(lt, 6.1, 6.35)));
+  stamp(ctx, lt, 4.6, FCX, 600, 'σκληραίνει', -0.04, C.navy, 46);
+  if (lt > 7.0) pop(ctx, lt, 7.0, FCX, 1036, () => cut(ctx, [[-15, 22], [15, 22], [15, 0], [30, 0], [0, -30], [-30, 0], [-15, 0]], BRAND, { seed: 8730, amp: 1, edgeW: 4 }));
+  stamp(ctx, lt, 7.0, FCX, 1108, 'μαλακό', 0.03, BRAND, 46);
+  captionSeq(ctx, lt, [[0.12, '3 · Έκθεση σε UV φως'], [3.62, 'Όπου περνάει το φως, σκληραίνει'], [5.92, 'Κάτω από το σχέδιο, μένει μαλακό']]);
 }
 
 // S5 — βήμα 4: ξέπλυμα με πιεστικό νερό → το «S» ανοίγει εκεί που περνάει ο πίδακας  (VO: «Ξέπλυμα — και το σχέδιο ανοίγει στο πλέγμα.»)
@@ -235,6 +306,7 @@ function sWash(ctx, lt) {
   frame(ctx, {
     inner: c => {
       interiorBase(c, EMUL, 7512);
+      brandMark(c, FCX, FCY, SR, FRESH);                                     // λανθάνον «S» (μαλακό, από το βήμα 3)
       if (lt > 0.5) {
         c.save(); washed(c); c.clip();
         c.fillStyle = `rgba(30,60,150,${lt < 2.1 ? 0.14 : 0.14 * (1 - prog(lt, 2.1, 3.0))})`; c.fillRect(FCX - IW, FCY - IH, IW * 2, IH * 2);   // βρεγμένο emulsion
@@ -269,7 +341,7 @@ function sPass(ctx, lt) {
   if (lt >= 6.72) seriesTag(ctx, (lt - 6.72) * 1.5, TAG);             // ετικέτα σειράς μόνο με το caption του hook (loop)
 }
 
-const SCENES = [[sHook, 2.6], [sQuestion, 1.45], [sFilm, 2.7], [sEmul, 2.55], [sLight, 3.1], [sWash, 3.05], [sPass, 7.1]];
+const SCENES = [[sHook, 2.6], [sQuestion, 1.45], [sFilm, 2.7], [sEmul, 2.55], [sLight, 8.35], [sWash, 3.05], [sPass, 7.1]];
 const WIPES = [1, 2, 3, 4, 5, 6];
 
 require('./render.js')({
@@ -283,14 +355,21 @@ require('./render.js')({
     [2.10, 'shimmer', { note: '✨' }],
     [4.25, 'slide', { dur: 0.7, note: 'film μπαίνει' }],
     [6.95, 'squeegee', { dur: 1.4, note: 'emulsion coat' }],
-    [9.50, 'beep', { count: 1, note: 'φως on' }], [9.65, 'air', { dur: 2.0, note: 'έκθεση σε φως' }],
-    [12.86, 'click', { gain: 0.6, note: 'σκανδάλη πιστολιού' }],
-    [12.90, 'spray', { dur: 1.62, note: 'ξέπλυμα με πιεστικό νερό' }],
-    [15.72, 'squeegee', { dur: 1.35, note: 'πέρασμα μελάνι' }],
-    [17.30, 'lid', { note: 'σηκώνει το τελάρο' }],
-    [17.60, 'pop', { note: 'reveal «S»' }],
-    [18.05, 'shimmer', { note: '✨' }],
-    [19.35, 'slide', { dur: 0.9, note: 'επόμενο tee' }],
-    [20.98, 'thud', { gain: 0.8, note: 'τελάρο κάτω → «έτοιμο» (loop)' }],
+    [9.55, 'slide', { dur: 0.7, note: 'φιλμ πάνω στο τελάρο' }],
+    [10.45, 'thud', { gain: 0.45, note: 'το χέρι ακουμπάει το φιλμ' }],
+    [11.85, 'click', { note: 'διακόπτης UV' }], [11.88, 'beep', { count: 1, note: 'UV on' }],
+    [11.95, 'air', { dur: 3.1, gain: 0.7, note: 'UV λάμπες (βουητό)' }],
+    [13.90, 'pop', { gain: 0.6, note: '«σκληραίνει»' }],
+    [15.05, 'beep', { count: 2, note: 'τέλος έκθεσης, UV off' }],
+    [15.55, 'peel', { note: 'το φιλμ ξεκολλάει' }],
+    [16.30, 'pop', { gain: 0.6, note: '«μαλακό»' }],
+    [18.11, 'click', { gain: 0.6, note: 'σκανδάλη πιστολιού' }],
+    [18.15, 'spray', { dur: 1.62, note: 'ξέπλυμα με πιεστικό νερό' }],
+    [20.97, 'squeegee', { dur: 1.35, note: 'πέρασμα μελάνι' }],
+    [22.55, 'lid', { note: 'σηκώνει το τελάρο' }],
+    [22.85, 'pop', { note: 'reveal «S»' }],
+    [23.30, 'shimmer', { note: '✨' }],
+    [24.60, 'slide', { dur: 0.9, note: 'επόμενο tee' }],
+    [26.23, 'thud', { gain: 0.8, note: 'τελάρο κάτω → «έτοιμο» (loop)' }],
   ],
 });
