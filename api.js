@@ -50,3 +50,5 @@ for (const m of mods) {
 console.log(`\nsfx.js presets (STYLE_GUIDE §5c): ${Object.keys(require('./sfx.js').P).join(' · ')}`);
 const rh = fs.readFileSync(path.join(ROOT, 'render.js'), 'utf8').split('\n'), end = rh.findIndex(l => !/^\/\//.test(l));
 console.log('render.js:\n' + rh.slice(1, end).map(l => '  ' + l.replace(/^\/\/\s?/, '')).join('\n'));
+const vh = fs.readFileSync(path.join(ROOT, 'vo.js'), 'utf8').split('\n'), vend = vh.findIndex(l => !/^\/\//.test(l));
+console.log('vo.js (VO «Stratos», STYLE_GUIDE §5d):\n' + vh.slice(0, vend).map(l => '  ' + l.replace(/^\/\/\s?/, '')).join('\n'));

@@ -1,4 +1,4 @@
-// «Πώς φτιάχνεται;» — Κέντημα σε καπέλο · host: Στράτος · VO ElevenLabs «Stratos» + SFX · 22,2s · χωρίς loop (κατ' απαίτηση), τέλος = CTA
+// «Πώς φτιάχνεται;» — Κέντημα σε καπέλο · host: Στράτος · VO ElevenLabs «Stratos» + SFX · 21,45s · χωρίς loop (κατ' απαίτηση), τέλος = CTA
 // Hook: ο Στράτος κρατάει navy καπέλο με κεντημένο «S» → μηχανή σε περίγραμμα + «?» → 1 σχέδιο → βελονιές (over-the-shoulder)
 // → 2 τελάρο (τεντωμένο) → 3 η μηχανή κεντάει (reveal) → CTA «Στείλε μας το λογότυπό σου, και ας φτιάξουμε τα δικά σου.»
 const L = require('./lib.js');
@@ -7,13 +7,13 @@ const { C, W, H, cut, rectPts, rrPts, circlePts, txt, pop, caption, captionSeq, 
 const { stratos, handPos, S: SK } = require('./stratos.js');
 const { BRAND, bgFlat, wallShelf, seriesTag, stamp, sparkle, stratosBack, reach, msgOut } = require('./props.js');
 
-// VO = vo/pf04_vo.mp3 @ 0,2s (ElevenLabs eleven_v3 από τον connector, φωνή «Stratos», take 1/2 · παύσεις → 0,3s, «μόνο συντεταγμένες» κολλητά).
-// v2: η τελευταία φράση (CTA) = νέο take 1/2 κολλημένο στη θέση του «…και...» του loop. Χρονισμοί φράσεων (video):
-// 0,30 Αυτό είναι ένα καπέλο με κέντημα. | 2,17 Πάμε να δούμε πώς φτιάχνεται. | 3,63 Πρώτα, στον υπολογιστή, το σχέδιο γίνεται βελονιές.
-// 6,60 Γιατί η μηχανή δεν διαβάζει εικόνες, (8,61) μόνο συντεταγμένες. | 9,93 Μετά, | 10,60 το καπέλο μπαίνει στο τελάρο, | 12,03 τεντωμένο, για να μη ζαρώσει.
-// 13,77 Το τελάρο κουμπώνει στη μηχανή, | 15,53 και η βελόνα | 16,37 ακολουθεί το αρχείο, βελονιά-βελονιά. | 18,77 Στείλε μας το λογότυπό σου, | 20,23 και ας φτιάξουμε τα δικά σου. (–21,40)
-const T = { pame: 2.17, prota: 3.63, giati: 6.6, mono: 8.61, meta: 9.93, kapelo: 10.6, tent: 12.03, klak: 14.45, velona: 15.53, steile: 18.77, kai: 20.23, dika: 20.85, end: 21.4 };
-const SC = [0, 2.05, 3.5, 9.8, 13.62, 18.64, 22.2];   // αρχές σκηνών (hook · ; · 1 · 2 · 3 · CTA) + τέλος video
+// VO = vo/pf04_vo.mp3 @ 0,2s — v3: `node vo.js pf04` (API, eleven_v3, «Stratos», stability 0.5 Natural, seed 1000 = take 1/2, κείμενο vo/pf04.txt),
+// ένα generation για όλο το VO (v2: η CTA κολλημένη από άλλο take ακουγόταν άλλη φωνή) · παύσεις → 0,3s. Χρονισμοί (video, (…) = μέσα στη φράση):
+// 0,40 Αυτό είναι ένα καπέλο με κέντημα. | 2,47 Πάμε να δούμε πώς φτιάχνεται. | 4,00 Πρώτα, στον υπολογιστή, (5,12) το σχέδιο γίνεται βελονιές.
+// 6,83 Γιατί η μηχανή δεν διαβάζει εικόνες, (8,80) μόνο συντεταγμένες. | 10,17 Μετά, (10,60) το καπέλο μπαίνει στο τελάρο, (12,04) τεντωμένο, για να μη ζαρώσει.
+// 13,77 Το τελάρο κουμπώνει στη μηχανή, (15,36) και η βελόνα ακολουθεί το αρχείο, (17,05) βελονιά-βελονιά. | 18,20 Στείλε μας το λογότυπό σου, (19,46) και ας φτιάξουμε τα δικά σου. (–20,63)
+const T = { pame: 2.47, prota: 4.0, sxedio: 5.12, giati: 6.83, mono: 8.8, meta: 10.17, kapelo: 10.6, tent: 12.04, klak: 14.45, velona: 15.36, vv: 17.05, steile: 18.2, kai: 19.46, dika: 20.1, end: 20.63 };
+const SC = [0, 2.35, 3.85, 10.05, 13.62, 18.1, 21.45];   // αρχές σκηνών (hook · ; · 1 · 2 · 3 · CTA) + τέλος video
 const VO = []; // lip-sync από την ένταση του αρχείου (ST.VOENV)
 const TAG = 'Πώς φτιάχνεται;', HOOK = 'Αυτό είναι ένα καπέλο με κέντημα.';
 
@@ -300,9 +300,9 @@ function hostCap(ctx, t, o = {}) {
   for (const sd of [-1, 1]) thumb(ctx, cx + sd * (CAP.hw - 34) * sc, cy + 40 * sc, sd, 0.9);
 }
 function hook(ctx, t) {
-  const z = 1 + 0.2 * easeInOut(prog(t, 0.15, 1.85));
+  const z = 1 + 0.2 * easeInOut(prog(t, 0.2, 2.15));
   ctx.save(); cam(ctx, CAP0[0], CAP0[1], z); hostCap(ctx, t); ctx.restore();
-  sparkle(ctx, CAP0[0] + 118, CAP0[1] - 96, 0.55, t, 1.15, 5401);
+  sparkle(ctx, CAP0[0] + 118, CAP0[1] - 96, 0.55, t, 1.6, 5401);
 }
 // ---------- 1 · «;»: η μηχανή σε περίγραμμα + μεγάλο «?» ----------
 function question(ctx, t) {
@@ -314,7 +314,7 @@ function question(ctx, t) {
 }
 // ---------- 2 · βήμα 1: over-the-shoulder, το σχέδιο γίνεται βελονιές ----------
 const SCR = [118, 646, 844, 538], CAN = [288, 694, 674, 490], CC = [625, 939], SR = 185;   // οθόνη · καμβάς · κέντρο «S» · ακτίνα κύκλου
-const scrK = 1.3 * SR / EMB.F, P1 = [4.1, 6.2], P2 = [8.8, 9.75];
+const scrK = 1.3 * SR / EMB.F, P1 = [4.47, 6.45], P2 = [8.95, 9.9];
 function cursor(ctx, x, y, down) {
   ctx.save(); ctx.translate(x, y); ctx.scale(down ? 0.9 : 1, down ? 0.9 : 1);
   L.path(ctx, [[0, 0], [0, 46], [12, 35], [21, 56], [30, 52], [21, 32], [36, 32]]); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = C.ink; ctx.stroke(); ctx.restore();
@@ -329,7 +329,7 @@ function software(ctx, t) {
   ctx.fillStyle = '#E3EAF8'; ctx.fillRect(sx, sy + 48, 170, sh - 48);
   txt(ctx, 'ΕΙΚΟΝΑ', sx + 85, sy + 88, { font: 'bold 22px Round', color: C.ink });
   ctx.fillStyle = '#fff'; ctx.fillRect(sx + 18, sy + 110, 134, 134); brandMark(ctx, sx + 85, sy + 177, 46, C.navy);
-  const bx = sx + 85, by = sy + 322, press = t > 3.95 && t < 4.1;                              // κουμπί «Βελονιές»
+  const bx = sx + 85, by = sy + 322, press = t > 4.32 && t < 4.47;                              // κουμπί «Βελονιές»
   L.path(ctx, rrPts(bx - 70, by - 28, 140, 56, 28)); ctx.fillStyle = press ? C.navy : BRAND; ctx.fill();
   txt(ctx, 'Βελονιές', bx, by + 1, { font: 'bold 25px Round', color: '#fff' });
   ctx.strokeStyle = '#E1E8F6'; ctx.lineWidth = 2;                                                // καμβάς: πλέγμα
@@ -359,7 +359,7 @@ function software(ctx, t) {
       L.path(ctx, rrPts(lx, ly, lw, 44, 12)); ctx.fillStyle = C.navy; ctx.fill(); txt(ctx, lab, lx + 15, ly + 23, { font: 'bold 28px Round', color: '#fff', align: 'left' });
     }
   }
-  const cp = t < 3.9 ? easeInOut(prog(t, 3.5, 3.9)) : 1, cq = easeInOut(prog(t, 4.15, 4.6));     // κέρσορας → κλικ στο «Βελονιές» → φεύγει
+  const cp = t < 4.27 ? easeInOut(prog(t, 3.87, 4.27)) : 1, cq = easeInOut(prog(t, 4.52, 4.97));     // κέρσορας → κλικ στο «Βελονιές» → φεύγει
   cursor(ctx, lerp(lerp(760, bx, cp), 610, cq), lerp(lerp(1130, by, cp), 1150, cq), press);
   ctx.restore();
 }
@@ -373,7 +373,7 @@ function step1(ctx, t) {
   cut(ctx, rrPts(92, 620, 896, 590, 28), C.navy, { seed: 26, amp: 2, edgeW: 8 });                                     // οθόνη
   software(ctx, t);
   ctx.save(); ctx.filter = 'blur(7px)'; stratosBack(ctx, 170, 1570, 1.5); ctx.restore();                               // ώμος σε πρώτο πλάνο, θολός
-  stepChip(ctx, t, 3.7, 1, 'Βελονιές');
+  stepChip(ctx, t, 4.05, 1, 'Βελονιές');
   pop(ctx, t, T.giati + 0.15, SCR[0] + 85, SCR[1] + 177, () => { for (const r of [0.78, -0.78]) { ctx.save(); ctx.rotate(r); cut(ctx, rrPts(-86, -13, 172, 26, 12), C.navy, { seed: 7100 + r * 10, amp: 1, edgeW: 6 }); ctx.restore(); } }, 0);
 }
 // ---------- 3 · βήμα 2: το καπέλο στο τελάρο, τεντωμένο ----------
@@ -387,20 +387,20 @@ function step2(ctx, t) {
   const lx = HO[0] + 330 * HO[2] + 40, ly = HO[1] + (capBase(330, 350) - 14) * HO[2];            // χέρι πατάει το μάνταλο
   const inK = easeOut(prog(t, 11.55, 11.95)) * (1 - easeIn(prog(t, 12.35, 12.75))), press = 14 * Math.sin(Math.PI * prog(t, T.tent - 0.12, T.tent + 0.12));
   if (inK > 0) reach(ctx, lx + 300 * (1 - inK), ly - 10 + press + 160 * (1 - inK), 1, 0.55, { hand: 'point', side: -1, seed: 7200 });
-  stepChip(ctx, t, 9.95, 2, 'Τελάρο');
+  stepChip(ctx, t, 10.2, 2, 'Τελάρο');
   stamp(ctx, t, T.tent + 0.18, 560, 700, 'ΤΕΝΤΩΜΕΝΟ', -0.06, BRAND, 66);
 }
 // ---------- 4 · βήμα 3: το τελάρο κουμπώνει → reveal → η βελόνα ράβει ----------
-const P3 = [T.velona, 18.3], RUN = [15.05, 18.35];
+const P3 = [T.velona, 17.7], RUN = [14.95, 17.75];
 function step3(ctx, t) {
   const bgK = prog(t, T.klak, T.klak + 0.35);
   bgFlat(ctx, C.paper, '#E6E0D0', 41);
   if (bgK > 0) { ctx.save(); ctx.globalAlpha = bgK; bgFlat(ctx, C.blue, '#3456B0', 42); ctx.restore(); }
-  const z = 1 + 1.55 * easeInOut(prog(t, 15.0, 15.5)), run = t > RUN[0] && t < RUN[1];
-  const p = prog(t, ...P3), w = easeInOut(prog(t, 15.2, P3[0])) * (1 - easeInOut(prog(t, 18.3, 18.6)));
+  const z = 1 + 1.55 * easeInOut(prog(t, 14.9, 15.35)), run = t > RUN[0] && t < RUN[1];
+  const p = prog(t, ...P3), w = easeInOut(prog(t, 15.0, P3[0])) * (1 - easeInOut(prog(t, 17.75, 18.05)));
   const q = embCenter(p), kE = 1.3 * CAP.r / EMB.F * HS, shake = run ? (Math.floor(t * 30) % 2 ? 1.5 : -1.5) : 0;
   const slide = t < T.klak ? 700 * (1 - easeOut(prog(t, 13.72, 14.4))) : -8 * Math.sin(Math.PI * prog(t, T.klak, T.klak + 0.15));
-  ctx.save(); cam(ctx, MO[0], MO[1], z, MO[0], lerp(MO[1], 930, easeInOut(prog(t, 15.0, 15.5)))); ctx.translate(...MO); ctx.scale(MS, MS);
+  ctx.save(); cam(ctx, MO[0], MO[1], z, MO[0], lerp(MO[1], 930, easeInOut(prog(t, 14.9, 15.35)))); ctx.translate(...MO); ctx.scale(MS, MS);
   REV = { t, t0: T.klak };
   machineBack(ctx);
   capHoop(ctx, -q[0] * kE * w + shake, -q[1] * kE * w + slide, HS, { emb: p });
@@ -416,25 +416,25 @@ function step3(ctx, t) {
     }
   }
   stepChip(ctx, t, T.klak + 0.2, 3, 'Κέντημα');
-  if (t > 18.25) sparkle(ctx, 540 + 130, 930 - 120, 0.6, t, 18.3, 5402);
+  if (t > P3[1] - 0.05) sparkle(ctx, 540 + 130, 930 - 120, 0.6, t, P3[1], 5402);
 }
 // ---------- 5 · CTA: σηκώνει το καπέλο · «Το λογότυπό μου» στέλνεται («Στείλε μας το λογότυπό σου, και ας φτιάξουμε τα δικά σου.») ----------
 function outro(ctx, t) {
   const k = easeOut(prog(t, SC[5] + 0.05, SC[5] + 0.85));
-  hostCap(ctx, t, { k, eyes: t < 19.9 || t > T.dika ? 'happy' : 'dot', brows: t < 19.9 ? 0.7 : t > T.dika ? 0.9 : 0.5 });
+  hostCap(ctx, t, { k, eyes: t < 19.3 || t > T.dika ? 'happy' : 'dot', brows: t < 19.3 ? 0.7 : t > T.dika ? 0.9 : 0.5 });
   if (t > T.dika - 0.05) sparkle(ctx, CAP0[0] + 118, CAP0[1] - 96, 0.6, t, T.dika, 5403);
   const out = easeIn(prog(t, T.kai - 0.05, T.kai + 0.3));
-  if (t > 18.9 && out < 1) { ctx.save(); ctx.globalAlpha = 1 - out; ctx.translate(520 * out, -420 * out); pop(ctx, t, 18.95, 0, 0, () => msgOut(ctx, 610, 860, 380, 96, 'Το λογότυπό μου', { fs: 38, seed: 7300 }), 0); ctx.restore(); }
+  if (t > 18.35 && out < 1) { ctx.save(); ctx.globalAlpha = 1 - out; ctx.translate(520 * out, -420 * out); pop(ctx, t, 18.4, 0, 0, () => msgOut(ctx, 610, 860, 380, 96, 'Το λογότυπό μου', { fs: 38, seed: 7300 }), 0); ctx.restore(); }
 }
 
 // ---------- captions + ετικέτα σειράς ----------
-const CAPS = [[-1, HOOK], [2.1, 'Πάμε να δούμε πώς φτιάχνεται.'], [3.57, 'Πρώτα, στον υπολογιστή,'], [4.98, '...το σχέδιο γίνεται βελονιές.'],
-  [6.55, 'Γιατί η μηχανή δεν διαβάζει εικόνες...'], [8.56, '...μόνο συντεταγμένες.'], [9.88, 'Μετά, το καπέλο μπαίνει στο τελάρο,'],
-  [11.98, 'τεντωμένο, για να μη ζαρώσει.'], [13.72, 'Το τελάρο κουμπώνει στη μηχανή...'], [15.48, '...και η βελόνα ακολουθεί το αρχείο,'], [17.48, 'βελονιά-βελονιά.'],
-  [18.72, 'Στείλε μας το λογότυπό σου,'], [20.18, '...και ας φτιάξουμε τα δικά σου.']];
+const CAPS = [[-1, HOOK], [2.4, 'Πάμε να δούμε πώς φτιάχνεται.'], [3.95, 'Πρώτα, στον υπολογιστή,'], [T.sxedio - 0.04, '...το σχέδιο γίνεται βελονιές.'],
+  [T.giati - 0.05, 'Γιατί η μηχανή δεν διαβάζει εικόνες...'], [T.mono - 0.05, '...μόνο συντεταγμένες.'], [T.meta - 0.05, 'Μετά, το καπέλο μπαίνει στο τελάρο,'],
+  [T.tent - 0.05, 'τεντωμένο, για να μη ζαρώσει.'], [13.72, 'Το τελάρο κουμπώνει στη μηχανή...'], [T.velona - 0.05, '...και η βελόνα ακολουθεί το αρχείο,'], [T.vv - 0.05, 'βελονιά-βελονιά.'],
+  [T.steile - 0.05, 'Στείλε μας το λογότυπό σου,'], [T.kai - 0.05, '...και ας φτιάξουμε τα δικά σου.']];
 const scene = (fn, t0) => (ctx, lt) => {
   const t = t0 + lt; fn(ctx, t); captionSeq(ctx, t, CAPS);
-  if (t < 2.1) seriesTag(ctx, t + 1, TAG);                                          // ήδη στο frame 0 · μόνο με το caption του hook
+  if (t < 2.4) seriesTag(ctx, t + 1, TAG);                                          // ήδη στο frame 0 · μόνο με το caption του hook
 };
 const FNS = [hook, question, step1, step2, step3, outro];
 
@@ -445,10 +445,10 @@ require('./render.js')({
   LOOP: false,                                    // κατ' απαίτηση: χωρίς loop (το «…και» → «Αυτό είναι…» δεν έδενε καλά), τέλος = CTA
   VO_FILE: 'vo/pf04_vo.mp3', VO_AT: 0.2,
   SFX: [
-    [0.3, 'zoom', { gain: 0.6, note: 'hook: push-in στο κέντημα' }],
-    [1.15, 'shimmer', { gain: 0.6, note: '✨ κέντημα' }],
+    [0.35, 'zoom', { gain: 0.6, note: 'hook: push-in στο κέντημα' }],
+    [1.6, 'shimmer', { gain: 0.6, note: '✨ κέντημα' }],
     [T.pame + 0.1, 'pop', { note: '«?»' }], [T.pame + 0.15, 'boing', { gain: 0.7 }],
-    [3.97, 'click', { note: 'κουμπί «Βελονιές»' }],
+    [4.34, 'click', { note: 'κουμπί «Βελονιές»' }],
     [P1[0], 'ticks', { count: 16, gap: 0.13, rise: 1.5, note: 'βελονιές στην οθόνη' }],
     [T.giati + 0.15, 'stamp', { note: '✗ στην εικόνα' }],
     [T.mono, 'blip', { note: 'άξονες X / Y' }], [P2[0], 'ticks', { count: 10, gap: 0.09, rise: 1.2, note: 'συντεταγμένες' }],
@@ -457,9 +457,9 @@ require('./render.js')({
     [T.tent, 'stamp', { note: 'μάνταλο: κλακ' }], [T.tent + 0.18, 'pop', { seed: 3, note: 'ΤΕΝΤΩΜΕΝΟ' }],
     [13.72, 'slide', { dur: 0.6, seed: 2, note: 'τελάρο → μηχανή' }],
     [T.klak, 'stamp', { seed: 2, note: 'κουμπώνει' }], [T.klak + 0.02, 'tear', { gain: 0.8, note: 'το «?» σκίζεται' }], [T.klak + 0.1, 'shimmer', { gain: 0.5, dur: 0.6, note: 'χρώματα' }],
-    [15.0, 'zoom', { gain: 0.6, note: 'zoom στη βελόνα' }],
+    [14.9, 'zoom', { gain: 0.6, note: 'zoom στη βελόνα' }],
     [RUN[0], 'stitch', { dur: RUN[1] - RUN[0], note: 'κεντητική μηχανή' }],
-    [18.3, 'ding', { note: '✓ κέντημα' }], [18.35, 'shimmer', { gain: 0.6 }],
-    [18.95, 'pop', { seed: 5, note: 'μήνυμα «Το λογότυπό μου»' }], [T.kai, 'sent', { note: 'στάλθηκε' }], [T.dika, 'shimmer', { gain: 0.5, note: '✨ «τα δικά σου»' }],
+    [P3[1], 'ding', { note: '✓ κέντημα' }], [P3[1] + 0.05, 'shimmer', { gain: 0.6 }],
+    [18.4, 'pop', { seed: 5, note: 'μήνυμα «Το λογότυπό μου»' }], [T.kai, 'sent', { note: 'στάλθηκε' }], [T.dika, 'shimmer', { gain: 0.5, note: '✨ «τα δικά σου»' }],
   ],
 });
