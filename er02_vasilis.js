@@ -12,8 +12,8 @@ const { BRAND, reception, RECEPTION, camAt, bgFlat, stamp, seriesTag } = require
 // Χρονισμοί φράσεων (video) · Σ = Στράτος (αφήγηση), Ρ = Ρένα, Β = Βασίλης (τηλ.):
 // 0,23 Σ Αυτός είναι ο Βασίλης. (–1,30) | 2,00 Σ Προχθές παρήγγειλε τριάντα μπλούζες με το λογότυπό του. (–4,70) | ~~ κουδούνισμα ~~
 // 6,30 Ρ Στράτετζιξ Στούντιος, παρακαλώ. (–7,80) | 8,10 Β «Είναι έτοιμες οι μπλούζες μου;» (–9,63) | 9,93 Ρ Τις παραγγείλατε προχθές, κύριε Βασίλη. (–11,70)
-// 12,03 Β «Δύο μέρες! Δύο ολόκληρες μέρες!» (–13,73) | 14,37 Ρ Είναι κάστομ. (15,20) Η προσφορά γράφει (16,00) επτά με δέκα εργάσιμες. (–17,17)
-// 17,53 Ρ Θα γίνουν τέλειες. (18,67) Θα σας πάρω εγώ. (–19,47) | 19,77 Β «Καλά. Ευχαριστώ, κοπελιά.» (–20,90) | 21,13 Ρ Μη γίνεις Βασίλης. (–22,13)
+// 12,03 Β «Δύο μέρες! Δύο ολόκληρες μέρες!» (–13,73) | 14,03 Ρ Η προσφορά γράφει (14,85) επτά με δέκα εργάσιμες. (–16,00)   [«Είναι κάστομ.» κόπηκε: --cut 13.83-14.98]
+// 16,40 Ρ Θα γίνουν τέλειες. (17,50) Θα σας πάρω εγώ. (–18,33) | 18,60 Β «Καλά. Ευχαριστώ, κοπελιά.» (–19,73) | 19,97 Ρ Μη γίνεις Βασίλης. (–20,97)
 
 // ---------- ΒΑΣΙΛΗΣ ----------
 const V = {
@@ -164,7 +164,9 @@ function selectScreen(ctx, lt, th, o = {}) {
   txt(ctx, 'ΒΑΣΙΛΗΣ', -392, -84, { font: 'bold 54px Round', color: C.ink, align: 'left' });
   txt(ctx, 'μάστορας γυψοσανίδας', 390, -82, { font: '36px Hand', color: C.mid, align: 'right' });
   STATS.forEach(([nm, v], i) => {
-    const ry = -22 + i * 58, fill = o.statsAt === undefined ? 1 : L.clamp((lt - o.statsAt - i * 0.18) / 0.35);
+    const ry = -22 + i * 58, fo = i === 2 ? (o.focus || 0) : 0;
+    ctx.save(); if (fo > 0) { ctx.translate((o.shake || 0) + 14 * fo, ry); ctx.scale(1 + 0.1 * fo, 1 + 0.1 * fo); ctx.translate(0, -ry);
+      ctx.fillStyle = `rgba(224,69,58,${0.18 * fo})`; ctx.beginPath(); ctx.roundRect(-404, ry - 30, 808, 60, 12); ctx.fill(); ctx.strokeStyle = `rgba(224,69,58,${fo})`; ctx.lineWidth = 5; ctx.stroke(); } fill = o.statsAt === undefined ? 1 : L.clamp((lt - o.statsAt - i * 0.18) / 0.35);
     txt(ctx, nm, -392, ry + 4, { font: 'bold 34px Round', color: C.ink, align: 'left' });
     for (let j = 0; j < 10; j++) {
       const on = j < Math.round(v * fill), low = v <= 2, blink = low && Math.floor(lt * 4) % 2 === 0;
@@ -172,6 +174,7 @@ function selectScreen(ctx, lt, th, o = {}) {
       ctx.beginPath(); ctx.roundRect(-40 + j * 42, ry - 20, 36, 40, 7); ctx.fill();
     }
     if (v <= 2 && fill >= 1) txt(ctx, '!', 392, ry + 4, { font: 'bold 44px Round', color: '#E0453A', align: 'right' });
+    ctx.restore();
   });
   ctx.restore();
 }
@@ -211,17 +214,18 @@ if (process.argv[2] === 'design') {
 } else {
 
 // ================= ΕΠΕΙΣΟΔΙΟ =================
-const T = { v1: 0.23, v2: 2.0, tria: 2.9, logo: 3.65, r1: 6.3, b1: 8.1, b1e: 9.63, r2: 9.93, b2: 12.03, b2e: 13.73, custom: 14.37, prosf: 15.2, epta: 16.0, r4: 17.53, r4b: 18.67, b3: 19.77, b3e: 20.9, hang: 20.94, punch: 21.13, voEnd: 22.13 };
-const CUT = { TEE: 1.9, RING: 4.95, CALL: 6.2, WS: 17.45, BACK: 19.64, TAG: 22.65, ZOOM: 25.25, END: 26.5 };
+const T = { v1: 0.23, v2: 2.0, tria: 2.9, logo: 3.65, r1: 6.3, b1: 8.1, b1e: 9.63, r2: 9.93, b2: 12.03, b2e: 13.73, prosf: 14.03, epta: 14.85, r4: 16.4, r4b: 17.5, b3: 18.6, b3e: 19.73, hang: 19.77, punch: 19.97, voEnd: 20.97 };
+const CUT = { TEE: 1.9, RING: 4.95, CALL: 6.2, WS: 16.32, BACK: 18.47, TAG: 21.47, ZOOM: 23.27, END: 24.45 };
+const PUNCH = 1.1, PHCLOSE = CUT.RING + 0.62, LOOK = T.b2 + 0.6; // hook: zoom στο «ΥΠΟΜΟΝΗ 1» · κοντινό κινητού ως · βλέμμα Ρένας στην κάμερα
 const VO = []; // lip-sync από την ένταση του αρχείου (ST.VOENV) + ποιος μιλάει (ST.VOWHO)
 const TAG = 'Το Εργαστήριο', HOOK = 'Αυτός είναι ο Βασίλης.';
 const [DX, DY, DS] = RECEPTION.desk, RY = DY + 14 * DS;
-const CAM = { med: [DX - 20, DY + 10, 1.75], call: [DX, DY + 60, 2.2], angry: [DX - 14, DY + 30, 2.7], punch: [DX, DY - 5, 3.1], ws: [785, 870, 2.1] };
+const CAM = { med: [DX - 20, DY + 10, 1.75], call: [DX, DY + 60, 2.2], angry: [DX - 14, DY + 30, 2.7], look: [DX + 4, DY - 30, 3.4], punch: [DX, DY - 5, 3.1], ws: [785, 870, 2.1] };
 const PHONE = { x: 452, y: 975, w: 45, h: 80 }; // κινητό σε βάση πάνω στον πάγκο · οθόνη 9:16 (για το zoom του loop)
 const THK = 2 * Math.PI; // μία στροφή 360
 
 // ---------- κινητό της Ρένας (1η χρήση): εισερχόμενη κλήση «ΒΑΣΙΛΗΣ» · o.shake = τρέμει · o.sel = 0…1 η οθόνη γίνεται η επιλογή χαρακτήρα ----------
-function callScreen(ctx, w, h, lt) {
+function callScreen(ctx, w, h, lt, missed = 7) {
   ctx.fillStyle = C.navy; ctx.fillRect(0, 0, w, h);
   const k = w / 1080; ctx.save(); ctx.scale(k, k);
   const pr = 1 + 0.06 * Math.sin(lt * 14);
@@ -230,6 +234,8 @@ function callScreen(ctx, w, h, lt) {
   ctx.save(); ctx.beginPath(); ctx.arc(540, 700, 250, 0, 7); ctx.clip(); vasilisHead(ctx, 540, 920, 1.25, { mouth: 'O', eyes: 'dot', brows: 0.9 }); ctx.restore();
   txt(ctx, 'ΒΑΣΙΛΗΣ', 540, 1110, { font: 'bold 120px Round', color: '#fff' });
   txt(ctx, 'εισερχόμενη κλήση…', 540, 1230, { font: '72px Hand', color: C.sky });
+  cut(ctx, rrPts(250, 1300, 580, 110, 55), '#E0453A', { seed: 5150, amp: 2, edgeW: 6 });
+  txt(ctx, `${missed} αναπάντητες`, 540, 1357, { font: 'bold 64px Round', color: '#fff' });
   for (const [x, col] of [[300, '#E0453A'], [780, '#2FB36B']]) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, 1600, 110, 0, 7); ctx.fill(); }
   ctx.restore();
 }
@@ -239,7 +245,7 @@ function phone(ctx, lt, o = {}) {
   cut(ctx, [[x - 16, y + 6], [x + 16, y + 6], [x + 10, y - 10], [x - 10, y - 10]], '#1C2E66', { seed: 5101, amp: 0.4, edgeW: 2, sx: 2, sy: 3 }); // βάση
   cut(ctx, rrPts(sx - 3, sy - 4, w + 6, h + 8, 7), C.navy, { seed: 5102, amp: 0.4, edgeW: 2, sx: 2, sy: 3 });
   ctx.save(); ctx.beginPath(); ctx.roundRect(sx, sy, w, h, 5); ctx.clip(); ctx.translate(sx, sy);
-  callScreen(ctx, w, h, lt);
+  callScreen(ctx, w, h, lt, o.missed ?? 7);
   if (o.sel > 0) { ctx.globalAlpha = o.sel; const k = w / W; ctx.scale(k, k); selectScreen(ctx, 0, 0, SEL); }
   ctx.restore(); ctx.restore();
 }
@@ -249,13 +255,34 @@ const SEL = { pose: { blink: false } };
 function squeak(ctx, lt, st, en, size = 1, calm = false) {
   if (lt < st || lt > en + 0.15) return;
   const k = easeOut(prog(lt, st, st + 0.15)) * (1 - easeIn(prog(lt, en, en + 0.15))), wob = 1 + 0.07 * Math.sin(lt * (calm ? 9 : 26));
-  ctx.save(); ctx.translate(250, 640); ctx.scale(k * size * wob, k * size * wob); ctx.rotate(-0.08);
+  ctx.save(); ctx.translate(190, 800); ctx.scale(k * size * wob, k * size * wob); ctx.rotate(-0.08);
   cut(ctx, L.starPts(0, 0, 150, calm ? 9 : 14, calm ? 0.8 : 0.66), V.yel, { seed: 5200 + Math.floor(lt * 12) % 3, amp: 3, edgeW: 7 });
   ctx.strokeStyle = C.ink; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   for (const yy of [-34, 0, 34]) { ctx.beginPath(); for (let i = 0; i <= 8; i++) { const xx = -78 + i * 19.5, a = (i % 2 ? 1 : -1) * (calm ? 6 : 13) * Math.sin(lt * 30 + yy); i ? ctx.lineTo(xx, yy + a) : ctx.moveTo(xx, yy + a); } ctx.stroke(); }
   ctx.restore();
   // «ουρά» προς το αυτί
-  ctx.save(); ctx.globalAlpha = k; ctx.fillStyle = V.yel; ctx.beginPath(); ctx.moveTo(330, 680); ctx.lineTo(420, 700); ctx.lineTo(320, 720); ctx.fill(); ctx.restore();
+
+}
+// PiP του Βασίλη στο εργοτάξιο όσο μιλάει (τσιρίζει στο κινητό σε ανοιχτή ακρόαση, κουνάει το μυστρί) · calm = στο τέλος, ήρεμος
+function vasPip(ctx, t, st, en, calm = false) {
+  if (t < st - 0.05 || t > en + 0.2) return;
+  const k = L.spring(prog(t, st - 0.05, st + 0.3)) * (1 - easeIn(prog(t, en, en + 0.2))), x = 230, y = 1050, r = 170;
+  ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.rotate(-0.03);
+  cut(ctx, circlePts(0, 0, r + 12, r + 12, 40), C.paper, { seed: 5900, amp: 3 });
+  const disk = circlePts(0, 0, r, r, 40); ctx.save(); L.path(ctx, disk); ctx.clip();
+  ctx.fillStyle = '#E4DED2'; ctx.fillRect(-r, -r, 2 * r, 2 * r);                                                   // εργοτάξιο: γυψοσανίδες
+  for (const [bx, w] of [[-r, 110], [-r + 116, 110], [-r + 232, 110]]) { ctx.fillStyle = '#EFEBE3'; ctx.fillRect(bx, -r, w, 2 * r); ctx.fillStyle = 'rgba(120,110,95,0.35)'; for (let yy = -r + 20; yy < r; yy += 44) { ctx.beginPath(); ctx.arc(bx + 10, yy, 3, 0, 7); ctx.arc(bx + w - 10, yy, 3, 0, 7); ctx.fill(); } }
+  ctx.fillStyle = 'rgba(243,240,232,0.9)'; ctx.fillRect(-r, 90, 2 * r, 12);                                        // στόκος στον αρμό
+  const wave = calm ? 0 : Math.sin(t * 16) * 0.35, s = 0.58, vy = 75;
+  vasilis(ctx, 0, vy, s, { seed: 4000, legs: false, arms: [calm ? 0.2 : 1.5 + wave, 0.9], elbowL: calm ? 0 : -0.9, elbowR: 1.2, handL: calm ? 'relaxed' : 'grip', handR: 'grip',
+    mouth: lipsync([], calm ? 'smile' : 'flat', 'vasilis'), eyes: calm ? 'happy' : 'dot', brows: calm ? 0.4 : -0.5, look: 4, blink: false });
+  if (!calm) { const [hx, hy] = handPos(-1, 1.5 + wave, s, 0, vy, -0.9); trowel(ctx, hx, hy, s * 0.8, 0.6 + wave); }
+  const [px, py] = handPos(1, 0.9, s, 0, vy, 1.2);                                                                 // κινητό μπροστά στο στόμα (ανοιχτή ακρόαση)
+  cut(ctx, rrPts(px - 14, py - 60, 28, 52, 6), C.navy, { seed: 5901, amp: 0.6, edgeW: 3 });
+  ctx.restore();
+  ctx.strokeStyle = C.paper; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
+  ctx.restore();
+  squeak(ctx, t, st, en, calm ? 0.45 : st === T.b2 ? 0.8 : 0.6, calm);
 }
 function subtitle(ctx, t, seq) {
   const cur = seq.find(([a, b]) => t >= a && t < b + 0.2); if (!cur) return;
@@ -285,21 +312,22 @@ function quote(ctx, lt) {
 // ---------- ημερολόγιο (ΔΕΥΤΕΡΑ / ΤΕΤΑΡΤΗ) ----------
 function dayChip(ctx, lt, st, day, note, x = 210, y = 560) {
   pop(ctx, lt, st, x, y, () => {
-    cut(ctx, rectPts(-130, -110, 260, 220), C.paper, { seed: 5500 + day.length, amp: 3 });
-    cut(ctx, rectPts(-130, -110, 260, 70), BRAND, { seed: 5501, amp: 2, edge: false, shadow: false });
+    cut(ctx, rectPts(-150, -110, 300, 220), C.paper, { seed: 5500 + day.length, amp: 3 });
+    cut(ctx, rectPts(-150, -110, 300, 70), BRAND, { seed: 5501, amp: 2, edge: false, shadow: false });
     txt(ctx, day, 0, -74, { font: 'bold 44px Round', color: '#fff' });
-    txt(ctx, note, 0, 34, { font: '46px Hand', color: C.ink });
+    txt(ctx, note, 0, 34, { font: '42px Hand', color: C.ink });
   }, -0.06);
 }
 
 // ---------- χαρακτήρες ----------
 const RE_POSES = [
   [0, { aR: 0.9, eR: 1.2, hR: 'grip', look: 0 }],
-  [CUT.RING + 0.15, { aR: 0.9, eR: 1.2, hR: 'grip', look: -12, brows: 0.2 }],       // κοιτάει το κινητό
-  [CUT.RING + 0.75, { aR: 0.9, eR: 1.2, hR: 'grip', look: 0, brows: -0.3 }],        // … και την κάμερα (ξέρει ποιος είναι)
+  [PHCLOSE, { aR: 0.9, eR: 1.2, hR: 'grip', look: -12, brows: 0.2 }],              // κοιτάει το κινητό
+  [PHCLOSE + 0.3, { aR: 0.9, eR: 1.2, hR: 'grip', look: 0, brows: -0.3 }],          // … και την κάμερα (ξέρει ποιος είναι)
   [T.b1, { aR: 0.9, eR: 1.2, hR: 'grip', look: -6, brows: 0 }],
   [T.b2, { aR: 0.9, eR: 1.2, hR: 'grip', look: 10, brows: -0.5, eyes: 'tired' }],   // τσιρίγματα: μορφάζει
-  [T.custom - 0.1, { aR: 0.9, eR: 1.2, hR: 'grip', look: 0, brows: 0.1 }],
+  [LOOK, { aR: 0.9, eR: 1.2, hR: 'grip', look: 0, brows: -0.2 }],                   // … και κοιτάει την κάμερα (deadpan)
+  [T.prosf - 0.1, { aR: 0.9, eR: 1.2, hR: 'grip', look: 0, brows: 0.1 }],
   [T.b3, { aR: 0.9, eR: 1.2, hR: 'grip', look: -6, brows: 0.2 }],
   [T.punch - 0.1, { aR: 0.9, eR: 1.2, hR: 'grip', look: 0, brows: -0.2 }],          // στην κάμερα
   [CUT.TAG + 0.3, { aR: 0.65, eR: 2.5, hR: 'grip', look: 0, brows: -0.2, eyes: 'tired' }], // πίνει αργά από την κούπα (το χέρι δεν φτάνει το στόμα → κούπα ψηλά, γερμένη)
@@ -382,8 +410,8 @@ function workshop(ctx, t) {
 // ---------- λήψεις ----------
 function shot(ctx, t) {
   if (t < CUT.TEE) { // HOOK: επιλογή χαρακτήρα · μία στροφή 360
-    const th = THK * easeInOut(prog(t, 0.3, 1.75));
-    return selectScreen(ctx, t < 0.3 ? 0 : t, th, t < 0.3 ? SEL : { pose: { blink: blinkNow(0.5) } });
+    const th = THK * easeInOut(prog(t, 0.25, 1.05)), k = easeOut(prog(t, PUNCH, PUNCH + 0.14)), sh = k > 0 ? Math.sin(t * 70) * 6 * (1 - prog(t, PUNCH + 0.14, PUNCH + 0.5)) : 0;
+    return selectScreen(ctx, t < 0.25 ? 0 : t, th, t < 0.25 ? SEL : { pose: { blink: blinkNow(0.5) }, focus: k, shake: sh });
   }
   if (t < CUT.RING) { // μπλούζα: άδεια → στοίβα ×30 → τύπωμα κίτρινο → λευκό
     const lt = t - CUT.TEE;
@@ -392,21 +420,24 @@ function shot(ctx, t) {
     tshirt(ctx, 540, 1030, 1.1, 0, { color: V.tee, back: true, rib: V.teeD, scrib: '#33373E' });
     const py = spring => L.spring(prog(t, spring, spring + 0.35));
     vasLogo(ctx, 540, 960, 1.05, { yel: Math.min(1, py(T.logo)), white: Math.min(1, py(T.logo + 0.45)) });
-    dayChip(ctx, lt, 0.2, 'ΔΕΥΤΕΡΑ', 'παραγγελία', 210, 1330);
+    dayChip(ctx, lt, 0.2, 'ΔΕΥΤΕΡΑ', 'παραγγελία', 215, 1335);
     return stamp(ctx, t, T.tria + 0.3, 840, 640, '×30', 0.12, BRAND, 110);
   }
-  if (t < CUT.CALL) { // υποδοχή: χτυπάει το κινητό
-    reception(ctx, t, { cam: CAM.med, behind: c => renaAt(c, t), front: c => phone(c, t, { shake: t > CUT.RING + 0.05 && t < CUT.RING + 0.97 }) });
+  if (t < CUT.CALL) { // υποδοχή: χτυπάει το κινητό · πρώτα κοντινό στην οθόνη («ΒΑΣΙΛΗΣ · 7 αναπάντητες»)
+    const cm = t < PHCLOSE ? snap(t, CUT.RING, [PHONE.x, PHONE.y - PHONE.h / 2 + 4, 9], [PHONE.x, PHONE.y - PHONE.h / 2, 10], 0.6) : CAM.med;
+    reception(ctx, t, { cam: cm, behind: c => renaAt(c, t), front: c => phone(c, t, { shake: t > CUT.RING + 0.05 && t < CUT.RING + 0.97 }) });
+    if (t < PHCLOSE) return;
     return dayChip(ctx, t - CUT.RING, 0.15, 'ΤΕΤΑΡΤΗ', '10:04');
   }
   if (t < CUT.WS || (t >= CUT.BACK && t < CUT.TAG)) { // τηλεφώνημα (Ρένα close) · snap zooms
     let cm = snap(t, CUT.CALL, CAM.med, CAM.call);
     if (t >= T.b2 && t < CUT.WS) cm = snap(t, T.b2, CAM.call, CAM.angry, 0.1);
-    if (t >= T.custom && t < CUT.WS) cm = snap(t, T.custom, CAM.angry, CAM.call, 0.2);
+    if (t >= LOOK && t < CUT.WS) cm = snap(t, LOOK, CAM.angry, CAM.look, 0.1);        // βλέμμα στην κάμερα όσο τσιρίζει
+    if (t >= T.prosf && t < CUT.WS) cm = snap(t, T.prosf, CAM.angry, CAM.call, 0.2);
     if (t >= CUT.BACK) cm = t < T.punch - 0.05 ? CAM.call : snap(t, T.punch - 0.05, CAM.call, CAM.punch);
     reception(ctx, t, { cam: cm, behind: c => renaAt(c, t), front: c => phone(c, t) });
-    squeak(ctx, t, T.b1, T.b1e, 0.9); squeak(ctx, t, T.b2, T.b2e, 1.3); squeak(ctx, t, T.b3, T.b3e, 0.65, true);
-    if (t < CUT.WS) { if (t < T.prosf) stamp(ctx, t, T.custom, 300, 1080, 'CUSTOM', -0.1, BRAND, 84); quote(ctx, t); }
+    vasPip(ctx, t, T.b1, T.b1e); vasPip(ctx, t, T.b2, T.b2e); vasPip(ctx, t, T.b3, T.b3e, true);
+    if (t < CUT.WS) quote(ctx, t);
     return;
   }
   if (t < CUT.BACK) return workshop(ctx, t);
@@ -415,10 +446,10 @@ function shot(ctx, t) {
   if (t >= CUT.END - 0.12) return selectScreen(ctx, 0, 0, SEL);
   const scr = [PHONE.x, PHONE.y - PHONE.h / 2], zEnd = W / PHONE.w, z = Math.exp(lerp(Math.log(CAM.med[2]), Math.log(zEnd), zk));
   const cx = lerp(CAM.med[0], scr[0], zk), cy = lerp(CAM.med[1], scr[1], zk);
-  reception(ctx, t, { cam: [cx, cy, z], behind: c => renaAt(c, t), front: c => phone(c, t, { shake: t > CUT.TAG + 0.1 && t < CUT.ZOOM, sel: easeOut(prog(t, CUT.ZOOM, CUT.ZOOM + 0.35)) }) });
+  reception(ctx, t, { cam: [cx, cy, z], behind: c => renaAt(c, t), front: c => phone(c, t, { missed: 8, shake: t > CUT.TAG + 0.1 && t < CUT.ZOOM, sel: easeOut(prog(t, CUT.ZOOM + 0.45, CUT.ZOOM + 0.8)) }) });
 }
 const CAPS = [[0, HOOK], [T.v2 - 0.05, 'Προχθές παρήγγειλε 30 μπλούζες'], [T.logo - 0.1, 'με το λογότυπό του.'], [CUT.RING, 'Δύο μέρες μετά…'],
-  [T.r1 - 0.05, 'Strategix Studios, παρακαλώ.'], [T.r2 - 0.05, 'Τις παραγγείλατε προχθές, κύριε Βασίλη.'], [T.custom - 0.05, 'Είναι custom.'], [T.prosf - 0.05, 'Η προσφορά γράφει 7–10 εργάσιμες.'],
+  [T.r1 - 0.05, 'Strategix Studios, παρακαλώ.'], [T.r2 - 0.05, 'Τις παραγγείλατε προχθές, κύριε Βασίλη.'], [T.prosf - 0.05, 'Η προσφορά γράφει 7–10 εργάσιμες.'],
   [T.r4 - 0.05, 'Θα γίνουν τέλειες.'], [T.r4b - 0.05, 'Θα σας πάρω εγώ.'], [T.punch - 0.05, 'Μη γίνεις Βασίλης.'], [CUT.TAG + 0.2, 'Κάνε tag τον Βασίλη που ξέρεις.'], [CUT.ZOOM + 0.25, HOOK]];
 const SUBS = [[T.b1, T.b1e, 'Είναι έτοιμες οι μπλούζες μου;'], [T.b2, T.b2e, 'Δύο μέρες! Δύο ολόκληρες μέρες!'], [T.b3, T.b3e, 'Καλά. Ευχαριστώ, κοπελιά.']];
 function world(ctx, t) {
@@ -439,18 +470,22 @@ require('./render.js')({
   VO_FILE: 'vo/er02_vo.mp3', VO_AT: 0.2,
   SFX: [
     [0.02, 'file', { src: 'sfx/er02_jingle.mp3', dur: 1.9, gain: 0.8, note: 'jingle επιλογής χαρακτήρα (ElevenLabs)' }],
-    [0.3, 'swoosh', { gain: 0.6, note: 'στροφή 360' }], [1.35, 'beep', { f: 220, count: 2, gain: 0.7, note: 'ΥΠΟΜΟΝΗ 1' }],
+    [0.25, 'swoosh', { gain: 0.6, note: 'στροφή 360' }], [PUNCH + 0.08, 'beep', { f: 220, count: 2, gain: 0.8, note: 'ΥΠΟΜΟΝΗ 1' }],
     [CUT.TEE + 0.2, 'pop', { note: 'ΔΕΥΤΕΡΑ' }],
     ...[0, 1, 2, 3].map(i => [T.tria + i * 0.07, 'pop', { seed: i + 1, gain: 0.6, note: `στοίβα ${i + 1}` }]), [T.tria + 0.3, 'stamp', { note: '×30' }],
     [T.logo, 'stamp', { seed: 2, gain: 0.8, note: 'τύπωμα κίτρινο' }], [T.logo + 0.45, 'stamp', { seed: 3, gain: 0.8, note: 'τύπωμα λευκό' }], [T.logo + 0.6, 'shimmer', { gain: 0.6 }],
     [CUT.RING + 0.05, 'ring', { note: 'κουδούνισμα' }], [CUT.RING + 0.15, 'pop', { seed: 4, note: 'ΤΕΤΑΡΤΗ' }],
     [CUT.CALL, 'click', { note: 'απαντάει' }], [CUT.CALL + 0.02, 'zoom', { note: 'snap zoom' }],
     [T.b2, 'zoom', { seed: 2, gain: 0.6, note: 'snap · θυμωμένος' }],
-    [T.custom, 'stamp', { seed: 4, note: 'CUSTOM' }], [T.prosf, 'slide', { dur: 0.3, gain: 0.6, note: 'προσφορά' }], [T.epta, 'slide', { dur: 0.4, gain: 0.4, seed: 2, note: 'μαρκαδόρος' }],
+    [T.prosf, 'slide', { dur: 0.3, gain: 0.6, note: 'προσφορά' }], [T.epta, 'slide', { dur: 0.4, gain: 0.4, seed: 2, note: 'μαρκαδόρος' }],
     [T.r4 + 0.1, 'beep', { count: 2, gain: 0.6, note: 'πρέσα: τέλος χρόνου' }], [T.r4 + 0.27, 'lid', { gain: 0.7, note: 'auto-open' }], [T.r4 + 0.45, 'air', { dur: 0.8, gain: 0.5, note: 'ατμός' }], [T.r4 + 1.05, 'swoosh', { seed: 2, gain: 0.6, note: '👍 Στράτος' }], [CUT.WS + 1.25, 'stamp', { seed: 5, gain: 0.7, note: '12/30' }],
     [T.hang, 'click', { seed: 2, note: 'κλείνει' }], [T.punch - 0.05, 'zoom', { seed: 3, note: 'snap · στην κάμερα' }],
     [CUT.TAG + 0.1, 'ring', { count: 2, note: 'ξαναχτυπάει' }],
     [CUT.ZOOM, 'zoom', { seed: 4, note: 'zoom στο κινητό → frame 0 (loop)' }],
+    [PUNCH, 'zoom', { seed: 5, gain: 0.7, note: 'punch-in «ΥΠΟΜΟΝΗ 1»' }],
+    [PHCLOSE, 'swoosh', { seed: 3, gain: 0.5, note: 'κοντινό κινητού → Ρένα' }],
+    [T.b1 - 0.05, 'pop', { seed: 6, gain: 0.6, note: 'PiP Βασίλη' }], [T.b2 - 0.05, 'pop', { seed: 7, gain: 0.6, note: 'PiP Βασίλη' }], [T.b3 - 0.05, 'pop', { seed: 8, gain: 0.5, note: 'PiP Βασίλη' }],
+    [LOOK, 'zoom', { seed: 6, gain: 0.5, note: 'βλέμμα Ρένας στην κάμερα' }],
   ],
 });
 }

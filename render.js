@@ -8,6 +8,7 @@
 //       node ep.js vo               -> φράσεις του VO_FILE σε χρόνο video (σχόλιο στην κορυφή / timing sheet / SFX cues), χωρίς render
 //       node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]] -> ίδιο πριν γραφτεί το επεισόδιο ·
 //                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (0.03 = κολλητά, punchline · 0.45 = αλλαγή σκηνής · > παύσης = σιωπή για σκηνή χωρίς VO)
+//       node render.js vo <mp3> --cut 13.83-14.98[,a-b] [--out …] -> κόβει κομμάτια (χρόνος αρχείου) από το ίδιο take, crossfade 10ms, + .who.json (λέξη/φράση που περισσεύει, er02)
 //       node render.js vo <mp3> --splice <new.mp3> --from N [--to M] [--tempo 1.06] [--out …] -> οι φράσεις N..M (αρίθμηση του `vo <mp3>`) γίνονται το new.mp3
 //                                      (νέο take μόνο μιας ατάκας · ίδια ένταση με το υπόλοιπο VO · μετά, αν δοθεί, το --gap σφίγγει και τις παύσεις του)
 //       διάλογος: <mp3>.who.json (από το vo.js) → ομιλητής ανά φράση στο `vo` · το --gap γράφει και το <out>.who.json → ST.VOWHO → lipsync(VO, rest, 'rena')
@@ -151,6 +152,11 @@ function voTight(raw, phr, gap, keep = {}) {
     if (g > t + 0.02) cuts.push(tail ? [e + t, len] : [e + t / 2, s - t / 2]);
     else if (!tail && t > g + 0.02) ins.push([(e + s) / 2, t - g]);
   }
+  return { pcm: voApply(raw, cuts, ins), cuts, ins };
+}
+// κόβει τα cuts [[a, b], ...] (s) με crossfade 10ms και βάζει σιωπή στα ins [[t, d], ...] → νέο pcm
+function voApply(raw, cuts, ins = []) {
+  const SR = SFX.SR, X = Math.round(0.01 * SR);
   const out = new Float32Array(raw.length + Math.ceil(ins.reduce((a, [, d]) => a + d, 0) * SR) + 1); let n = 0, from = 0;
   for (const ev of [...cuts.map(c => ({ at: c[0], c })), ...ins.map(i => ({ at: i[0], d: i[1] }))].sort((x, y) => x.at - y.at)) {
     const a = Math.round(ev.at * SR);
@@ -162,7 +168,7 @@ function voTight(raw, phr, gap, keep = {}) {
   }
   for (let i = from; i < raw.length; i++) out[n++] = raw[i];
   for (let j = 0; j < Math.min(X, n); j++) out[n - 1 - j] *= j / X; // fade-out στο τέλος
-  return { pcm: out.subarray(0, n), cuts, ins };
+  return out.subarray(0, n);
 }
 // χρόνος πριν → μετά το σφίξιμο (για το .who.json του διαλόγου): αφαιρούνται τα κομμάτια των cuts πριν από το t, προστίθενται οι σιωπές (ins)
 const tightT = (cuts, t, ins = []) => t - cuts.reduce((s, [a, b]) => s + Math.max(0, Math.min(t, b) - a), 0) + ins.reduce((s, [p, d]) => s + (p < t ? d : 0), 0);
@@ -189,6 +195,13 @@ if (require.main === module) {
   if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--splice <new.mp3> --from N [--to M] [--tempo 1.06]] [--gap 0.3 [--keep 4,7:0.5]] [--out vo/<ep>_vo.mp3]'); process.exit(1); }
   const at = Number(opt('at') || 0), gap = opt('gap');
   let src = file, who = voWho(file);
+  if (opt('cut')) { // κόψιμο λέξεων/φράσεων από έτοιμο VO: ίδιο take = ίδια φωνή (pf05 v2 → er02) · --cut a-b[,c-d] σε χρόνο αρχείου (s)
+    const out = opt('out') || file.replace(/(\.\w+)?$/, '_cut.mp3'), V = voLoad(src), cuts = opt('cut').split(',').map(r => r.split('-').map(Number)).sort((p, q) => p[0] - q[0]);
+    const pcm = voApply(V.raw, cuts); voWrite(pcm, out);
+    console.log(`cut: ${cuts.map(([a, b]) => a.toFixed(2) + '–' + b.toFixed(2)).join(', ')} (−${cuts.reduce((d, [a, b]) => d + b - a, 0).toFixed(2)}s) → ${out}`);
+    if (who) { who = who.map(([a, b, n]) => [+tightT(cuts, a).toFixed(3), +tightT(cuts, b).toFixed(3), n]).filter(([a, b]) => b > a); fs.writeFileSync(whoFile(out), JSON.stringify(who)); }
+    src = out;
+  }
   if (opt('splice')) {
     const out = opt('out') || file.replace(/(\.\w+)?$/, '_splice.mp3'), fr = Number(opt('from')), S = voSplice(file, opt('splice'), fr, Number(opt('to') || fr), opt('tempo'));
     voWrite(S.pcm, out); src = out;
