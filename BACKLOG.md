@@ -16,4 +16,5 @@
 - [er02] Το χέρι του rig δεν φτάνει στο στόμα (όριο αγκώνα 2,6) → «πίνει καφέ» = κούπα ψηλά γερμένη · αν ξαναχρειαστεί: prop-to-mouth helper (κούπα/κινητό στο στόμα με armRFront) ή όριο αγκώνα ~2,9 μόνο για grip.
 - [er02] Το API key του ElevenLabs δεν έχει `speech_to_text` / `voices_read` → χρονισμοί λέξεων μέσα σε φράση από την ένταση (χειροκίνητα) · με το permission: `node render.js vo … --words` (scribe) για αυτόματους χρόνους λέξεων.
 - [er01 → er02] `dialogCaps` / `lowerThird` δεν χρειάστηκαν στο er02 (captions πάνω + υπότιτλος τηλεφώνου κάτω) → μένουν inline στο er01.
+- [er02 v5] Έλεγχος VO με μεταγραφή γίνεται χειροκίνητα (connector: upload → Scribe → σύγκριση) → με permission `speech_to_text` στο API key: αυτόματο στο `node vo.js` (μεταγραφή του raw κάθε ομιλητή + diff με το κείμενο, ⚠ σε λέξεις που περισσεύουν/λείπουν).
 
