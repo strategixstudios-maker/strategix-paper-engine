@@ -8,6 +8,7 @@
 //       node ep.js vo               -> φράσεις του VO_FILE σε χρόνο video (σχόλιο στην κορυφή / timing sheet / SFX cues), χωρίς render
 //       node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]] -> ίδιο πριν γραφτεί το επεισόδιο ·
 //                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (0.03 = κολλητά, punchline · 0.45 = αλλαγή σκηνής · > παύσης = σιωπή για σκηνή χωρίς VO)
+//       μονόλογος: <mp3>.words.json (vo.js) → κείμενο ανά φράση στο `vo` (+ --words: χρόνος κάθε λέξης) · μεταφέρεται στο --cut/--gap → vo/<ep>_vo.words.json
 //       node render.js vo <mp3> --cut 13.83-14.98[,a-b] [--out …] -> κόβει κομμάτια (χρόνος αρχείου) από το ίδιο take, crossfade 10ms, + .who.json (λέξη/φράση που περισσεύει, er02)
 //       node render.js vo <mp3> --splice <new.mp3> --from N [--to M] [--tempo 1.06] [--out …] -> οι φράσεις N..M (αρίθμηση του `vo <mp3>`) γίνονται το new.mp3
 //                                      (νέο take μόνο μιας ατάκας · ίδια ένταση με το υπόλοιπο VO · μετά, αν δοθεί, το --gap σφίγγει και τις παύσεις του)
@@ -133,13 +134,18 @@ function voLoad(file, at = 0, g = 1, total, af) {
 // διάλογος (er01): <mp3>.who.json = [[a, b, 'rena'], ...] σε χρόνο αρχείου → σε χρόνο video (+at) · null αν δεν υπάρχει
 const whoFile = f => f.replace(/\.\w+$/, '.who.json');
 function voWho(file, at = 0) { const w = whoFile(file); return fs.existsSync(w) ? JSON.parse(fs.readFileSync(w, 'utf8')).map(([a, b, n]) => [a + at, b + at, n]) : null; }
+// χρόνοι λέξεων (μονόλογος, vo.js → .words.json) · ίδια μεταφορά με το .who.json στο --cut / --gap · στο `vo` κάθε φράση τυπώνεται με το κείμενό της
+const wordsFile = f => f.replace(/\.\w+$/, '.words.json');
+function voWords(file, at = 0) { const w = wordsFile(file); return fs.existsSync(w) ? JSON.parse(fs.readFileSync(w, 'utf8')).map(([a, b, x]) => [a + at, b + at, x]) : null; }
+const wordsIn = (words, [a, b]) => (words || []).filter(([x, y]) => (x + y) / 2 >= a - 0.08 && (x + y) / 2 <= b + 0.08).map(w => w[2]).join(' ');
 const whoOf = (who, [a, b]) => { let best = '', ov = 0; for (const [x, y, n] of who || []) { const o = Math.min(b, y) - Math.max(a, x); if (o > ov) { ov = o; best = n; } } return best; };
 
 // `vo`: φράσεις σε χρόνο video → σχόλιο στην κορυφή του επεισοδίου / timing sheet / SFX cues (+ ομιλητής σε διάλογο)
-function voPrint(file, VO, at, total, who) {
+function voPrint(file, VO, at, total, who, words = voWords(file, at)) {
   const f = x => x.toFixed(2), P = VO.phr;
   console.log(`VO ${file} @ ${f(at)}s → τέλος ${f(VO.end)}s` + (total ? ` · video ${f(total)}s` + (VO.end > total ? ' ✘ VO μεγαλύτερο από το video' : '') : '') + ` · ${P.length} φράσεις`);
-  P.forEach(([a, b], i) => console.log(`${String(i + 1).padStart(3)}  ${f(a)}–${f(b)}` + (who ? `  ${whoOf(who, [a, b]).padEnd(8)}` : '') + (i ? `   παύση ${f(a - P[i - 1][1])}` : '')));
+  P.forEach(([a, b], i) => console.log(`${String(i + 1).padStart(3)}  ${f(a)}–${f(b)}` + (who ? `  ${whoOf(who, [a, b]).padEnd(8)}` : '') + (i ? `   παύση ${f(a - P[i - 1][1])}` : '            ') + (words ? `   ${wordsIn(words, [a, b])}` : '')));
+  if (words && process.argv.includes('--words')) console.log(words.map(([a, b, x]) => `${f(a)} ${x}`).join(' · '));
 }
 
 // σφίξιμο παυσών: παύση > gap → gap (μένουν gap/2 μετά τη φράση + gap/2 πριν την επόμενη, crossfade 10ms) · ουρά → gap · keep { N: s | undefined }
@@ -194,19 +200,21 @@ if (require.main === module) {
   const [cmd, file, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
   if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--splice <new.mp3> --from N [--to M] [--tempo 1.06]] [--gap 0.3 [--keep 4,7:0.5]] [--out vo/<ep>_vo.mp3]'); process.exit(1); }
   const at = Number(opt('at') || 0), gap = opt('gap');
-  let src = file, who = voWho(file);
+  let src = file, who = voWho(file), words = voWords(file);
+  const moveWords = (out, fn) => { if (!words) return; words = words.map(([a, b, x]) => [+fn(a).toFixed(3), +fn(b).toFixed(3), x]).filter(([a, b]) => b > a); fs.writeFileSync(wordsFile(out), JSON.stringify(words)); };
   if (opt('cut')) { // κόψιμο λέξεων/φράσεων από έτοιμο VO: ίδιο take = ίδια φωνή (pf05 v2 → er02) · --cut a-b[,c-d] σε χρόνο αρχείου (s)
     const out = opt('out') || file.replace(/(\.\w+)?$/, '_cut.mp3'), V = voLoad(src), cuts = opt('cut').split(',').map(r => r.split('-').map(Number)).sort((p, q) => p[0] - q[0]);
     const pcm = voApply(V.raw, cuts); voWrite(pcm, out);
     console.log(`cut: ${cuts.map(([a, b]) => a.toFixed(2) + '–' + b.toFixed(2)).join(', ')} (−${cuts.reduce((d, [a, b]) => d + b - a, 0).toFixed(2)}s) → ${out}`);
     if (who) { who = who.map(([a, b, n]) => [+tightT(cuts, a).toFixed(3), +tightT(cuts, b).toFixed(3), n]).filter(([a, b]) => b > a); fs.writeFileSync(whoFile(out), JSON.stringify(who)); }
+    moveWords(out, t => tightT(cuts, t));
     src = out;
   }
   if (opt('splice')) {
     const out = opt('out') || file.replace(/(\.\w+)?$/, '_splice.mp3'), fr = Number(opt('from')), S = voSplice(file, opt('splice'), fr, Number(opt('to') || fr), opt('tempo'));
     voWrite(S.pcm, out); src = out;
     console.log(`splice: φράσεις ${fr}..${opt('to') || fr} → ${opt('splice')} (${S.dur.toFixed(2)}s, ${S.gain >= 0 ? '+' : ''}${S.gain.toFixed(1)} dB${opt('tempo') ? ', atempo ' + opt('tempo') : ''}) από ${S.from.toFixed(2)}s → ${out}`);
-    if (who) { console.log('splice: διάλογος → το .who.json δεν μεταφέρεται (όλο το VO ξανά, §5d)'); who = null; }
+    if (who) { console.log('splice: διάλογος → το .who.json δεν μεταφέρεται (όλο το VO ξανά, §5d)'); who = null; } words = null;
   }
   if (gap) {
     const keep = {}; for (const p of (opt('keep') || '').split(',').filter(Boolean)) { const [k, s] = p.split(':'); keep[Number(k)] = s === undefined ? undefined : Number(s); }
@@ -214,7 +222,8 @@ if (require.main === module) {
     voWrite(pcm, out);
     console.log(`σφίξιμο: ${cuts.length} παύσεις → ${gap}s · ${(V.raw.length / SFX.SR).toFixed(2)}s → ${(pcm.length / SFX.SR).toFixed(2)}s → ${out}`);
     if (who) { who = who.map(([a, b, n]) => [+tightT(cuts, a, ins).toFixed(3), +tightT(cuts, b, ins).toFixed(3), n]); fs.writeFileSync(whoFile(out), JSON.stringify(who)); console.log(`διάλογος: ${who.length} ατάκες → ${whoFile(out)}`); }
+    moveWords(out, t => tightT(cuts, t, ins));
     src = out;
   }
-  voPrint(src, voLoad(src, at), at, undefined, who && who.map(([a, b, n]) => [a + at, b + at, n]));
+  voPrint(src, voLoad(src, at), at, undefined, who && who.map(([a, b, n]) => [a + at, b + at, n]), words && words.map(([a, b, x]) => [a + at, b + at, x]));
 }

@@ -33,7 +33,7 @@ function laserHeadTop(ctx, x, y, s = 1, on = true) {
   cut(ctx, circlePts(x, y - 150 * s, 26 * s), '#2A3558', { seed: 5102, amp: 1, edgeW: 4, shadow: false });
   cut(ctx, rrPts(x + 30 * s, y - 250 * s, 18 * s, 60 * s, 9 * s), C.sky, { seed: 5103, amp: 1, edgeW: 4, shadow: false });
 }
-// desktop CO2 laser, flat 3/4 front view. cy = bed centre. o.lid 0..1 (open), o.on, o.head [x, beamY] in machine units,
+// desktop CO2 laser, flat 3/4 front view. cy = bed centre. o.lid 0..1 (open), o.on, o.head [x, beamY] in machine units, o.label = όνομα μοντέλου στην πόρτα (π.χ. 'MIRA 7', Latin),
 // o.inside(ctx) draws on the bed (origin = bed centre, units = machine units; use sy≈0.5 for depth)
 function laserMachine(ctx, cx, cy, w, o = {}) {
   const u = w / 1000, sd = o.seed || 5000, lid = o.lid || 0, lt = o.lt || 0;
@@ -45,6 +45,7 @@ function laserMachine(ctx, cx, cy, w, o = {}) {
   cut(ctx, rrPts(220, 92, 250, 246, 20), C.navy, { seed: sd + 3, amp: 2, edgeW: 6 });
   cut(ctx, rrPts(250, 118, 190, 80, 10), '#16306E', { seed: sd + 4, amp: 1, edge: false, shadow: false });
   txt(ctx, o.on ? 'RUN' : 'READY', 345, 160, { font: '34px Brand', color: o.on ? '#FFD27A' : C.sky });
+  if (o.label) txt(ctx, o.label, -310, 292, { font: '58px Brand', color: C.navy });
   [BRAND, C.sky, C.mid].forEach((c, i) => cut(ctx, circlePts(275 + i * 70, 270, 22), c, { seed: sd + 5 + i, amp: 1, edgeW: 4, shadow: false }));
   cut(ctx, [[-430, -300], [430, -300], [500, 60], [-500, 60]], C.paper, { seed: sd + 10, amp: 3 });
   cut(ctx, [[-395, -272], [395, -272], [458, 36], [-458, 36]], '#18203A', { seed: sd + 11, amp: 2, edge: false, shadow: false });

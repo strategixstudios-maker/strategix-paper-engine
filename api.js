@@ -5,7 +5,7 @@
 // Περιγραφή = σχόλιο στην ίδια γραμμή (// ...) ή τα σχόλια ακριβώς από πάνω. Γραμμή «// ---- τίτλος ----» = ενότητα.
 const fs = require('fs'), path = require('path');
 const ROOT = __dirname, PDIR = path.join(ROOT, 'props');
-const MODS = ['lib.js', 'stratos.js', 'crew.js', ...fs.readdirSync(PDIR).filter(f => f.endsWith('.js')).sort().map(f => 'props/' + f)];
+const MODS = ['lib.js', 'motion.js', 'stratos.js', 'crew.js', ...fs.readdirSync(PDIR).filter(f => f.endsWith('.js')).sort().map(f => 'props/' + f)];
 
 function parens(s, i) { let d = 0; for (let j = i; j < s.length; j++) { if (s[j] === '(') d++; else if (s[j] === ')' && --d === 0) return s.slice(i + 1, j); } return ''; }
 function entries(rel) {

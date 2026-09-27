@@ -130,6 +130,21 @@ const P = {
     return n;
   },
 
+  // galvo scanner: τα καθρεφτάκια «τσιρίζουν» — τόνος που πηδάει γρήγορα ανάμεσα σε συχνότητες (κάθε αλλαγή κατεύθυνσης της δέσμης, σχεδόν χωρίς αδράνεια)
+  // + buzz όταν ρίχνει + ανεμιστήρας · o.dur · o.rate (αλλαγές/s, default 38 · μεγαλύτερο = πιο «νευρικό»)
+  galvo(o, r) {
+    const d = o.dur ?? 1.5, n = buf(d), rate = o.rate ?? 38, lp = biquad().set('lp', 5200, 0.7), bz = biquad().set('bp', 2350, 3), fan = biquad().set('lp', 700, 0.6), hiss = biquad().set('hp', 6500);
+    let ph = 0, f = 900, ft = 900, next = 0, bph = 0;
+    for (let i = 0; i < n.length; i++) {
+      const t = i / SR, u = i / n.length;
+      if (t >= next) { ft = 450 + r() * 2700; next = t + (0.4 + r() * 1.2) / rate; }
+      f += (ft - f) * 0.006; ph += TAU * f / SR; bph = (bph + (2350 + 40 * Math.sin(TAU * 9 * t)) / SR) % 1;
+      const s = Math.sin(ph), tone = (s + 0.35 * Math.sign(s) + 0.2 * Math.sin(2 * ph)) * 0.45;
+      n[i] = (lp.run(tone) * 0.6 + bz.run(bph * 2 - 1) * 0.5 + fan.run(W(r)) * 0.22 + hiss.run(W(r)) * 0.04) * fade(u, 0.02, 0.1);
+    }
+    return n;
+  },
+
   // CO2 laser: stepper whine (raster passes) + buzz όταν «ρίχνει» + τσιτσίρισμα + εξαερισμός
   laser(o, r) {
     const d = o.dur ?? 2.5, pass = o.pass ?? 0.32, n = buf(d);
@@ -269,7 +284,7 @@ const P = {
   },
 };
 // default gains (σχετική ένταση στο stem)
-const GAIN = { ring: 0.4, file: 0.6, drop: 0.5, flow: 0.5, stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
+const GAIN = { galvo: 0.45, ring: 0.4, file: 0.6, drop: 0.5, flow: 0.5, stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
 
 function norm(x, pk = 0.7) { let m = 0; for (const v of x) m = Math.max(m, Math.abs(v)); if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= pk / m; return x; }
 function make(name, o = {}) {

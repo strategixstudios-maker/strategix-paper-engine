@@ -16,7 +16,7 @@ for f in $(git diff --cached --name-only --diff-filter=AM "$BASE" | grep -E '^[^
   echo "lint $f"; node "$f" lint || { [ -n "$FORCE" ] || { echo "✘ $f όχι καθαρό (FORCE=1 για παράκαμψη)"; exit 1; }; }
 done
 # engine gate: άλλαξε engine/props → περιγραφές props + regress σε ΟΛΑ τα επεισόδια (νέο crash / νέο lint warning = stop)
-if git diff --cached --name-only "$BASE" | grep -qE '^(lib|stratos|hands|props|render|sfx)\.js$|^props/'; then
+if git diff --cached --name-only "$BASE" | grep -qE '^(lib|motion|stratos|hands|props|render|sfx|vo)\.js$|^props/'; then
   node api.js --check || [ -n "$FORCE" ] || exit 1
   node regress.js "$BASE" || { [ -n "$FORCE" ] || { echo "✘ regress: η αλλαγή στο engine χαλάει παλιό επεισόδιο (FORCE=1 για παράκαμψη)"; exit 1; }; }
 fi

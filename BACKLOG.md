@@ -17,4 +17,5 @@
 - [er02] Το API key του ElevenLabs δεν έχει `speech_to_text` / `voices_read` → χρονισμοί λέξεων μέσα σε φράση από την ένταση (χειροκίνητα) · με το permission: `node render.js vo … --words` (scribe) για αυτόματους χρόνους λέξεων.
 - [er01 → er02] `dialogCaps` / `lowerThird` δεν χρειάστηκαν στο er02 (captions πάνω + υπότιτλος τηλεφώνου κάτω) → μένουν inline στο er01.
 - [er02 v5] Έλεγχος VO με μεταγραφή γίνεται χειροκίνητα (connector: upload → Scribe → σύγκριση) → με permission `speech_to_text` στο API key: αυτόματο στο `node vo.js` (μεταγραφή του raw κάθε ομιλητή + diff με το κείμενο, ⚠ σε λέξεις που περισσεύουν/λείπουν).
-
+- [ms02] Φοίβος/Ρένα (crew.js) δεν έχουν ακόμα `lean`/`bob`/`tilt` του `stratos()` → στο επόμενο skit με `poseSpring()`: ίδια 3 options στο `phoebus()`/`rena()`.
+- [ms02] 1η χρήση μέσα στο επεισόδιο: `galvoRig` (3/4) + τομή galvo, `gantry`/`bedTop`/`xyBed` (κάτοψη XY με raster, αλυσίδα, σωλήνας), `coaster` (σουβέρ), `sign` (ταμπέλα plexiglass), `fumes`/`sparks` (σωματίδια) → στη 2η χρήση → props/laser.js (τα `fumes`/`sparks` αντικαθιστούν τα `smoke`/`laserFX` στα νέα).

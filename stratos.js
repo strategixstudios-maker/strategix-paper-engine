@@ -111,6 +111,8 @@ function stratos(ctx, x, y, s, o = {}) {
     cut(ctx, [[8, 440], [118, 440], [112, 830], [18, 830]], S.jeans, { seed: sd + 21, scribble: S.jeansS });
     for (const [sx, k] of [[-66, 22], [66, 23]]) { cut(ctx, rrPts(sx - 72, 810, 144, 58, 28), S.shoe, { seed: sd + k, amp: 2 }); cut(ctx, rectPts(sx - 70, 850, 140, 14), C.mid, { seed: sd + k + 5, amp: 1, edge: false, shadow: false }); }
   }
+  const lean = o.lean || 0, bob = o.bob || 0, body = lean || bob; // physics (poseSpring): κορμός γέρνει γύρω από τη μέση (0, 440) · ανάσα = bob px
+  if (body) { ctx.save(); ctx.translate(0, 440); ctx.rotate(lean); ctx.translate(0, bob - 440); }
   if (o.behindArms) { arm(ctx, -1, aL, { seed: sd + 100, hand: o.handL, elbow: o.elbowL, view: o.viewL }); }
   cut(ctx, rrPts(-33, -80, 66, 104, 20), S.skin, { seed: sd + 24, edge: false, shadow: false, amp: 1.5 });
   ctx.save(); ctx.fillStyle = 'rgba(150,80,50,0.22)'; ctx.beginPath(); ctx.ellipse(0, -36, 34, 12, 0, 0, 7); ctx.fill(); ctx.restore();
@@ -125,9 +127,10 @@ function stratos(ctx, x, y, s, o = {}) {
   ctx.save(); ctx.setLineDash([10, 8]); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 3; ctx.strokeRect(-74, 282, 148, 86); ctx.restore();
   if (!o.behindArms) arm(ctx, -1, aL, { seed: sd + 100, hand: o.handL, elbow: o.elbowL, view: o.viewL });
   if (!o.armRFront) arm(ctx, 1, aR, { seed: sd + 100, hand: o.handR, elbow: o.elbowR, view: o.viewR });
-  head(ctx, 0, 10, 1, o);
+  if (o.tilt) { ctx.save(); ctx.translate(0, -10); ctx.rotate(o.tilt); ctx.translate(0, 10); head(ctx, 0, 10, 1, o); ctx.restore(); } else head(ctx, 0, 10, 1, o);
   if (o.armRFront) arm(ctx, 1, aR, { seed: sd + 100, hand: o.handR, elbow: o.elbowR, view: o.viewR });
   if (L.ST.lint) lintStratos(ctx, o, aL, aR);
+  if (body) ctx.restore();
   ctx.restore();
 }
 // rig-level lint (runs only when ST.lint is on: sheet / preview guide / lint mode). Pushes {msg, x, y} to ST.warn in canvas px.
@@ -157,7 +160,24 @@ function poseAt(POSES, t, rest = REST_POSE, blend = 0.28) {
   const [t1, b] = POSES[i], a = i ? POSES[i - 1][1] : b, p = L.easeInOut(L.prog(t, t1, t1 + blend)), q = p < 0.5 ? a : b, m = k => L.lerp(a[k] ?? rest[k] ?? 0, b[k] ?? rest[k] ?? 0, p);
   return { arms: [m('aL'), m('aR')], elbowL: m('eL'), elbowR: m('eR'), handL: q.hL || 'relaxed', handR: q.hR || 'relaxed', hintL: q.iL, hintR: q.iR, eyes: q.eyes || 'dot', brows: m('brows'), look: m('look'), armRFront: !!q.front };
 }
-module.exports = { S, head, face, arm, hand, finger, stratos, handPos, lintRig: lintStratos, REST_POSE, poseAt };
+// πόζες με physics (ms02 →, STYLE_GUIDE §1b): ίδια POSES με το poseAt (+ κλειδιά lean, tilt), αλλά κάθε αλλαγή = spring με anticipation + overshoot,
+// ο αγκώνας ακολουθεί τον ώμο με καθυστέρηση (overlapping action), ο κορμός αντιδρά στις γρήγορες κινήσεις των χεριών (lean), ανάσα σε ηρεμία (bob)
+// o = { f (Hz, default 2,2), z (default 0,45), antic (default 0,08), lag (s αγκώνα, default 0,06), swap (s: αλλαγή τύπου χεριού μετά το κλειδί, default 0,12),
+//       hintIn (s: το hint shrug/stop μπαίνει όταν έχει λυγίσει ο αγκώνας, default 0,32), breathe (px, default 3 · 0 = χωρίς), rest }
+// → opts για stratos()/phoebus()/rena() (+ lean, bob, tilt)
+function poseSpring(POSES, t, o = {}) {
+  const M = require('./motion.js'), rest = o.rest || REST_POSE, val = (k, p) => p[k] ?? rest[k] ?? 0;
+  const keys = k => POSES.map(([tk, p]) => [tk, val(k, p)]), ch = (k, so) => M.springKeys(keys(k), t, so);
+  const arm = { f: o.f ?? 2.2, z: o.z ?? 0.45, antic: o.antic ?? 0.08 }, elb = { ...arm, delay: o.lag ?? 0.06, z: arm.z - 0.08 }, soft = { f: 2.6, z: 0.6 };
+  let i = 0; while (i + 1 < POSES.length && t >= POSES[i + 1][0]) i++;
+  const cur = POSES[i][1], prev = i ? POSES[i - 1][1] : cur, dt = t - POSES[i][0], q = i && dt < (o.swap ?? 0.12) ? prev : cur;
+  const hint = k => (!i || cur[k] === prev[k]) ? cur[k] : cur[k] && dt >= (o.hintIn ?? 0.32) ? cur[k] : undefined; // hint μπαίνει αφού λυγίσει ο αγκώνας (lag), βγαίνει αμέσως
+  const kd = POSES.map(([tk, p]) => [tk, val('aR', p) - val('aL', p)]), vd = M.deriv(tt => M.springKeys(kd, tt, arm), t);
+  return { arms: [ch('aL', arm), ch('aR', arm)], elbowL: ch('eL', elb), elbowR: ch('eR', elb), handL: q.hL || 'relaxed', handR: q.hR || 'relaxed', hintL: hint('iL'), hintR: hint('iR'),
+    eyes: q.eyes || 'dot', brows: ch('brows', soft), look: ch('look', soft), armRFront: !!q.front,
+    lean: L.clamp(-0.008 * vd, -0.045, 0.045) + ch('lean', soft), bob: (o.breathe ?? 3) * Math.sin(Math.PI * 2 * 0.3 * t), tilt: ch('tilt', soft) };
+}
+module.exports = { S, head, face, arm, hand, finger, stratos, handPos, lintRig: lintStratos, REST_POSE, poseAt, poseSpring };
 
 // ---------- character sheet ----------
 if (require.main === module) {

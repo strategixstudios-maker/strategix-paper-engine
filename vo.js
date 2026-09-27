@@ -1,7 +1,7 @@
 // vo.js — VO «Stratos» από το ElevenLabs API με ΣΤΑΘΕΡΕΣ ρυθμίσεις (ίδια φωνή σε κάθε επεισόδιο · STYLE_GUIDE §5d)
 // Ο connector του ElevenLabs δεν δέχεται stability / seed και το site θέλει χειροκίνητες ρυθμίσεις κάθε φορά → εδώ είναι κλειδωμένες.
 // Key: export ELEVENLABS_API_KEY=… στο ~/.zshrc (ΠΟΤΕ στο git).
-// CLI:  node vo.js <ep> [--takes 2] [--seed N]  → κείμενο από vo/<ep>.txt → <ep>_take<k>.mp3 στη ρίζα (εκτός git)
+// CLI:  node vo.js <ep> [--takes 2] [--seed N]  → κείμενο από vo/<ep>.txt → <ep>_take<k>.mp3 + .words.json (χρόνοι λέξεων) στη ρίζα (εκτός git)
 //       μετά: node render.js vo <ep>_take1.mp3 --gap 0.3 [--keep …] --out vo/<ep>_vo.mp3 --at 0.2 (βλ. §5d)
 // Διάλογος («Το Εργαστήριο»): κάθε γραμμή `ΟΝΟΜΑ: κείμενο` (ΣΤΡΑΤΟΣ · ΦΟΙΒΟΣ · ΡΕΝΑ) → default (er02): TTS ανά ομιλητή = όλες οι ατάκες του σε ΕΝΑ generation
 //       (η φωνή όπως στο voice test — το text-to-dialogue του er01 δεν έμοιαζε με τις επιλεγμένες) → κόψιμο ανά ατάκα (timestamps) → σειρά σεναρίου με παύση --turn 0.3
@@ -29,6 +29,22 @@ async function tts(text, seed, key, voice = STRATOS.voice) {
   if (r.status === 400 && /language/i.test(await r.clone().text())) { delete body.language_code; r = await post(body); } // αν το μοντέλο δεν δέχεται language_code
   if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
   return Buffer.from(await r.arrayBuffer());
+}
+// μονόλογος (ms02 →): ίδιο TTS μέσω with-timestamps → { audio, words: [[a, b, λέξη], ...] } (χωρίς τα audio tags) → <ep>_take<k>.words.json
+// το `render.js vo` τα μεταφέρει στο --cut/--gap και τυπώνει το κείμενο κάθε φράσης (χρονισμοί λέξεων χωρίς εικασίες · δεν χρειάζεται forced alignment)
+async function ttsWords(text, seed, key, voice = STRATOS.voice) {
+  const body = { text, model_id: STRATOS.model, voice_settings: STRATOS.settings, seed, language_code: STRATOS.lang };
+  const post = b => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=${STRATOS.format}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+  let r = await post(body);
+  if (r.status === 400 && /language/i.test(await r.clone().text())) { delete body.language_code; r = await post(body); }
+  if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  const j = await r.json(), al = j.alignment || j.normalized_alignment, ch = al.characters, A = al.character_start_times_seconds, B = al.character_end_times_seconds, words = [];
+  let w = '', a = 0;
+  for (let i = 0; i <= ch.length; i++) {
+    if (i === ch.length || /\s/.test(ch[i])) { if (w && !/^\[.*\]$/.test(w)) words.push([+a.toFixed(3), +B[i - 1].toFixed(3), w]); w = ''; continue; }
+    if (!w) a = A[i]; w += ch[i];
+  }
+  return { audio: Buffer.from(j.audio_base64, 'base64'), words };
 }
 
 // ---------- ομάδα (STYLE_GUIDE §4b) — voice design, ίδιο μοντέλο / stability / seed με τον STRATOS · ΜΗΝ αλλάζουν ανά επεισόδιο ----------
@@ -137,10 +153,10 @@ if (require.main === module) (async () => {
   console.log(`vo: ${ep} · ${text.length} χαρακτήρες · ${STRATOS.model}${lines ? ` · διάλογος ${lines.length} ατάκες (${[...new Set(lines.map(l => l[0]))].join(' · ')})` : ''} · stability ${STRATOS.settings.stability} · seed ${seed0}${takes > 1 ? '…' + (seed0 + takes - 1) : ''}`);
   for (let k = 1; k <= takes; k++) {
     const out = `${ep}_take${k}.mp3`;
-    if (!lines) fs.writeFileSync(out, await tts(text, seed0 + k - 1, key));
+    if (!lines) { const T = await ttsWords(text, seed0 + k - 1, key); fs.writeFileSync(out, T.audio); fs.writeFileSync(out.replace(/\.mp3$/, '.words.json'), JSON.stringify(T.words)); }
     else if (rest.includes('--dialogue')) { const D = await dialogue(lines, seed0 + k - 1, key); fs.writeFileSync(out, D.audio); if (D.who) fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
     else { const D = await ttsDialogue(lines, seed0 + k - 1, key, Number(opt('turn') ?? 0.3), out.replace(/\.mp3$/, '.%.raw.mp3'), rest.includes('--each')); encode(D.pcm, out); fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
-    console.log(`  take ${k} (seed ${seed0 + k - 1}) → ${out}${lines ? ' + .who.json' : ''}`);
+    console.log(`  take ${k} (seed ${seed0 + k - 1}) → ${out}${lines ? ' + .who.json' : ' + .words.json'}`);
   }
 })().catch(e => { console.error(e.message); process.exit(1); });
-module.exports = { STRATOS, CAST, tts, dialogue, ttsDialogue, parseDialogue };
+module.exports = { STRATOS, CAST, tts, ttsWords, dialogue, ttsDialogue, parseDialogue };
