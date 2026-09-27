@@ -231,4 +231,11 @@ function lipsync(VO, rest = 'smile', who) { const t = ST.T;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
 const blinkNow = () => (ST.T % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() })
-module.exports={lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,cutGroup,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};
+// ---------- κάμερα & χρώματα (pf04 → pf05) ----------
+// κάμερα: το σημείο (x, y) του κόσμου στη θέση (sx, sy) της οθόνης με zoom z (μέσα σε ctx.save/restore)
+function cam(ctx, x, y, z, sx = x, sy = y) { ctx.translate(sx, sy); ctx.scale(z, z); ctx.translate(-x, -y); }
+// '#RRGGBB' → [r, g, b]
+function hexRGB(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+// ανάμειξη δύο hex χρωμάτων → 'rgb(…)' · t 0 = a, 1 = b (γυαλάδα, σκούρεμα, μετάβαση χρώματος)
+function mixHex(a, b, t) { const A = hexRGB(a), B = hexRGB(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; }
+module.exports={cam,hexRGB,mixHex,lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,cutGroup,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};

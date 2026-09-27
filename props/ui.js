@@ -87,4 +87,22 @@ function phoneFrame(ctx, cx, cy, w, h, draw, o = {}) {
   ctx.restore(); return [sx, sy];
 }
 
-module.exports = { msgBubble, speech, stamp, seriesTag, sparkle, ctaButton, uiSlider, msgOut, speechOff, checkChip, phoneFrame };
+// μεγάλο «?» (περιέργεια / ερώτηση του hook) σε brand blue με χάρτινη άκρη · s κλίμακα (1 ≈ 640px) (pf04 → pf05)
+function qmark(ctx, x, y, s, rot = 0) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
+  txt(ctx, '?', 14, 18, { font: 'bold 640px Round', color: 'rgba(5,10,30,0.22)' });
+  txt(ctx, '?', 0, 0, { font: 'bold 640px Round', color: BRAND, edge: 26, edgeC: '#FBFAF6' });
+  ctx.restore();
+}
+// βήμα διαδικασίας: αριθμός σε μπλε κύκλο + λέξη, αριστερά κάτω από το caption · pop στο st · o.y (default 568 = κάτω από caption 2 γραμμών) (pf04 → pf05)
+function stepChip(ctx, lt, st, n, label, o = {}) {
+  ctx.font = 'bold 44px Round'; const w = ctx.measureText(label).width + 124, x = (o.x ?? 72) + w / 2, y = o.y ?? 568;
+  pop(ctx, lt, st, x, y, () => {
+    cut(ctx, rrPts(-w / 2, -40, w, 80, 40), C.paper, { seed: 7000 + n, amp: 2, edgeW: 7 });
+    cut(ctx, circlePts(-w / 2 + 42, 0, 29, 29, 20), BRAND, { seed: 7010 + n, amp: 1, edgeW: 4, shadow: false });
+    txt(ctx, String(n), -w / 2 + 42, 2, { font: 'bold 40px Round', color: '#fff' });
+    txt(ctx, label, -w / 2 + 84, 2, { font: 'bold 44px Round', color: C.ink, align: 'left' });
+  }, -0.03);
+}
+
+module.exports = { qmark, stepChip, msgBubble, speech, stamp, seriesTag, sparkle, ctaButton, uiSlider, msgOut, speechOff, checkChip, phoneFrame };

@@ -224,9 +224,33 @@ const P = {
     }
     return n;
   },
+  // σταγόνα (inkjet / υγρό): «πλιπ» με ανοδικό pitch · o.rate σταγόνες/δευτ. σε όλο το dur (επανάληψη) · o.rise = πολλαπλασιαστής του rate ως το τέλος
+  // (π.χ. rate 3, rise 25 → επιταχύνει ως βουητό: «χιλιάδες φορές το δευτερόλεπτο») · o.f0 τόνος (default 900)
+  drop(o, r) {
+    const d = o.dur ?? 0.12, n = buf(d), f0 = o.f0 ?? 900, r0 = o.rate || 0, r1 = r0 * (o.rise ?? 1), ts = [0];
+    if (r0) for (let t = 0; ;) { t += 1 / (r0 * Math.pow(r1 / r0, t / d)); if (t >= d - 0.05) break; ts.push(t); }
+    for (const t0 of ts) {
+      const i0 = Math.floor(t0 * SR), ff = f0 * (0.85 + r() * 0.3), a = 0.6 + r() * 0.4; let ph = 0;
+      for (let i = i0; i < Math.min(n.length, i0 + SR * 0.06); i++) { const t = (i - i0) / SR; ph += TAU * ff * (1 + 1.4 * Math.min(1, t / 0.014)) / SR; n[i] += Math.sin(ph) * env(t, 0.0008, 0.018) * a; }
+    }
+    for (let i = 0; i < n.length; i++) n[i] = Math.tanh(n[i] * 1.2) * fade(i / n.length, 0.005, 0.05);
+    return n;
+  },
+  // υγρό που κυλάει σε σωληνάκι (μελάνι): χαμηλό βουητό ροής + μικρές φυσαλίδες (γουργούρισμα) · dur
+  flow(o, r) {
+    const d = o.dur ?? 1.5, n = buf(d), lo = biquad().set('lp', 380, 0.9), bp = biquad().set('bp', 900, 0.7), p = pink(r);
+    let next = 0, bt = -1, bf = 0, ph = 0;
+    for (let i = 0; i < n.length; i++) {
+      const t = i / SR, u = i / n.length;
+      if (i >= next) { next = i + Math.floor(SR * (0.03 + r() * 0.11)); bt = 0; bf = 260 + r() * 520; }
+      let b = 0; if (bt >= 0) { bt += 1 / SR; ph += TAU * bf * (1 + 2.2 * bt / 0.04) / SR; b = Math.sin(ph) * env(bt, 0.002, 0.02) * 0.5; if (bt > 0.08) bt = -1; }
+      n[i] = (lo.run(p()) * 2.2 + bp.run(W(r)) * 0.12 * (0.6 + 0.4 * Math.sin(TAU * 3 * t)) + b) * fade(u, 0.08, 0.2);
+    }
+    return n;
+  },
 };
 // default gains (σχετική ένταση στο stem)
-const GAIN = { stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
+const GAIN = { drop: 0.5, flow: 0.5, stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
 
 function norm(x, pk = 0.7) { let m = 0; for (const v of x) m = Math.max(m, Math.abs(v)); if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= pk / m; return x; }
 function make(name, o = {}) {
@@ -255,7 +279,7 @@ module.exports = { SR, P, GAIN, make, mix, writeWav };
 if (require.main === module) {
   const [cmd = 'demo', seed] = process.argv.slice(2);
   if (cmd === 'demo') {
-    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }], ['stitch', { dur: 2.5 }]];
+    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }], ['stitch', { dur: 2.5 }], ['drop'], ['drop', { dur: 2, rate: 3, rise: 25 }], ['flow', { dur: 2 }]];
     let t = 0.3; const cues = [];
     for (const [nm, o = {}] of list) { const len = make(nm, o)[0].length / SR; cues.push([t, nm, o]); console.log(`${t.toFixed(1).padStart(5)}s  ${nm}${o.seed ? ' (seed ' + o.seed + ')' : ''}`); t += len + 0.6; }
     writeWav('sfx_demo.wav', mix(cues, t + 0.3)); console.log('sfx_demo.wav', t.toFixed(1) + 's');
