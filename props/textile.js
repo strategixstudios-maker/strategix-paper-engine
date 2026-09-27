@@ -32,7 +32,7 @@ const TSH = (() => {
   const outline = [...back.slice(1), ...right, ...hem, ...right.map(([x, y]) => [-x, y]).reverse()];   // back (αριστ.→δεξ.) → δεξιά πλευρά → πάτος → αριστερή
   return { back, front, outline, opening: [...back, ...front.slice(1, -1).reverse()], q };
 })();
-// flat-lay t-shirt (crew neck, κάτοψη): ribbed γιακάς + εσωτερικό πλάτης, κεκλιμένοι ώμοι, μανίκια με στρίφωμα, ραφές. Λαιμός y −350, πάτος 446, σώμα ±272, μανίκια ±405 · o.color, o.seed · o.logoFn(ctx) στο στήθος (origin = (0, −52))
+// flat-lay t-shirt (crew neck, κάτοψη): ribbed γιακάς + εσωτερικό πλάτης, κεκλιμένοι ώμοι, μανίκια με στρίφωμα, ραφές. Λαιμός y −350, πάτος 446, σώμα ±272, μανίκια ±405 · o.color, o.seed · o.logoFn(ctx) στο στήθος (origin = (0, −52)) · o.back: true → από την πλάτη (ψηλός γιακάς, χωρίς εσωτερικό· τύπωμα πλάτης, er02)
 function tshirt(ctx, x, y, s = 1, rot = 0, o = {}) {
   const sd = o.seed || 7200, col = o.color || C.paper, line = o.seam || 'rgba(120,110,90,0.28)', { q } = TSH;
   const poly = (p, c) => { ctx.beginPath(); p.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); if (c) ctx.closePath(); };
@@ -46,6 +46,10 @@ function tshirt(ctx, x, y, s = 1, rot = 0, o = {}) {
   ctx.setLineDash([12, 9]); ctx.lineWidth = 3;                                                        // στριφώματα (ραφή με βελονιές)
   for (const k of [-1, 1]) { poly([[k * 383, -220], [k * 302, -95]]); ctx.stroke(); }
   poly(q([266, 414], [0, 426], [-266, 414], 10)); ctx.stroke(); ctx.setLineDash([]);
+  if (o.back) { ctx.strokeStyle = o.rib || '#E8E2D3'; ctx.lineWidth = 34; poly(TSH.back); ctx.stroke(); ctx.restore(); // πλάτη: ψηλή λαιμόκοψη, χωρίς εσωτερικό
+    ctx.strokeStyle = 'rgba(110,100,80,0.35)'; ctx.lineWidth = 3; poly(TSH.back); ctx.stroke();
+    if (o.logoFn) { ctx.save(); ctx.translate(0, -52); o.logoFn(ctx); ctx.restore(); }
+    ctx.restore(); return body; }
   ctx.strokeStyle = o.rib || '#E8E2D3'; ctx.lineWidth = 42; poly(TSH.front); ctx.stroke();          // ribbed γιακάς μπροστά
   ctx.strokeStyle = 'rgba(120,110,90,0.22)'; ctx.lineWidth = 2.5;
   for (let i = 1; i < TSH.front.length - 1; i++) { const [a, b] = TSH.front[i], [c, d] = TSH.front[i + 1], nx = -(d - b), ny = c - a, n = Math.hypot(nx, ny) || 1; ctx.beginPath(); ctx.moveTo(a + nx / n * 4, b + ny / n * 4); ctx.lineTo(a + nx / n * 18, b + ny / n * 18); ctx.stroke(); }

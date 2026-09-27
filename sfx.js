@@ -1,4 +1,4 @@
-// sfx.js — procedural SFX για paper cut-out (engine v2). Χωρίς assets: κάθε ήχος = κώδικας + seed.
+// sfx.js — procedural SFX για paper cut-out (engine v2). Χωρίς assets: κάθε ήχος = κώδικας + seed (εξαίρεση: preset `file` για ήχους από ElevenLabs SFX στο sfx/).
 // CLI: node sfx.js demo              -> sfx_demo.wav (όλα τα presets στη σειρά) + λίστα χρόνων
 //      node sfx.js <preset> [seed]   -> <preset>.wav
 // API: mix(cues, total) -> [L, R] ; writeWav(path, [L, R])
@@ -83,6 +83,25 @@ const P = {
     const n = buf(0.06), bp = biquad().set('bp', 3500, 1);
     for (const [t0, a] of [[0, 1], [0.019, 0.55]]) for (let i = 0; i < SR * 0.03; i++) { const t = i / SR, j = Math.floor(t0 * SR) + i; if (j >= n.length) break; n[j] += a * (bp.run(t < 0.003 ? W(r) : 0) * 1.6 + Math.sin(TAU * 2400 * t) * Math.exp(-t / 0.006) * 0.5 + Math.sin(TAU * 180 * t) * Math.exp(-t / 0.012) * 0.4); }
     return n;
+  },
+  // τηλέφωνο που χτυπάει (er02): τρίλια δύο τόνων στα 20 Hz σε διπλά «ντριν-ντριν» · count = πόσα ζευγάρια (0,92s το καθένα, παύση 0,5s)
+  ring(o, r) {
+    const cnt = o.count ?? 1, b = 0.36, g = 0.2, per = 2 * b + g, pause = 0.5, n = buf(cnt * per + (cnt - 1) * pause + 0.03); let ph = 0;
+    for (let i = 0; i < n.length; i++) {
+      const t = i / SR, c = Math.floor(t / (per + pause)), u = t - c * (per + pause), v = u < b ? u : u > b + g && u < per ? u - b - g : -1;
+      const f = Math.floor(t * 20) % 2 ? 1180 : 940; ph += TAU * f / SR;
+      if (c < cnt && v >= 0) n[i] = (Math.sin(ph) + 0.35 * Math.sin(2 * ph) + 0.2 * Math.sin(3 * ph)) * Math.min(1, v / 0.004, (b - v) / 0.01);
+    }
+    return n;
+  },
+  // ήχος από αρχείο (er02: jingle από ElevenLabs SFX) · o.src = 'sfx/<ep>_<όνομα>.mp3' (πηγές στο git) · o.dur = κόψιμο με fade 30ms
+  file(o) {
+    const q = require('child_process').spawnSync('ffmpeg', ['-loglevel', 'error', '-i', o.src || '', '-ac', '2', '-ar', String(SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
+    if (q.status !== 0 || !q.stdout.length) throw new Error(`sfx: δεν διαβάζεται το αρχείο «${o.src}» (file preset)`);
+    const x = new Float32Array(q.stdout.buffer.slice(q.stdout.byteOffset, q.stdout.byteOffset + q.stdout.length)), len = Math.min(x.length / 2, o.dur ? Math.round(o.dur * SR) : Infinity);
+    const Lc = new Float32Array(len), Rc = new Float32Array(len), F = Math.round(0.03 * SR);
+    for (let i = 0; i < len; i++) { const fd = o.dur ? Math.min(1, (len - i) / F) : 1; Lc[i] = x[2 * i] * fd; Rc[i] = x[2 * i + 1] * fd; }
+    return [Lc, Rc];
   },
   // beep μηχανήματος (count = πόσα)
   beep(o, r) {
@@ -250,7 +269,7 @@ const P = {
   },
 };
 // default gains (σχετική ένταση στο stem)
-const GAIN = { drop: 0.5, flow: 0.5, stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
+const GAIN = { ring: 0.4, file: 0.6, drop: 0.5, flow: 0.5, stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
 
 function norm(x, pk = 0.7) { let m = 0; for (const v of x) m = Math.max(m, Math.abs(v)); if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= pk / m; return x; }
 function make(name, o = {}) {
@@ -279,7 +298,7 @@ module.exports = { SR, P, GAIN, make, mix, writeWav };
 if (require.main === module) {
   const [cmd = 'demo', seed] = process.argv.slice(2);
   if (cmd === 'demo') {
-    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }], ['stitch', { dur: 2.5 }], ['drop'], ['drop', { dur: 2, rate: 3, rise: 25 }], ['flow', { dur: 2 }]];
+    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }], ['stitch', { dur: 2.5 }], ['drop'], ['drop', { dur: 2, rate: 3, rise: 25 }], ['flow', { dur: 2 }], ['ring', { count: 2 }]];
     let t = 0.3; const cues = [];
     for (const [nm, o = {}] of list) { const len = make(nm, o)[0].length / SR; cues.push([t, nm, o]); console.log(`${t.toFixed(1).padStart(5)}s  ${nm}${o.seed ? ' (seed ' + o.seed + ')' : ''}`); t += len + 0.6; }
     writeWav('sfx_demo.wav', mix(cues, t + 0.3)); console.log('sfx_demo.wav', t.toFixed(1) + 's');

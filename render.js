@@ -7,7 +7,7 @@
 //       node ep.js sfx              -> μόνο ήχος: <n>_sfx.wav + <n>_sfx.md και remux στο υπάρχον MP4 (χωρίς νέο video render)
 //       node ep.js vo               -> φράσεις του VO_FILE σε χρόνο video (σχόλιο στην κορυφή / timing sheet / SFX cues), χωρίς render
 //       node render.js vo <mp3> [--at 0.2] [--gap 0.3 [--keep 4,7:0.5] [--out vo/<ep>_vo.mp3]] -> ίδιο πριν γραφτεί το επεισόδιο ·
-//                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (0.03 = κολλητά, punchline · 0.45 = αλλαγή σκηνής)
+//                                      --gap: κάθε παύση > gap γίνεται gap (+ ουρά) · --keep N = η παύση πριν τη φράση N μένει ως έχει, N:s = s (0.03 = κολλητά, punchline · 0.45 = αλλαγή σκηνής · > παύσης = σιωπή για σκηνή χωρίς VO)
 //       node render.js vo <mp3> --splice <new.mp3> --from N [--to M] [--tempo 1.06] [--out …] -> οι φράσεις N..M (αρίθμηση του `vo <mp3>`) γίνονται το new.mp3
 //                                      (νέο take μόνο μιας ατάκας · ίδια ένταση με το υπόλοιπο VO · μετά, αν δοθεί, το --gap σφίγγει και τις παύσεις του)
 //       διάλογος: <mp3>.who.json (από το vo.js) → ομιλητής ανά φράση στο `vo` · το --gap γράφει και το <out>.who.json → ST.VOWHO → lipsync(VO, rest, 'rena')
@@ -47,7 +47,7 @@ module.exports = function run(ep) {
   const duck = ([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * (DK.mix ?? 0.5) * (on ? (DK.duck ?? 0.45) : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; };
   const CUES = [...(ep.AUTO_SFX === false ? [] : wipes.map(k => [Math.max(0, STARTS[k] - 0.27), 'whoosh', { seed: k, note: 'wipe' }])), ...(ep.SFX || [])].sort((a, b) => a[0] - b[0]).map(c => DK ? duck(c) : c);
   const voWarn = () => VO && VO.end > TOTAL + 0.05 ? [[`VO: το αρχείο (${VO.end.toFixed(2)}s) βγαίνει εκτός video (${TOTAL.toFixed(2)}s)`, TOTAL]] : [];
-  const sfxWarn = () => [...voWarn(), ...CUES.flatMap(([t, nm]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]))];
+  const sfxWarn = () => [...voWarn(), ...CUES.flatMap(([t, nm, o = {}]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(nm === 'file' && !fs.existsSync(o.src || '') ? [`SFX: δεν υπάρχει το αρχείο «${o.src}»`] : []), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]))];
   const writeSfx = () => {
     const wav = `${name}_sfx.wav`, f = t => t.toFixed(2).replace('.', ','); SFX.writeWav(wav, SFX.mix(CUES, TOTAL));
     fs.writeFileSync(`${name}_sfx.md`, `# ${name} — SFX (auto από sfx.js)\n| Χρόνος | SFX | Σημείωση |\n|---|---|---|\n` + CUES.map(([t, nm, o = {}]) => `| ${f(t)}${o.dur ? '–' + f(t + o.dur) : ''} | ${nm} | ${o.note || ''} |`).join('\n') + '\n');
@@ -142,26 +142,30 @@ function voPrint(file, VO, at, total, who) {
 }
 
 // σφίξιμο παυσών: παύση > gap → gap (μένουν gap/2 μετά τη φράση + gap/2 πριν την επόμενη, crossfade 10ms) · ουρά → gap · keep { N: s | undefined }
+// keep N:s μεγαλύτερο από την παύση → μπαίνει σιωπή στη μέση της (er02: σκηνή χωρίς VO, π.χ. κουδούνισμα τηλεφώνου)
 function voTight(raw, phr, gap, keep = {}) {
-  const SR = SFX.SR, X = Math.round(0.01 * SR), len = raw.length / SR, cuts = [];
+  const SR = SFX.SR, X = Math.round(0.01 * SR), len = raw.length / SR, cuts = [], ins = [];
   for (let k = 2; k <= phr.length + 1; k++) { // παύση πριν τη φράση k · k = n+1 → ουρά μετά την τελευταία
     const e = phr[k - 2][1], tail = k > phr.length, s = tail ? len : phr[k - 1][0], g = s - e;
     const t = tail ? gap : k in keep ? (keep[k] ?? g) : gap;
     if (g > t + 0.02) cuts.push(tail ? [e + t, len] : [e + t / 2, s - t / 2]);
+    else if (!tail && t > g + 0.02) ins.push([(e + s) / 2, t - g]);
   }
-  const out = new Float32Array(raw.length); let n = 0, from = 0;
-  for (const [ca, cb] of cuts) {
-    const a = Math.round(ca * SR), b = Math.min(raw.length, Math.round(cb * SR));
+  const out = new Float32Array(raw.length + Math.ceil(ins.reduce((a, [, d]) => a + d, 0) * SR) + 1); let n = 0, from = 0;
+  for (const ev of [...cuts.map(c => ({ at: c[0], c })), ...ins.map(i => ({ at: i[0], d: i[1] }))].sort((x, y) => x.at - y.at)) {
+    const a = Math.round(ev.at * SR);
     for (let i = from; i < a; i++) out[n++] = raw[i];
+    if (ev.d) { from = a; n += Math.round(ev.d * SR); continue; } // σιωπή (το out είναι ήδη 0)
+    const b = Math.min(raw.length, Math.round(ev.c[1] * SR));
     const m = Math.min(X, n, raw.length - b); for (let j = 0; j < m; j++) { const w = (j + 1) / (m + 1); out[n - m + j] = out[n - m + j] * (1 - w) + raw[b + j] * w; }
     from = b + m;
   }
   for (let i = from; i < raw.length; i++) out[n++] = raw[i];
   for (let j = 0; j < Math.min(X, n); j++) out[n - 1 - j] *= j / X; // fade-out στο τέλος
-  return { pcm: out.subarray(0, n), cuts };
+  return { pcm: out.subarray(0, n), cuts, ins };
 }
-// χρόνος πριν → μετά το σφίξιμο (για το .who.json του διαλόγου): αφαιρούνται τα κομμάτια των cuts πριν από το t
-const tightT = (cuts, t) => t - cuts.reduce((s, [a, b]) => s + Math.max(0, Math.min(t, b) - a), 0);
+// χρόνος πριν → μετά το σφίξιμο (για το .who.json του διαλόγου): αφαιρούνται τα κομμάτια των cuts πριν από το t, προστίθενται οι σιωπές (ins)
+const tightT = (cuts, t, ins = []) => t - cuts.reduce((s, [a, b]) => s + Math.max(0, Math.min(t, b) - a), 0) + ins.reduce((s, [p, d]) => s + (p < t ? d : 0), 0);
 
 // αλλαγή ατάκας (pf03 v3 → pf04 v2): οι φράσεις from..to του file → η ομιλία του add (χωρίς σιωπές στις άκρες, atempo αν δοθεί, ίδιο RMS ομιλίας με το file)
 // η παύση πριν τη φράση from και μετά τη φράση to μένουν ως έχουν · crossfade 10ms στις ενώσεις
@@ -193,10 +197,10 @@ if (require.main === module) {
   }
   if (gap) {
     const keep = {}; for (const p of (opt('keep') || '').split(',').filter(Boolean)) { const [k, s] = p.split(':'); keep[Number(k)] = s === undefined ? undefined : Number(s); }
-    const out = opt('out') || src.replace(/(\.\w+)?$/, '_tight.mp3'), V = voLoad(src), { pcm, cuts } = voTight(V.raw, V.phr, Number(gap), keep);
+    const out = opt('out') || src.replace(/(\.\w+)?$/, '_tight.mp3'), V = voLoad(src), { pcm, cuts, ins } = voTight(V.raw, V.phr, Number(gap), keep);
     voWrite(pcm, out);
     console.log(`σφίξιμο: ${cuts.length} παύσεις → ${gap}s · ${(V.raw.length / SFX.SR).toFixed(2)}s → ${(pcm.length / SFX.SR).toFixed(2)}s → ${out}`);
-    if (who) { who = who.map(([a, b, n]) => [+tightT(cuts, a).toFixed(3), +tightT(cuts, b).toFixed(3), n]); fs.writeFileSync(whoFile(out), JSON.stringify(who)); console.log(`διάλογος: ${who.length} ατάκες → ${whoFile(out)}`); }
+    if (who) { who = who.map(([a, b, n]) => [+tightT(cuts, a, ins).toFixed(3), +tightT(cuts, b, ins).toFixed(3), n]); fs.writeFileSync(whoFile(out), JSON.stringify(who)); console.log(`διάλογος: ${who.length} ατάκες → ${whoFile(out)}`); }
     src = out;
   }
   voPrint(src, voLoad(src, at), at, undefined, who && who.map(([a, b, n]) => [a + at, b + at, n]));

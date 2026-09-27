@@ -230,12 +230,15 @@ function lipsync(VO, rest = 'smile', who) { const t = ST.T;
   if (who && ST.VOWHO && !ST.VOWHO.some(([a, b, w]) => w === who && t >= a && t <= b)) return rest;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
-const blinkNow = () => (ST.T % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() })
+const blinkNow = (off = 0) => ((ST.T + off) % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() }) · off = μετατόπιση ανά χαρακτήρα (όχι όλοι μαζί)
 // ---------- κάμερα & χρώματα (pf04 → pf05) ----------
 // κάμερα: το σημείο (x, y) του κόσμου στη θέση (sx, sy) της οθόνης με zoom z (μέσα σε ctx.save/restore)
 function cam(ctx, x, y, z, sx = x, sy = y) { ctx.translate(sx, sy); ctx.scale(z, z); ctx.translate(-x, -y); }
+// snap zoom (mockumentary, er01 → er02): η κάμερα «πηδάει» από a σε b ([x, y, z] ή οποιοδήποτε array αριθμών) σε dur s από το t0
+const lerpArr = (a, b, p) => a.map((v, i) => v + (b[i] - v) * p);
+const snap = (t, t0, a, b, dur = 0.12) => lerpArr(a, b, easeOut(prog(t, t0, t0 + dur)));
 // '#RRGGBB' → [r, g, b]
 function hexRGB(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
 // ανάμειξη δύο hex χρωμάτων → 'rgb(…)' · t 0 = a, 1 = b (γυαλάδα, σκούρεμα, μετάβαση χρώματος)
 function mixHex(a, b, t) { const A = hexRGB(a), B = hexRGB(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; }
-module.exports={cam,hexRGB,mixHex,lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,cutGroup,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};
+module.exports={cam,snap,lerpArr,hexRGB,mixHex,lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,cutGroup,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};
