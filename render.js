@@ -20,6 +20,9 @@
 // VO:  ep.VO_FILE = 'vo/<ep>_vo.mp3' (στο repo), VO_AT = offset s, VO_GAIN. → <n>_vo.wav stem + <n>_mix.wav (VO+SFX) στο MP4, lip-sync από την ένταση (ST.VOENV).
 // DUCK (default με VO): όλα τα SFX ×mix 0.5 (−6 dB) και όσα πέφτουν πάνω σε φράση ×duck 0.45 (άλλα −7 dB). Φράσεις αυτόματα από την ένταση του VO.
 //      DUCK: { phrases: [[a, b], ...], mix, duck } → χειροκίνητα · DUCK: false → χωρίς.
+// MUSIC (§5e): ep.MUSIC_FILE = 'music/<ep>.mp3' (από το `node music.js <ep>`, στο repo), MUSIC_GAIN (1 = default). Χαλί πολύ χαμηλά: κανονικοποίηση σε MUSIC_RMS
+//      (≈ 15 dB κάτω από το VO, ίδια ένταση σε κάθε επεισόδιο) · άλλα −6 dB κάτω από τις φράσεις του VO · fade in 0,3s / out 0,8s → <n>_music.wav stem + στο <n>_mix.wav.
+// `node <ep>.js info` → {"name","total"} (διάρκεια για το music.js)
 const L = require('./lib.js');
 const { C, ST, W, H, FPS, cut, rng, lerp, easeInOut } = L;
 const SFX = require('./sfx.js');
@@ -44,20 +47,25 @@ module.exports = function run(ep) {
   // VO: track στο μήκος του video + envelope για lip-sync + φράσεις για ducking (voLoad, κάτω)
   let VO = null;
   if (ep.VO_FILE) { VO = voLoad(ep.VO_FILE, ep.VO_AT || 0, ep.VO_GAIN ?? 1, TOTAL); ST.VOENV = VO.env; ST.VOWHO = VO.who = voWho(ep.VO_FILE, ep.VO_AT || 0); }
+  const MU = ep.MUSIC_FILE && fs.existsSync(ep.MUSIC_FILE) ? musicLoad(ep.MUSIC_FILE, TOTAL, ep.MUSIC_GAIN ?? 1, VO ? VO.phr : []) : null;
   // SFX cues: whoosh με peak στην αλλαγή σκηνής (−0.27s) για κάθε wipe + τα χειροκίνητα του επεισοδίου → ducking κάτω από το VO
   const DK = ep.DUCK === false ? null : ep.DUCK || (VO ? {} : null), PHR = DK && (DK.phrases || (VO ? VO.phr : []));
   const duck = ([t, n, o = {}]) => { const e = t + (o.dur || 0.35), on = PHR.some(([a, b]) => t < b && e > a); return [t, n, { ...o, gain: (o.gain ?? 1) * (DK.mix ?? 0.5) * (on ? (DK.duck ?? 0.45) : 1), note: (o.note || '') + (on ? ' · duck' : '') }]; };
   const CUES = [...(ep.AUTO_SFX === false ? [] : wipes.map(k => [Math.max(0, STARTS[k] - 0.27), 'whoosh', { seed: k, note: 'wipe' }])), ...(ep.SFX || [])].sort((a, b) => a[0] - b[0]).map(c => DK ? duck(c) : c);
   const voWarn = () => VO && VO.end > TOTAL + 0.05 ? [[`VO: το αρχείο (${VO.end.toFixed(2)}s) βγαίνει εκτός video (${TOTAL.toFixed(2)}s)`, TOTAL]] : [];
-  const sfxWarn = () => [...voWarn(), ...CUES.flatMap(([t, nm, o = {}]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(nm === 'file' && !fs.existsSync(o.src || '') ? [`SFX: δεν υπάρχει το αρχείο «${o.src}»`] : []), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]))];
+  const muWarn = () => !ep.MUSIC_FILE ? [] : !MU ? [[`MUSIC: δεν υπάρχει το αρχείο «${ep.MUSIC_FILE}» → node music.js <ep>`, 0]] : MU.end < TOTAL - 0.05 ? [[`MUSIC: το αρχείο (${MU.end.toFixed(2)}s) τελειώνει πριν από το video (${TOTAL.toFixed(2)}s) → node music.js <ep>`, MU.end]] : [];
+  const sfxWarn = () => [...voWarn(), ...muWarn(), ...CUES.flatMap(([t, nm, o = {}]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(nm === 'file' && !fs.existsSync(o.src || '') ? [`SFX: δεν υπάρχει το αρχείο «${o.src}»`] : []), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]))];
   const writeSfx = () => {
     const wav = `${name}_sfx.wav`, f = t => t.toFixed(2).replace('.', ','); SFX.writeWav(wav, SFX.mix(CUES, TOTAL));
     fs.writeFileSync(`${name}_sfx.md`, `# ${name} — SFX (auto από sfx.js)\n| Χρόνος | SFX | Σημείωση |\n|---|---|---|\n` + CUES.map(([t, nm, o = {}]) => `| ${f(t)}${o.dur ? '–' + f(t + o.dur) : ''} | ${nm} | ${o.note || ''} |`).join('\n') + '\n');
-    if (!VO) return wav;
+    if (!VO && !MU) return wav;
     const [L0, R0] = SFX.mix(CUES, TOTAL), lim = x => { const s = Math.abs(x); return s < 0.85 ? x : Math.sign(x) * (0.85 + 0.15 * Math.tanh((s - 0.85) / 0.15)); };
-    const Lm = L0.map((x, i) => lim(x + VO.v[i])), Rm = R0.map((x, i) => lim(x + VO.v[i]));
-    SFX.writeWav(`${name}_vo.wav`, [VO.v, VO.v]); SFX.writeWav(`${name}_mix.wav`, [Lm, Rm]);
-    fs.appendFileSync(`${name}_sfx.md`, `\nVO: \`${ep.VO_FILE}\` @ ${f(ep.VO_AT || 0)}s → \`${name}_vo.wav\` (stem) · \`${name}_mix.wav\` (VO+SFX, στο MP4)\n`);
+    const v = i => VO ? VO.v[i] : 0, Lm = L0.map((x, i) => lim(x + v(i) + (MU ? MU.L[i] : 0))), Rm = R0.map((x, i) => lim(x + v(i) + (MU ? MU.R[i] : 0)));
+    if (VO) SFX.writeWav(`${name}_vo.wav`, [VO.v, VO.v]);
+    if (MU) SFX.writeWav(`${name}_music.wav`, [MU.L, MU.R]);
+    SFX.writeWav(`${name}_mix.wav`, [Lm, Rm]);
+    const mix = [VO && 'VO', MU && 'μουσική', 'SFX'].filter(Boolean).join('+');
+    fs.appendFileSync(`${name}_sfx.md`, (VO ? `\nVO: \`${ep.VO_FILE}\` @ ${f(ep.VO_AT || 0)}s → \`${name}_vo.wav\` (stem)` : '') + (MU ? `\nΜουσική: \`${ep.MUSIC_FILE}\` → \`${name}_music.wav\` (stem)` : '') + ` · \`${name}_mix.wav\` (${mix}, στο MP4)\n`);
     return `${name}_mix.wav`;
   };
   function frame(ctx, t) {
@@ -76,6 +84,7 @@ module.exports = function run(ep) {
   if (require.main !== module.parent) return { frame, TOTAL };
   (async () => {
     const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d');
+    if (mode === 'info') return console.log(JSON.stringify({ name, total: TOTAL }));
     if (mode === 'vo') return VO ? voPrint(ep.VO_FILE, VO, ep.VO_AT || 0, TOTAL, VO.who) : console.log('vo: το επεισόδιο δεν έχει VO_FILE');
     const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
     ST.lint = mode !== 'render';
@@ -97,7 +106,7 @@ module.exports = function run(ep) {
     };
     if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); if (ep.LOOP !== false) loopCheck(); process.exitCode = report(); return; }
     if (mode === 'sfx') {
-      const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : ''));
+      const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : '') + (MU ? ' + μουσική' : ''));
       if (fs.existsSync(mp4)) { const tmp = mp4.replace(/\.mp4$/, '') + '.tmp.mp4'; const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp]); if (r.status === 0) { fs.renameSync(tmp, mp4); console.log('remux', mp4); } else console.log('✘ remux', String(r.stderr)); }
       return;
     }
@@ -108,7 +117,7 @@ module.exports = function run(ep) {
       fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`); loopCheck(); report(); return;
     }
     const out = process.argv[3] || `${name}.mp4`, N = Math.round(TOTAL * FPS);
-    const wav = CUES.length || VO ? writeSfx() : null; // πρώτα ο ήχος (1s): άγνωστο preset → σφάλμα πριν το video render
+    const wav = CUES.length || VO || MU ? writeSfx() : null; // πρώτα ο ήχος (1s): άγνωστο preset → σφάλμα πριν το video render
     const aIn = wav ? ['-i', wav] : [], aOut = wav ? ['-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '192k', '-shortest'] : [];
     const ff = spawn('ffmpeg', ['-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', `${FPS}`, '-i', '-', ...aIn, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium', ...aOut, '-movflags', '+faststart', out], { stdio: ['pipe', 'ignore', 'ignore'] });
     for (let f = 0; f < N; f++) { draw(f / FPS); const buf = Buffer.from(ctx.getImageData(0, 0, W, H).data.buffer); if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r)); }
@@ -129,6 +138,23 @@ function voLoad(file, at = 0, g = 1, total, af) {
   for (let f = 0; f < F; f++) env[f] = Math.min(1, env[f] / ref);
   const phr = []; for (let f = 0; f < F; f++) if (env[f] > 0.1) { const p = phr[phr.length - 1]; if (p && f / FPS - p[1] < 0.15) p[1] = (f + 1) / FPS; else phr.push([f / FPS, (f + 1) / FPS]); } // ένταση > 0.1, κενά < 0.15s ενώνονται
   return { raw, v, env, phr, end: at + raw.length / SFX.SR };
+}
+
+// MUSIC: stereo decode → κανονικοποίηση (RMS των μη σιωπηλών samples → MUSIC_RMS × g) · ducking κάτω από τις φράσεις του VO (attack 0,08s / release 0,35s) · fades
+const MUSIC_RMS = 0.025, MUSIC_DUCK = 0.5; // ≈ −32 dBFS (VO ≈ −17 dBFS στις φράσεις → ~15 dB κάτω) · κάτω από φράση άλλα −6 dB
+function musicLoad(file, total, g = 1, phr = []) {
+  const SR = SFX.SR, r = spawnSync('ffmpeg', ['-loglevel', 'error', '-i', file, '-ac', '2', '-ar', String(SR), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
+  if (r.status !== 0) throw new Error(`MUSIC: δεν διαβάζεται το ${file}`);
+  const raw = new Float32Array(r.stdout.buffer.slice(r.stdout.byteOffset, r.stdout.byteOffset + r.stdout.length)), n = raw.length / 2, N = Math.ceil(total * SR);
+  let s = 0, c = 0; for (let i = 0; i < raw.length; i++) if (Math.abs(raw[i]) > 1e-3) { s += raw[i] * raw[i]; c++; }
+  const k = g * MUSIC_RMS / (Math.sqrt(s / Math.max(1, c)) || 1), F = Math.ceil(total * FPS), tgt = new Float32Array(F).fill(1);
+  for (const [a, b] of phr) for (let f = Math.max(0, Math.floor((a - 0.1) * FPS)); f < Math.min(F, Math.ceil((b + 0.15) * FPS)); f++) tgt[f] = MUSIC_DUCK;
+  const L = new Float32Array(N), R = new Float32Array(N), atk = 1 - Math.exp(-1 / (0.08 * SR)), rel = 1 - Math.exp(-1 / (0.35 * SR));
+  for (let i = 0, d = 1; i < Math.min(N, n); i++) {
+    const t = tgt[Math.min(F - 1, Math.floor(i / SR * FPS))]; d += (t - d) * (t < d ? atk : rel);
+    const m = k * d * Math.min(1, i / (0.3 * SR), (N - i) / (0.8 * SR)); L[i] = raw[2 * i] * m; R[i] = raw[2 * i + 1] * m;
+  }
+  return { L, R, end: n / SR };
 }
 
 // διάλογος (er01): <mp3>.who.json = [[a, b, 'rena'], ...] σε χρόνο αρχείου → σε χρόνο video (+at) · null αν δεν υπάρχει

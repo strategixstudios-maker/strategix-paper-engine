@@ -11,9 +11,9 @@
 ## Workflow επεισοδίου — 1 επεισόδιο = 1 session
 1. `/clear` → σενάριο σε πίνακα (Χρόνος | Εικόνα | VO | Κείμενο/SFX) → έγκριση. Σενάριο, διάρκεια (§5.9) και VO κλειδώνουν **πριν** από τον κώδικα (αλλαγή μετά = ξανά χρονισμοί παντού).
 2. VO (§5d): κείμενο → `vo/<ep>.txt` → `node vo.js <ep>` (ElevenLabs API, κλειδωμένες ρυθμίσεις «Stratos», 2 takes) → ο Αλέξανδρος διαλέγει take → `node render.js vo` → σφίξιμο παυσών → `vo/<ep>_vo.mp3` + χρονισμοί φράσεων σε σχόλιο στην κορυφή του επεισοδίου.
-3. Κώδικας (`node api.js`) → `node <ep>.js lint` ως «lint ✔ καθαρό» → ένα `sheet` → `preview t` μόνο εκεί που αλλάζει κάτι.
+3. Κώδικας (`node api.js`) → `node <ep>.js lint` ως «lint ✔ καθαρό» → ένα `sheet` → `preview t` μόνο εκεί που αλλάζει κάτι. Μουσική (§5e): `node music.js <ep>` → `MUSIC_FILE: 'music/<ep>.mp3'`.
 4. `node <ep>.js render` → MP4 στη ρίζα (εκτός git) → ο Αλέξανδρος το βλέπει και στέλνει **όλες τις σημειώσεις σε ένα μήνυμα** → ένας γύρος διορθώσεων + ένα render. Μόνο ήχος → `node <ep>.js sfx`.
-5. `<ep>_timing_sheet.md` + εγγραφή στο `EPISODES.md` (+ `BACKLOG.md`) → `node regress.js` αν άλλαξε το engine → commit + push → αναφορά: όνομα MP4, commits. Μουσική: ο Αλέξανδρος στο CapCut.
+5. `<ep>_timing_sheet.md` + εγγραφή στο `EPISODES.md` (+ `BACKLOG.md`) → `node regress.js` αν άλλαξε το engine → commit + push → αναφορά: όνομα MP4, commits.
 6. Δημοσίευση (STYLE_GUIDE §9) **μόνο μετά το «προχώρα» του Αλέξανδρου για το συγκεκριμένο MP4**: λεζάντα → `node publish.js schedule <ep> <caption.json>` (Postiz, 4 κανάλια, slot = τελευταίο post + 3 μέρες, 19:00) → commit `publish/log.json` → αναφορά: ημερομηνία + λεζάντα. `node publish.js` = ουρά + sync (live → `publish/posted/`).
 - Παραδοτέο, safe zones, captions, Στράτος, κοινό, ισχυρισμοί → STYLE_GUIDE. Ελληνικά, σύντομα, μεθοδικά, English τεχνικοί όροι.
 
@@ -35,7 +35,7 @@
 - Ιδέες που πατάνε σε υπάρχοντα σκηνικά/props κοστίζουν λιγότερο από νέο σκηνικό.
 
 ## Κανόνες κώδικα
-- Μόνο με το engine (lib.js, stratos.js, hands.js, props/, render.js, sfx.js). VO sources στο `vo/` (τα μόνα mp3 στο git). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
+- Μόνο με το engine (lib.js, stratos.js, hands.js, props/, render.js, sfx.js). VO sources στο `vo/`, μουσική στο `music/` (τα μόνα mp3 στο git, μαζί με το `sfx/`). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
 - Αλλαγή στο engine → `node regress.js` (crash check σε όλα τα επεισόδια vs HEAD, συνοπτικό output).
 - Αλλαγή κανόνα → STYLE_GUIDE/HANDS στο ΙΔΙΟ commit.
 - Όχι render outputs στο git (MP4, sheets, previews, `regress/`) — βλ. .gitignore.

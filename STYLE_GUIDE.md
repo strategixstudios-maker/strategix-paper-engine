@@ -1,6 +1,6 @@
 # STRATEGIX STUDIOS — Paper Cut-out Video Bible · engine v2
 
-Όλα τα βίντεο Strategix (ads + οργανικά) γίνονται σε **paper cut-out** αισθητική, σχεδιασμένα frame-by-frame σε JavaScript (Node + @napi-rs/canvas → ffmpeg). VO = ElevenLabs, φωνή **«Stratos»** (βλ. §5d)· ο Αλέξανδρος βάζει μόνο μουσική στο CapCut. Εμείς παραδίδουμε **MP4 1080×1920, 30fps με VO + SFX** + stems (`_vo.wav`, `_sfx.wav`) + timing sheet.
+Όλα τα βίντεο Strategix (ads + οργανικά) γίνονται σε **paper cut-out** αισθητική, σχεδιασμένα frame-by-frame σε JavaScript (Node + @napi-rs/canvas → ffmpeg). VO = ElevenLabs, φωνή **«Stratos»** (βλ. §5d)· μουσική = ElevenLabs Music, πολύ χαμηλά (§5e, όχι CapCut). Εμείς παραδίδουμε **MP4 1080×1920, 30fps με VO + μουσική + SFX** + stems (`_vo.wav`, `_music.wav`, `_sfx.wav`) + timing sheet, και το δημοσιεύουμε (§9).
 
 ---
 
@@ -140,7 +140,7 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 - `node sfx.js demo` → όλα τα presets στη σειρά (ακρόαση). Νέο preset → `P` + default στο `GAIN` + demo.
 - Levels: stem peak ≈ −3 dB, μέσος ≈ −23 dB (χώρος για VO + μουσική), limiter στο master. Με VO + ducking: stem peak ≈ −12…−15 dB.
 - Διόρθωση μόνο ήχου: `node ep.js sfx` → νέο stem + `_sfx.md` + remux στο υπάρχον MP4 σε ~1s, χωρίς video render.
-- CapCut: είτε ο ήχος του MP4, είτε mute + `<ep>_sfx.wav` για ξεχωριστό balance.
+- Stems (`_vo.wav`, `_music.wav`, `_sfx.wav`) για ξεχωριστό balance αν χρειαστεί· το MP4 έχει ήδη το τελικό mix.
 
 ## 5d. VO — ElevenLabs «Stratos»
 - Φωνή: **Stratos** (ElevenLabs voice design, voice_id `4djcgN1Upzan46ZOCATJ`, νέος Αθηναίος 25–35, χιουμοριστικός μάστορας). Ίδια σε ΟΛΑ τα επεισόδια.
@@ -152,6 +152,13 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
 - **Αλλαγή ατάκας** σε έτοιμο VO → **όλο το VO ξανά** (`vo/<ep>.txt` → `node vo.js <ep>`) + νέοι χρονισμοί. Ένα take μόνο της φράσης ακούγεται **άλλη φωνή** (pf04 v2: η CTA «φαινόταν»). Το `node render.js vo vo/<ep>_vo.mp3 --splice <new.mp3> --from N [--to M] [--tempo 1.06] --out …` (οι φράσεις N..M αντικαθίστανται, ίδια ένταση) μόνο ως έσχατη λύση, με έγκριση του Αλέξανδρου. **Αφαίρεση** λέξης/φράσης (όχι αλλαγή) → `node render.js vo vo/<ep>_vo.mp3 --cut a-b --out vo/<ep>_vo.mp3` (χρόνος αρχείου, στη σιωπή πριν/μετά): ίδιο take = ίδια φωνή, χωρίς νέο VO (er02 v3: «Είναι κάστομ.»).
 - **Καμία «δραματική» παύση πριν από punchline** (pm02: ο θεατής χάνει το ενδιαφέρον στη σιωπή): το punchline λέγεται κολλητά → `--keep N:0.03` (N = η φράση του punchline). Στο κείμενο του VO **όχι «...» πριν από punchline** (το `eleven_v3` τραβάει τη λέξη)· αν βγει τραβηγμένη, atempo ~1.15 μόνο σε εκείνο το κομμάτι πριν το σφίξιμο. `--keep N:0.45` μόνο σε αλλαγή σκηνής (π.χ. σκίσιμο οθόνης). `--keep N:s` μεγαλύτερο από την παύση του take → μπαίνει σιωπή (σκηνή χωρίς VO, π.χ. κουδούνισμα 1,6s στο er02).
 - Επεισόδιο: `render.js({ ..., VO_FILE: 'vo/<ep>_vo.mp3', VO_AT: 0.2, VO_GAIN })` → `_vo.wav` stem + `_mix.wav` (VO+SFX) στο MP4. Το `lipsync()` ακολουθεί αυτόματα την ένταση της φωνής (`ST.VOENV`)· το `VO` array μένει κενό. Τα SFX κάνουν αυτόματα ducking κάτω από τη φωνή (§5c). VO μεγαλύτερο από το video → warning στο lint.
+
+## 5e. Μουσική — ElevenLabs Music (`music.js`)
+- Instrumental χαλί σε **κάθε νέο επεισόδιο**, πολύ χαμηλά κάτω από τη φωνή (από το 2026-09-28· πριν: CapCut). Τα παλιά επεισόδια μένουν χωρίς, εκτός αν το ζητήσει ο Αλέξανδρος.
+- `node music.js <ep>` → `music/<ep>.mp3` (στο git) στη διάρκεια του επεισοδίου (`node <ep>.js info`) + 1s. Ύφος **κλειδωμένο** (`STYLE` στο music.js: ζεστό, ελαφρύ, ακουστικό, χωρίς φωνητικά/drops) + διάθεση ανά σειρά (`MOOD`: er κωμικό mockumentary · pf ήρεμο lo-fi εργαστηρίου · ms φωτεινό · pm before/after reveal · ad upbeat) ή `music/<ep>.txt` για ένα επεισόδιο. Μοντέλο `music_v2_5`, `force_instrumental`.
+- Στο επεισόδιο: `MUSIC_FILE: 'music/<ep>.mp3'` (+ `MUSIC_GAIN`, 1 = default). Το render κανονικοποιεί την ένταση (≈ −32 dBFS, ~15 dB κάτω από το VO) → ίδια σε κάθε επεισόδιο, άλλα −6 dB κάτω από τις φράσεις του VO, fade in 0,3s / out 0,8s. Ο Αλέξανδρος την ακούει στο κανονικό render, μαζί με τις υπόλοιπες σημειώσεις. «Πιο δυνατά / πιο σιγά» → `MUSIC_GAIN` · άλλη αίσθηση → `music/<ep>.txt` + `node music.js <ep> --force` · μόνο ήχος → `node <ep>.js sfx`.
+- Αλλαγή διάρκειας μετά τη μουσική → lint warning (το αρχείο τελειώνει πριν το video) → ξανά `node music.js <ep> --force`.
+- Εμπορική χρήση online (IG/TikTok/YouTube/FB) επιτρέπεται σε όλα τα **paid** πλάνα του ElevenLabs, χωρίς attribution (Eleven Music Model-Specific Terms· εξαιρούνται film/TV/radio/games).
 
 ## 6. Workflow
 Βήματα → **CLAUDE.md** (Claude Code: 1 επεισόδιο = 1 session) · **CHAT.md** (chat: ιδέες/σενάρια). Πριν το render το `lint` πρέπει να βγει **«lint ✔ καθαρό»**: ανατομία χεριών (HANDS.md), χέρι πίσω από κεφάλι, χειρονομίες εκτός safe zone, «#N» σε κείμενο, seriesTag εκτός hook, caption 3+ γραμμών, loop τέλος ≠ αρχή, SFX/VO εκτός video.

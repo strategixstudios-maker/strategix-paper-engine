@@ -22,3 +22,6 @@ regress/
 
 # generated SFX sources (ElevenLabs, preset file · μπαίνουν στο git)
 !sfx/*.mp3
+
+# μουσική (ElevenLabs Music, music.js · μπαίνει στο git)
+!music/*.mp3
