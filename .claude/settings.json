@@ -1,4 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(node publish.js schedule *)",
+      "Bash(node publish.js batch)",
+      "Bash(node publish.js batch *)",
+      "Bash(node publish.js cancel *)"
+    ]
+  },
   "enabledPlugins": {
     "vercel@claude-plugins-official": false,
     "stripe@claude-plugins-official": false
