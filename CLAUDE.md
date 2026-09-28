@@ -5,7 +5,7 @@
 @HANDS.md
 
 ## Ρόλοι
-- **Claude Code** (τοπικά, με git credentials): **όλη η παραγωγή** — επεισόδια από το σενάριο ως το MP4, engine (lib/stratos/hands/props/render/sfx), κανόνες (STYLE_GUIDE/HANDS), `BACKLOG.md`, commit + push.
+- **Claude Code** (τοπικά, με git credentials): **όλη η παραγωγή** — επεισόδια από το σενάριο ως το MP4, engine (lib/stratos/hands/props/render/sfx), κανόνες (STYLE_GUIDE/HANDS), `BACKLOG.md`, commit + push, δημοσίευση (Postiz · `publish.js` · skill `postiz`).
 - **claude.ai Project (chat)**: ιδέες και σενάρια, χωρίς clone/render. Επεισόδιο με κώδικα εκεί μόνο αν το ζητήσει ο Αλέξανδρος → `.patch` → εφαρμογή κατά το **CHAT.md**.
 
 ## Workflow επεισοδίου — 1 επεισόδιο = 1 session
@@ -14,6 +14,7 @@
 3. Κώδικας (`node api.js`) → `node <ep>.js lint` ως «lint ✔ καθαρό» → ένα `sheet` → `preview t` μόνο εκεί που αλλάζει κάτι.
 4. `node <ep>.js render` → MP4 στη ρίζα (εκτός git) → ο Αλέξανδρος το βλέπει και στέλνει **όλες τις σημειώσεις σε ένα μήνυμα** → ένας γύρος διορθώσεων + ένα render. Μόνο ήχος → `node <ep>.js sfx`.
 5. `<ep>_timing_sheet.md` + εγγραφή στο `EPISODES.md` (+ `BACKLOG.md`) → `node regress.js` αν άλλαξε το engine → commit + push → αναφορά: όνομα MP4, commits. Μουσική: ο Αλέξανδρος στο CapCut.
+6. Δημοσίευση (STYLE_GUIDE §9) **μόνο μετά το «προχώρα» του Αλέξανδρου για το συγκεκριμένο MP4**: λεζάντα → `node publish.js schedule <ep> <caption.json>` (Postiz, 4 κανάλια, slot = τελευταίο post + 3 μέρες, 19:00) → commit `publish/log.json` → αναφορά: ημερομηνία + λεζάντα. `node publish.js` = ουρά + sync (live → `publish/posted/`).
 - Παραδοτέο, safe zones, captions, Στράτος, κοινό, ισχυρισμοί → STYLE_GUIDE. Ελληνικά, σύντομα, μεθοδικά, English τεχνικοί όροι.
 
 ## Engine που βελτιώνεται — κανόνας 2ης φοράς

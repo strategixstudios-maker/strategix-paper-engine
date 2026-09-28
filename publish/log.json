@@ -1,0 +1,11 @@
+{
+  "posts": [
+    {
+      "ep": "pm01",
+      "file": "pm01_vitrina.mp4",
+      "status": "posted",
+      "date": null,
+      "manual": true
+    }
+  ]
+}
