@@ -4,8 +4,12 @@
       "ep": "pm01",
       "file": "pm01_vitrina.mp4",
       "status": "posted",
-      "date": null,
-      "manual": true
+      "date": "2026-09-25T16:00:00.000Z",
+      "manual": true,
+      "approx": true
     }
+  ],
+  "skip": [
+    "studio_reception_demo.mp4"
   ]
 }
