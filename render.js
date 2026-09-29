@@ -30,6 +30,7 @@ const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 
 const LOOP_BLOCKS = 12; // loop lint: max περιοχές 40×40 px που αλλάζουν > 20% ανάμεσα στο τελευταίο και το πρώτο frame (boil/grain/σπίθες μένουν κάτω)
+const HOOK_BLOCKS = 60; // hook lint (§5.1): περιοχές 40×40 που αλλάζουν > 20% ανάμεσα σε δύο δείγματα (0,5s) = «αλλαγή εικόνας» (όχι αργό zoom)
 const NOISE = [0, 1, 2].map(k => { const c = L.createCanvas(360, 640), x = c.getContext('2d'), im = x.createImageData(360, 640), r = rng(k + 5); for (let i = 0; i < im.data.length; i += 4) { const v = 205 + r() * 50; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c; });
 
 module.exports = function run(ep) {
@@ -104,7 +105,15 @@ module.exports = function run(ep) {
       if (a.cap !== b.cap) WARN.set(`loop: caption στο τέλος ${q(b.cap)} ≠ αρχή ${q(a.cap)} → LOOP: true | 'cut'`, [TOTAL, TOTAL]);
       if (big > LOOP_BLOCKS) WARN.set(`loop: το τελευταίο frame δεν δένει με το πρώτο (${big} περιοχές αλλάζουν) → LOOP: true | 'cut'`, [TOTAL, TOTAL]);
     };
-    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); if (ep.LOOP !== false) loopCheck(); process.exitCode = report(); return; }
+    // hook (§5.1): ≥ 2 αλλαγές εικόνας στα πρώτα 3s — αργό zoom / ίδιο κάδρο δεν μετράει (ad_event v1: 3s το ίδιο άδειο σκηνικό)
+    const hookCheck = () => {
+      const ts = [0, 0.5, 1, 1.5, 2, 2.5, 3].filter(t => t < TOTAL), sn = ts.map(t => snap(t).g), diffs = [];
+      for (let i = 1; i < sn.length; i++) { let big = 0; for (let k = 0; k < sn[i].length; k += 3) if (Math.abs(sn[i][k] - sn[i - 1][k]) + Math.abs(sn[i][k + 1] - sn[i - 1][k + 1]) + Math.abs(sn[i][k + 2] - sn[i - 1][k + 2]) > 0.2 * 3 * 1600 * 255) big++; diffs.push(big); }
+      if (process.env.HOOK_DEBUG) console.log('hook diffs', diffs.join(' '));
+      const changes = diffs.filter(b => b > HOOK_BLOCKS).length;
+      if (changes < 2) WARN.set(`hook: ${changes} αλλαγή εικόνας στα πρώτα 3s (θέλει ≥ 2 · κάθε ~1s: νέο κάδρο, snap, pop) → §5.1`, [0, 3]);
+    };
+    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); if (ep.LOOP !== false) loopCheck(); hookCheck(); process.exitCode = report(); return; }
     if (mode === 'sfx') {
       const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : '') + (MU ? ' + μουσική' : ''));
       if (fs.existsSync(mp4)) { const tmp = mp4.replace(/\.mp4$/, '') + '.tmp.mp4'; const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp]); if (r.status === 0) { fs.renameSync(tmp, mp4); console.log('remux', mp4); } else console.log('✘ remux', String(r.stderr)); }

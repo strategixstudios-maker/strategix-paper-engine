@@ -36,7 +36,7 @@ async function main() {
   if (fs.existsSync(out) && !rest.includes('--force')) die(`${out} υπάρχει ήδη → --force για νέο κομμάτι`);
   const file = opt('len') ? null : epFile(ep);
   const total = file ? JSON.parse(execFileSync('node', [file, 'info'], { cwd: __dirname, encoding: 'utf8' }).trim().split('\n').pop()).total : +opt('len');
-  const txt = `music/${ep}.txt`, mood = fs.existsSync(txt) ? fs.readFileSync(txt, 'utf8').trim() : MOOD[ep.replace(/\d.*/, '')] || MOOD.ms;
+  const txt = `music/${ep}.txt`, mood = fs.existsSync(txt) ? fs.readFileSync(txt, 'utf8').trim() : MOOD[(ep.match(/^[a-z]+/) || [''])[0]] || MOOD.ms;
   const body = { prompt: STYLE + mood, music_length_ms: Math.max(3000, Math.ceil((total + 1) * 1000)), model_id: MODEL, force_instrumental: true };
   console.log(`${ep} · ${total.toFixed(2)}s video → ${(body.music_length_ms / 1000).toFixed(1)}s μουσική · ${MODEL}\nMood: ${mood}`);
   const r = await fetch(`https://api.elevenlabs.io/v1/music?output_format=${FORMAT}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' }, body: JSON.stringify(body) });
