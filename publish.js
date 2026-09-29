@@ -24,7 +24,7 @@ const SETTINGS = {
   instagram: () => ({ post_type: 'post', is_trial_reel: false }),   // βίντεο post = Reel
   'tiktok-business': () => ({ content_posting_method: 'DIRECT_POST', // UPLOAD = μόνο draft στο inbox του TikTok, δεν δημοσιεύει
     privacy_level: 'PUBLIC_TO_EVERYONE', duet: true, stitch: true, comment: true, autoAddMusic: 'no',
-    brand_content_toggle: false, brand_organic_toggle: true,        // «Your brand»: διαφημίζει τη δική μας επιχείρηση (κανόνας TikTok)
+    brand_content_toggle: false, brand_organic_toggle: false,       // χωρίς δήλωση commercial content: οργανικά βίντεο από το δικό μας account (Αλέξανδρος, 2026-09-29)
     video_made_with_ai: false }),                                     // animation = κώδικας (όχι AI) · αλλαγή μόνο αν το ζητήσει ο Αλέξανδρος
   facebook: () => ({ post_type: 'post' }),
   youtube: c => ({ title: c.title, type: 'public', selfDeclaredMadeForKids: 'no',

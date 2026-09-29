@@ -11,7 +11,7 @@
     {
       "ep": "ms01",
       "file": "ms01_kalo_logo.mp4",
-      "status": "scheduled",
+      "status": "posted",
       "date": "2026-09-28T16:00:00.000Z",
       "caption": {
         "title": "Τι κάνει ένα λογότυπο καλό; 5 πράγματα",
@@ -28,10 +28,16 @@
         "youtube": "cmula5o0t081lms0y3y3w5e3p"
       },
       "state": {
-        "instagram": "QUEUE",
-        "tiktok-business": "QUEUE",
-        "facebook": "QUEUE",
-        "youtube": "QUEUE"
+        "instagram": "PUBLISHED",
+        "tiktok-business": "PUBLISHED",
+        "facebook": "PUBLISHED",
+        "youtube": "PUBLISHED"
+      },
+      "urls": {
+        "instagram": "https://www.instagram.com/reel/Dd1kylfDea0/",
+        "tiktok-business": "https://www.tiktok.com/@strategix.studios",
+        "facebook": "https://www.facebook.com/reel/1102271568966715",
+        "youtube": "https://www.youtube.com/watch?v=V-FNxCn-P4U"
       }
     },
     {
@@ -246,7 +252,7 @@
       "ep": "pf04",
       "file": "pf04_kentima.mp4",
       "status": "scheduled",
-      "date": "2026-10-25T17:00:00.000Z",
+      "date": "2026-10-28T17:00:00.000Z",
       "caption": {
         "title": "Πώς φτιάχνεται ένα καπέλο με κέντημα;",
         "text": "Πώς φτιάχνεται ένα καπέλο με κέντημα;\n\nΗ μηχανή δεν διαβάζει εικόνες, μόνο συντεταγμένες. Δες πώς το σχέδιο γίνεται βελονιές, βελονιά-βελονιά.\n\nΣτείλε μας το λογότυπό σου, και ας φτιάξουμε τα δικά σου.\n\n#κέντημα #embroidery #καπέλα #λογότυπο #strategixstudios"
@@ -256,16 +262,30 @@
         "path": "https://uploads.postiz.com/teqcRqzvWW.mp4"
       },
       "postiz": {
-        "instagram": "cmulacqe90886ms0yjra4a7uy",
-        "tiktok-business": "cmulacqgp0887ms0yzxdpujv1",
-        "facebook": "cmulacqiz0888ms0ywa6biaph",
-        "youtube": "cmulacqlg0889ms0yn3dcgbt9"
+        "instagram": "cmumeh59j00nup80y2sedz9q7",
+        "tiktok-business": "cmumeh5dv00nvp80ygyig5722",
+        "facebook": "cmumeh5f700nwp80yy9686cth",
+        "youtube": "cmumeh5gc00nxp80ymfh77u5q"
+      }
+    },
+    {
+      "ep": "ad_event",
+      "file": "ad_event.mp4",
+      "status": "scheduled",
+      "date": "2026-10-25T17:00:00.000Z",
+      "caption": {
+        "title": "Γυμναστήριο ή σύλλογος; Όλα για το event σου από έναν συνεργάτη",
+        "text": "Έχεις γυμναστήριο ή σύλλογο και ετοιμάζεις το επόμενό σου event;\n\nΡούχα για την ομάδα με στάμπα ή κέντημα και αριθμό στην πλάτη, banners και roll-up, αυτοκόλλητα δαπέδου και σήμανση, μετάλλια και βραβεία με χάραξη laser. Όλα από έναν συνεργάτη, με το ίδιο λογότυπο παντού.\n\nΕσύ οργανώνεις το event, εμείς φροντίζουμε τα υπόλοιπα. Στείλε μας μήνυμα για προσφορά.\n\n#strategixstudios #γυμναστήριο #αθλητικόςσύλλογος #event #αθλητικάρούχα"
       },
-      "state": {
-        "instagram": "QUEUE",
-        "tiktok-business": "QUEUE",
-        "facebook": "QUEUE",
-        "youtube": "QUEUE"
+      "media": {
+        "id": "921563fe-d160-4200-8e09-5c928ffdca7a",
+        "path": "https://uploads.postiz.com/Tf98Rab5YA.mp4"
+      },
+      "postiz": {
+        "instagram": "cmumei3xf00o0p80y78rjlfas",
+        "tiktok-business": "cmumei3ya00o1p80ybedly6gj",
+        "facebook": "cmumei3ze00o2p80yciaumb5k",
+        "youtube": "cmumei40p00o3p80ycyyu4rsd"
       }
     }
   ],

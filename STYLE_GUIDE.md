@@ -194,4 +194,4 @@ Canvas 1080×1920. Το UI της εφαρμογής καλύπτει:
   - 3–5 hashtags στο τέλος: `#strategixstudios` + θέμα (π.χ. `#laser` `#τυπογραφείο` `#λογότυπο`).
   - Ισχύουν §5.10–5.12 και §7: χωρίς αριθμό επεισοδίου, χωρίς ανεπιβεβαίωτους ισχυρισμούς, πραγματικοί τεχνικοί όροι.
   - YouTube: `title` ≤ 100 χαρακτήρες = το hook · περιγραφή = η λεζάντα · tags = τα hashtags.
-- **TikTok**: `DIRECT_POST` (το `UPLOAD` αφήνει μόνο draft στο inbox) · «Your brand» ON (διαφημίζει τη δική μας επιχείρηση) · AI label OFF (το animation είναι κώδικας). Ρυθμίσεις ανά πλατφόρμα → `SETTINGS` στο publish.js (έλεγχος με `postiz integrations:settings <id>`, ό,τι δεν ισχύει πετιέται σιωπηλά).
+- **TikTok**: `DIRECT_POST` (το `UPLOAD` αφήνει μόνο draft στο inbox) · **χωρίς δήλωση commercial content** («Your brand» / «Branded content» OFF: οργανικά βίντεο από το δικό μας account, από 2026-09-29) · AI label OFF (το animation είναι κώδικας). Ρυθμίσεις ανά πλατφόρμα → `SETTINGS` στο publish.js (έλεγχος με `postiz integrations:settings <id>`, ό,τι δεν ισχύει πετιέται σιωπηλά).
