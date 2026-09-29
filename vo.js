@@ -1,7 +1,7 @@
 // vo.js — VO «Stratos» από το ElevenLabs API με ΣΤΑΘΕΡΕΣ ρυθμίσεις (ίδια φωνή σε κάθε επεισόδιο · STYLE_GUIDE §5d)
 // Ο connector του ElevenLabs δεν δέχεται stability / seed και το site θέλει χειροκίνητες ρυθμίσεις κάθε φορά → εδώ είναι κλειδωμένες.
 // Key: export ELEVENLABS_API_KEY=… στο ~/.zshrc (ΠΟΤΕ στο git).
-// CLI:  node vo.js <ep> [--takes 2] [--seed N]  → κείμενο από vo/<ep>.txt → <ep>_take<k>.mp3 + .words.json (χρόνοι λέξεων) στη ρίζα (εκτός git)
+// CLI:  node vo.js <ep> [--takes 2] [--seed N] [--tempo 1.08]  → κείμενο από vo/<ep>.txt → <ep>_take<k>.mp3 (μονόλογος: ήδη σε STRATOS.tempo) + .words.json (χρόνοι λέξεων) στη ρίζα (εκτός git)
 //       μετά: node render.js vo <ep>_take1.mp3 --gap 0.3 [--keep …] --out vo/<ep>_vo.mp3 --at 0.2 (βλ. §5d)
 // Διάλογος («Το Εργαστήριο»): κάθε γραμμή `ΟΝΟΜΑ: κείμενο` (ΣΤΡΑΤΟΣ · ΦΟΙΒΟΣ · ΡΕΝΑ) → default (er02): TTS ανά ομιλητή = όλες οι ατάκες του σε ΕΝΑ generation
 //       (η φωνή όπως στο voice test — το text-to-dialogue του er01 δεν έμοιαζε με τις επιλεγμένες) → κόψιμο ανά ατάκα (timestamps) → σειρά σεναρίου με παύση --turn 0.3
@@ -19,6 +19,7 @@ const STRATOS = {
   seed: 1000,                                      // take k → seed + k − 1 (ίδιο κείμενο + ίδιο seed ≈ ίδιο αποτέλεσμα)
   lang: 'el',
   format: 'mp3_44100_128',
+  tempo: 1.08,                                     // μονόλογος: atempo στα takes (ad_xeimonas →, «πιο γρήγορα» · ίδιος τόνος φωνής) → ο Αλέξανδρος ακούει την τελική ταχύτητα · --tempo 1 = όπως βγαίνει από το API
 };
 
 async function tts(text, seed, key, voice = STRATOS.voice) {
@@ -75,6 +76,12 @@ function decode(src) { // mp3 (Buffer ή αρχείο) → mono Float32 @ SR
   if (r.status !== 0) throw new Error(`vo: ffmpeg decode: ${r.stderr}`);
   return new Float32Array(r.stdout.buffer.slice(r.stdout.byteOffset, r.stdout.byteOffset + r.stdout.length));
 }
+// atempo στο ίδιο αρχείο (ίδιος τόνος, μόνο ταχύτητα)
+function atempo(file, k) {
+  const tmp = file.replace(/\.mp3$/, '.tmp.mp3'), r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', file, '-af', `atempo=${k}`, '-c:a', 'libmp3lame', '-b:a', '192k', tmp]);
+  if (r.status !== 0) throw new Error(`vo: atempo ${file}: ${r.stderr}`); fs.renameSync(tmp, file);
+}
+
 function encode(pcm, out) {
   const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'f32le', '-ar', String(SR), '-ac', '1', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '192k', out], { input: Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength) });
   if (r.status !== 0) throw new Error(`vo: δεν γράφεται το ${out}: ${r.stderr}`);
@@ -145,7 +152,7 @@ async function dialogue(lines, seed, key) {
 
 if (require.main === module) (async () => {
   const [ep, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
-  if (!ep) { console.log('usage: node vo.js <ep> [--takes 2] [--seed N] [--turn 0.3] [--each | --dialogue]   (κείμενο: vo/<ep>.txt)'); process.exit(1); }
+  if (!ep) { console.log('usage: node vo.js <ep> [--takes 2] [--seed N] [--tempo 1.08] [--turn 0.3] [--each | --dialogue]   (κείμενο: vo/<ep>.txt)'); process.exit(1); }
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) { console.log('vo: λείπει το ELEVENLABS_API_KEY → export ELEVENLABS_API_KEY=… στο ~/.zshrc και νέο terminal'); process.exit(1); }
   const txtFile = `vo/${ep}.txt`; if (!fs.existsSync(txtFile)) { console.log(`vo: δεν υπάρχει το ${txtFile}`); process.exit(1); }
@@ -153,7 +160,7 @@ if (require.main === module) (async () => {
   console.log(`vo: ${ep} · ${text.length} χαρακτήρες · ${STRATOS.model}${lines ? ` · διάλογος ${lines.length} ατάκες (${[...new Set(lines.map(l => l[0]))].join(' · ')})` : ''} · stability ${STRATOS.settings.stability} · seed ${seed0}${takes > 1 ? '…' + (seed0 + takes - 1) : ''}`);
   for (let k = 1; k <= takes; k++) {
     const out = `${ep}_take${k}.mp3`;
-    if (!lines) { const T = await ttsWords(text, seed0 + k - 1, key); fs.writeFileSync(out, T.audio); fs.writeFileSync(out.replace(/\.mp3$/, '.words.json'), JSON.stringify(T.words)); }
+    if (!lines) { const T = await ttsWords(text, seed0 + k - 1, key), tp = Number(opt('tempo') ?? STRATOS.tempo); fs.writeFileSync(out, T.audio); if (tp !== 1) atempo(out, tp); fs.writeFileSync(out.replace(/\.mp3$/, '.words.json'), JSON.stringify(T.words.map(([a, b, w]) => [+(a / tp).toFixed(3), +(b / tp).toFixed(3), w]))); }
     else if (rest.includes('--dialogue')) { const D = await dialogue(lines, seed0 + k - 1, key); fs.writeFileSync(out, D.audio); if (D.who) fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
     else { const D = await ttsDialogue(lines, seed0 + k - 1, key, Number(opt('turn') ?? 0.3), out.replace(/\.mp3$/, '.%.raw.mp3'), rest.includes('--each')); encode(D.pcm, out); fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
     console.log(`  take ${k} (seed ${seed0 + k - 1}) → ${out}${lines ? ' + .who.json' : ' + .words.json'}`);

@@ -50,7 +50,7 @@ for (const m of mods) {
 console.log(`\nsfx.js presets (STYLE_GUIDE §5c): ${Object.keys(require('./sfx.js').P).join(' · ')}`);
 const rh = fs.readFileSync(path.join(ROOT, 'render.js'), 'utf8').split('\n'), end = rh.findIndex(l => !/^\/\//.test(l));
 console.log('render.js:\n' + rh.slice(1, end).map(l => '  ' + l.replace(/^\/\/\s?/, '')).join('\n'));
-for (const [f, t] of [['vo.js', 'VO «Stratos», STYLE_GUIDE §5d'], ['music.js', 'μουσική, §5e'], ['publish.js', 'δημοσίευση, §9']]) {
+for (const [f, t] of [['vo.js', 'VO «Stratos», STYLE_GUIDE §5d'], ['music.js', 'μουσική, §5e'], ['photos.js', 'αληθινές φωτογραφίες, §1c'], ['publish.js', 'δημοσίευση, §9']]) {
   const h = fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n'), e = h.findIndex(l => !/^\/\//.test(l));
   console.log(`${f} (${t}):\n` + h.slice(0, e).map(l => '  ' + l.replace(/^\/\/\s?/, '')).join('\n'));
 }

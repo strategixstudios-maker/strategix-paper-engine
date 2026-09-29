@@ -11,6 +11,7 @@
 //       μονόλογος: <mp3>.words.json (vo.js) → κείμενο ανά φράση στο `vo` (+ --words: χρόνος κάθε λέξης) · μεταφέρεται στο --cut/--gap → vo/<ep>_vo.words.json
 //       node render.js vo <mp3> --cut 13.83-14.98[,a-b] [--out …] -> κόβει κομμάτια (χρόνος αρχείου) από το ίδιο take, crossfade 10ms, + .who.json (λέξη/φράση που περισσεύει, er02)
 //       node render.js vo <mp3> --splice <new.mp3> --from N [--to M] [--tempo 1.06] [--out …] -> οι φράσεις N..M (αρίθμηση του `vo <mp3>`) γίνονται το new.mp3
+//       node render.js vo <mp3> --tempo 1.08 [--gap 0.3 …] --out … -> όλο το take πιο γρήγορα (atempo, ίδιος τόνος) πριν το σφίξιμο (λέξεις/ατάκες ακολουθούν)
 //                                      (νέο take μόνο μιας ατάκας · ίδια ένταση με το υπόλοιπο VO · μετά, αν δοθεί, το --gap σφίγγει και τις παύσεις του)
 //       διάλογος: <mp3>.who.json (από το vo.js) → ομιλητής ανά φράση στο `vo` · το --gap γράφει και το <out>.who.json → ST.VOWHO → lipsync(VO, rest, 'rena')
 // LOOP: true → ουρά 0,3s με wipe που καταλήγει ακριβώς στο frame 0 (το lint ελέγχει ότι τέλος = αρχή: caption + εικόνα)
@@ -191,7 +192,7 @@ function voTight(raw, phr, gap, keep = {}) {
     const e = phr[k - 2][1], tail = k > phr.length, s = tail ? len : phr[k - 1][0], g = s - e;
     const t = tail ? gap : k in keep ? (keep[k] ?? g) : gap;
     if (g > t + 0.02) cuts.push(tail ? [e + t, len] : [e + t / 2, s - t / 2]);
-    else if (!tail && t > g + 0.02) ins.push([(e + s) / 2, t - g]);
+    else if (!tail && k in keep && t > g + 0.02) ins.push([(e + s) / 2, t - g]); // σιωπή μόνο με --keep N:s (§5d) · οι μικρές παύσεις του take μένουν (ad_xeimonas: το --gap τις μεγάλωνε → πιο αργό VO)
   }
   return { pcm: voApply(raw, cuts, ins), cuts, ins };
 }
@@ -233,7 +234,7 @@ const voWrite = (pcm, out) => { const enc = spawnSync('ffmpeg', ['-y', '-logleve
 // CLI χωρίς επεισόδιο (βήμα VO, πριν γραφτεί ο κώδικας) — βλ. usage στην κορυφή
 if (require.main === module) {
   const [cmd, file, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
-  if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--splice <new.mp3> --from N [--to M] [--tempo 1.06]] [--gap 0.3 [--keep 4,7:0.5]] [--out vo/<ep>_vo.mp3]'); process.exit(1); }
+  if (cmd !== 'vo' || !file) { console.log('usage: node render.js vo <mp3> [--at 0.2] [--splice <new.mp3> --from N [--to M] [--tempo 1.06]] [--tempo 1.08 (όλο το take)] [--gap 0.3 [--keep 4,7:0.5]] [--out vo/<ep>_vo.mp3]'); process.exit(1); }
   const at = Number(opt('at') || 0), gap = opt('gap');
   let src = file, who = voWho(file), words = voWords(file);
   const moveWords = (out, fn) => { if (!words) return; words = words.map(([a, b, x]) => [+fn(a).toFixed(3), +fn(b).toFixed(3), x]).filter(([a, b]) => b > a); fs.writeFileSync(wordsFile(out), JSON.stringify(words)); };
@@ -250,6 +251,14 @@ if (require.main === module) {
     voWrite(S.pcm, out); src = out;
     console.log(`splice: φράσεις ${fr}..${opt('to') || fr} → ${opt('splice')} (${S.dur.toFixed(2)}s, ${S.gain >= 0 ? '+' : ''}${S.gain.toFixed(1)} dB${opt('tempo') ? ', atempo ' + opt('tempo') : ''}) από ${S.from.toFixed(2)}s → ${out}`);
     if (who) { console.log('splice: διάλογος → το .who.json δεν μεταφέρεται (όλο το VO ξανά, §5d)'); who = null; } words = null;
+  }
+  if (opt('tempo') && !opt('splice')) { // ρυθμός όλου του take (pf02 1.06 → ad_xeimonas 1.08): atempo = ίδιος τόνος φωνής · λέξεις/ατάκες ÷ tempo · πριν το --gap
+    const k = Number(opt('tempo')), out = opt('out') || src.replace(/(\.\w+)?$/, '_tempo.mp3'), V = voLoad(src, 0, 1, undefined, `atempo=${k}`);
+    voWrite(V.raw, out);
+    console.log(`tempo: atempo ${k} · ${(V.raw.length * k / SFX.SR).toFixed(2)}s → ${(V.raw.length / SFX.SR).toFixed(2)}s → ${out}`);
+    if (who) { who = who.map(([a, b, n]) => [+(a / k).toFixed(3), +(b / k).toFixed(3), n]); fs.writeFileSync(whoFile(out), JSON.stringify(who)); }
+    moveWords(out, t => t / k);
+    src = out;
   }
   if (gap) {
     const keep = {}; for (const p of (opt('keep') || '').split(',').filter(Boolean)) { const [k, s] = p.split(':'); keep[Number(k)] = s === undefined ? undefined : Number(s); }
