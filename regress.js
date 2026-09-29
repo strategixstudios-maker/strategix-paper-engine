@@ -36,13 +36,14 @@ link(CUR);
 const eps = [...new Set([...fs.readdirSync(B).filter(f => isEp(f, B)), ...fs.readdirSync(CUR).filter(f => isEp(f, CUR))])].filter(f => !only.length || only.includes(f)).sort();
 
 // ---------- ένα επεισόδιο σε ένα tree: lint → sheet clean → sfx ----------
+const TIMEOUT = +process.env.REGRESS_TIMEOUT || 420; // s ανά βήμα (diorama: lint ~1–2 λεπτά)
 const run = (dir, args) => new Promise(res => {
-  const p = spawn(process.execPath, args, { cwd: dir }); let out = '', err = '';
-  const kill = setTimeout(() => p.kill('SIGKILL'), 180e3);
+  const p = spawn(process.execPath, args, { cwd: dir }); let out = '', err = '', slow = false;
+  const kill = setTimeout(() => { slow = true; p.kill('SIGKILL'); }, TIMEOUT * 1e3);
   p.stdout.on('data', d => out += d); p.stderr.on('data', d => err += d);
-  p.on('close', code => { clearTimeout(kill); res({ code, out, err }); });
+  p.on('close', code => { clearTimeout(kill); res({ code, out, err: slow ? `timeout > ${TIMEOUT}s (όχι crash · REGRESS_TIMEOUT=…)\n` + err : err }); });
 });
-const errLine = r => (r.err.split('\n').find(s => /Error/.test(s)) || r.err.trim().split('\n')[0] || `exit ${r.code}`).trim().slice(0, 160);
+const errLine = r => (r.err.split('\n').find(s => /Error|timeout >/.test(s)) || r.err.trim().split('\n')[0] || `exit ${r.code}`).trim().slice(0, 160);
 function wavStat(f) {
   const b = fs.readFileSync(f), n = (b.length - 44) >> 1, s16 = new Int16Array(b.buffer.slice(b.byteOffset + 44, b.byteOffset + 44 + n * 2));
   let sq = 0, pk = 0; for (const v of s16) { sq += v * v; pk = Math.max(pk, Math.abs(v)); }

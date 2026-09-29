@@ -24,10 +24,10 @@ function cafeLogo(ctx, x, y, sc, state = 'good', seed = 1, col = '#fff') { // de
   ctx.restore();
 }
 
-// demo λογότυπο «KOSTAS COFFEE». size = διάμετρος. o.mono: ένα χρώμα, χωρίς γεμάτο δίσκο (χάραξη / σφραγίδα). Default = έγχρωμο (ep01).
+// demo λογότυπο «KOSTAS COFFEE». size = διάμετρος. o.mono: ένα χρώμα, χωρίς γεμάτο δίσκο (χάραξη / σφραγίδα). Default = έγχρωμο (ep01). o.disk / o.fg = χρώματα δίσκου / σχεδίου (ep02: brand blue)
 function kostasLogo(ctx, x, y, size, o = {}) {
-  const s = size / 400, m = o.mono, fg = m || '#F5E6C8'; ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
-  if (!m) { ctx.fillStyle = '#7A3E1D'; ctx.beginPath(); ctx.arc(0, 0, 190, 0, 7); ctx.fill(); }
+  const s = size / 400, m = o.mono, fg = m || o.fg || '#F5E6C8'; ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  if (!m) { ctx.fillStyle = o.disk || '#7A3E1D'; ctx.beginPath(); ctx.arc(0, 0, 190, 0, 7); ctx.fill(); }
   ctx.strokeStyle = fg; ctx.fillStyle = fg; ctx.lineWidth = m ? 14 : 10; ctx.beginPath(); ctx.arc(0, 0, m ? 180 : 165, 0, 7); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(-62, -82); ctx.lineTo(62, -82); ctx.lineTo(50, 0); ctx.quadraticCurveTo(0, 16, -50, 0); ctx.closePath(); ctx.fill();
   ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(70, -48, 24, -1.3, 1.3); ctx.stroke();

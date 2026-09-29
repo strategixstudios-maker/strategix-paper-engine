@@ -11,6 +11,7 @@ const STYLE = 'Instrumental background music for a short vertical social media v
   'Warm, light and friendly, small acoustic ensemble, steady tempo, no vocals, no big drops, builds or sudden stops: it sits quietly under a voiceover. Mood: ';
 const MOOD = {  // ανά σειρά (prefix αρχείου) · music/<ep>.txt → υπερισχύει
   er: 'quirky comedic mockumentary office sitcom, pizzicato strings and light percussion, playful and deadpan.',
+  ep: 'playful cartoon comedy, pizzicato strings, woodblock and light glockenspiel, cheeky and bouncy, deadpan pauses.',
   pf: 'calm, curious workshop craft process, soft lo-fi groove with gentle guitar and mallets.',
   ms: 'friendly upbeat learning moment, bright ukulele and claps, optimistic.',
   pm: 'before and after makeover, light anticipation that resolves into a satisfying warm reveal.',

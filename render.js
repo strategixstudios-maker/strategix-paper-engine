@@ -85,7 +85,7 @@ module.exports = function run(ep) {
   }
   if (require.main !== module.parent) return { frame, TOTAL };
   (async () => {
-    const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d');
+    const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d'); ST.MODE = mode;
     if (mode === 'info') return console.log(JSON.stringify({ name, total: TOTAL }));
     if (mode === 'vo') return VO ? voPrint(ep.VO_FILE, VO, ep.VO_AT || 0, TOTAL, VO.who) : console.log('vo: το επεισόδιο δεν έχει VO_FILE');
     const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
