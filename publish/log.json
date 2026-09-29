@@ -266,26 +266,52 @@
         "tiktok-business": "cmumeh5dv00nvp80ygyig5722",
         "facebook": "cmumeh5f700nwp80yy9686cth",
         "youtube": "cmumeh5gc00nxp80ymfh77u5q"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
+      }
+    },
+    {
+      "ep": "ad_xeimonas",
+      "file": "ad_xeimonas.mp4",
+      "status": "scheduled",
+      "date": "2026-10-25T17:00:00.000Z",
+      "caption": {
+        "title": "Ήρθε η ώρα να ντύσεις την ομάδα σου για τον χειμώνα;",
+        "text": "Ήρθε η ώρα να ντύσεις την ομάδα σου για τον χειμώνα;\n\nΦούτερ με ή χωρίς κουκούλα, fleece, softshell, μπουφάν. Διάλεξε τα ρούχα που ταιριάζουν στην ομάδα σου και εμείς προσθέτουμε το logo σου με εκτύπωση ή κέντημα. Για να είναι η ομάδα σου όχι μόνο ζεστή, αλλά και επαγγελματική.\n\nΣτείλε μας μήνυμα και πάμε να βρούμε μαζί την κατάλληλη ένδυση για την επιχείρησή σου.\n\n#strategixstudios #επαγγελματικήένδυση #φούτερ #κέντημα #στάμπα"
+      },
+      "media": {
+        "id": "9bd590a8-e7d9-4467-a44a-6fd3bd807372",
+        "path": "https://uploads.postiz.com/0mGdrI607S.mp4"
+      },
+      "postiz": {
+        "instagram": "cmumknkjr020jmt0yhg984187",
+        "tiktok-business": "cmumknklb020kmt0yuujp1z3j",
+        "facebook": "cmumknkmw020lmt0ys5mecj6b",
+        "youtube": "cmumknkot020nmt0yxppz2cth"
       }
     },
     {
       "ep": "ad_event",
       "file": "ad_event.mp4",
       "status": "scheduled",
-      "date": "2026-10-25T17:00:00.000Z",
+      "date": "2026-11-09T17:00:00.000Z",
       "caption": {
         "title": "Γυμναστήριο ή σύλλογος; Όλα για το event σου από έναν συνεργάτη",
         "text": "Έχεις γυμναστήριο ή σύλλογο και ετοιμάζεις το επόμενό σου event;\n\nΡούχα για την ομάδα με στάμπα ή κέντημα και αριθμό στην πλάτη, banners και roll-up, αυτοκόλλητα δαπέδου και σήμανση, μετάλλια και βραβεία με χάραξη laser. Όλα από έναν συνεργάτη, με το ίδιο λογότυπο παντού.\n\nΕσύ οργανώνεις το event, εμείς φροντίζουμε τα υπόλοιπα. Στείλε μας μήνυμα για προσφορά.\n\n#strategixstudios #γυμναστήριο #αθλητικόςσύλλογος #event #αθλητικάρούχα"
       },
       "media": {
-        "id": "921563fe-d160-4200-8e09-5c928ffdca7a",
-        "path": "https://uploads.postiz.com/Tf98Rab5YA.mp4"
+        "id": "5b9b8b73-ee43-43a2-947f-c8bbf55b6cc1",
+        "path": "https://uploads.postiz.com/ibCf32pYk1.mp4"
       },
       "postiz": {
-        "instagram": "cmumei3xf00o0p80y78rjlfas",
-        "tiktok-business": "cmumei3ya00o1p80ybedly6gj",
-        "facebook": "cmumei3ze00o2p80yciaumb5k",
-        "youtube": "cmumei40p00o3p80ycyyu4rsd"
+        "instagram": "cmumkotn3021pmt0ys0z5auea",
+        "tiktok-business": "cmumkotp4021qmt0ygqu10u5d",
+        "facebook": "cmumkotr6021rmt0yvekaz12h",
+        "youtube": "cmumkotsf021smt0y3d1a2emh"
       }
     }
   ],
