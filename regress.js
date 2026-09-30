@@ -38,7 +38,7 @@ const eps = [...new Set([...fs.readdirSync(B).filter(f => isEp(f, B)), ...fs.rea
 // ---------- ένα επεισόδιο σε ένα tree: lint → sheet clean → sfx ----------
 const TIMEOUT = +process.env.REGRESS_TIMEOUT || 420; // s ανά βήμα (diorama: lint ~1–2 λεπτά)
 const run = (dir, args) => new Promise(res => {
-  const p = spawn(process.execPath, args, { cwd: dir }); let out = '', err = '', slow = false;
+  const p = spawn(process.execPath, args, { cwd: dir, env: { ...process.env, JOBS: '1' } }); let out = '', err = '', slow = false; // JOBS=1: τα επεισόδια τρέχουν ήδη παράλληλα εδώ (όχι workers μέσα σε workers)
   const kill = setTimeout(() => { slow = true; p.kill('SIGKILL'); }, TIMEOUT * 1e3);
   p.stdout.on('data', d => out += d); p.stderr.on('data', d => err += d);
   p.on('close', code => { clearTimeout(kill); res({ code, out, err: slow ? `timeout > ${TIMEOUT}s (όχι crash · REGRESS_TIMEOUT=…)\n` + err : err }); });

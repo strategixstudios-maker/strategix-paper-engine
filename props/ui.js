@@ -1,6 +1,7 @@
 // props/ui.js — γραφικά οθόνης: μηνύματα, συννεφάκια, stamps, CTA, chips, slider, κινητό
 const L = require('../lib.js');
-const { C, ST, W, cut, rrPts, circlePts, starPts, txt, pop } = L;
+const { C, ST, W, cut, rrPts, circlePts, starPts, txt, pop, clamp, prog } = L;
+const M = require('../motion.js');
 const { BRAND } = require('./core.js');
 
 // πλάτος κουτιού που χωράει το κείμενο: max(w, πλάτος κειμένου + pad) — κοινό για όλα τα κουτιά με κείμενο (msgBubble, msgOut, speech, speechOff, ctaButton)
@@ -23,10 +24,13 @@ function stamp(ctx, lt, st, x, y, word, rot, col = BRAND, fs = 76) { // big popp
   pop(ctx, lt, st, x, y, () => { ctx.font = `bold ${fs}px Round`; const tw = ctx.measureText(word).width + 80; cut(ctx, rrPts(-tw / 2, -fs * 0.82, tw, fs * 1.64, 22), col, { seed: 40 + word.length, amp: 3, edgeW: 9 }); txt(ctx, word, 0, 4, { font: `bold ${fs}px Round`, color: '#fff' }); }, rot);
 }
 // μόνο στο hook (δηλώνει το είδος του βίντεο)· αλλού μόνο μαζί με caption του hook (π.χ. στο τέλος ενός seamless loop) — αλλιώς lint
+const tagMsg = cap => `seriesTag μόνο στο hook, όχι σε κάθε caption (${cap ? '«' + cap.slice(0, 18) + '…»' : 'χωρίς caption'})`;
+// ίδιος έλεγχος για το παράλληλο lint (render.js): log = [[σκηνή, caption, t], ...] από όλους τους workers → [[msg, t], ...]
+const seriesTagLint = log => { const c0 = new Set(log.filter(e => !e[0]).map(e => e[1])); return c0.size ? log.filter(e => e[0] && !c0.has(e[1])).map(e => [tagMsg(e[1]), e[2]]) : []; };
 function seriesTag(ctx, lt, label, x, y) { // sticker on the caption's bottom-right corner (inside the safe zone) unless x,y given
   ctx.font = '40px Hand'; const tw = ctx.measureText(label).width + 56;
   x = x ?? L.SAFE.right - 40 - tw / 2; y = y ?? (ST.capBottom ? ST.capBottom + 6 : L.SAFE.top + 40);
-  if (ST.lint && lt > 0) { const c0 = ST.CAP0 = ST.CAP0 || new Set(); if (!ST.SCENE) c0.add(ST.capText); else if (c0.size && !c0.has(ST.capText)) ST.warn.push({ msg: `seriesTag μόνο στο hook, όχι σε κάθε caption (${ST.capText ? '«' + ST.capText.slice(0, 18) + '…»' : 'χωρίς caption'})`, x, y }); }
+  if (ST.lint && lt > 0) { if (ST.TAGLOG) ST.TAGLOG.push([ST.SCENE, ST.capText, ST.T]); else { const c0 = ST.CAP0 = ST.CAP0 || new Set(); if (!ST.SCENE) c0.add(ST.capText); else if (c0.size && !c0.has(ST.capText)) ST.warn.push({ msg: tagMsg(ST.capText), x, y }); } }
   pop(ctx, lt, 0, x, y, () => { cut(ctx, rrPts(-tw / 2, -38, tw, 76, 20), C.navy, { seed: 30, amp: 3 }); txt(ctx, label, 0, 2, { font: '40px Hand', color: '#fff' }); }, 0.04);
 }
 // αστεράκι ✨ που σκάει στο start και πάλλεται
@@ -105,4 +109,14 @@ function stepChip(ctx, lt, st, n, label, o = {}) {
   }, -0.03);
 }
 
-module.exports = { qmark, stepChip, msgBubble, speech, stamp, seriesTag, sparkle, ctaButton, uiSlider, msgOut, speechOff, checkChip, phoneFrame };
+// ◀◀ rewind: navy ταμπελάκι που αναβοσβήνει όσο η ιστορία γυρίζει πίσω (t0..t1) · (x, y) πάνω δεξιά κάτω από το caption (ep02 → pf06)
+function rewindTag(ctx, t, t0, t1, x = 890, y = 560) {
+  const p = M.springTo(t, t0, 0, 1, { f: 3, z: 0.45 }) * (1 - clamp(prog(t, t1 - 0.15, t1 + 0.05))); if (p <= 0.01) return;
+  ctx.save(); ctx.translate(x, y); ctx.scale(p, p); ctx.rotate(0.06);
+  cut(ctx, rrPts(-86, -48, 172, 96, 22), C.navy, { seed: 97, amp: 2, edgeW: 8 });
+  ctx.fillStyle = `rgba(255,255,255,${Math.floor(t * 4) % 2 ? 1 : 0.75})`;
+  for (const dx of [-36, 6]) { ctx.beginPath(); ctx.moveTo(dx + 34, -26); ctx.lineTo(dx, 0); ctx.lineTo(dx + 34, 26); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+
+module.exports = { rewindTag, qmark, stepChip, msgBubble, speech, stamp, seriesTag, seriesTagLint, sparkle, ctaButton, uiSlider, msgOut, speechOff, checkChip, phoneFrame };

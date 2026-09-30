@@ -11,7 +11,7 @@ const { C, W, H, ST, cut, rectPts, rrPts, circlePts, starPts, txt, captionSeq, l
 const M = require('./motion.js');
 const D = require('./diorama.js'), { V } = D;
 const { stratos, poseSpring } = require('./stratos.js');
-const { BRAND, seriesTag, kostasLogo, phoneFrame, msgBubble, mug, ctaButton } = require('./props.js');
+const { BRAND, seriesTag, kostasLogo, phoneFrame, msgBubble, mug, ctaButton, rewindTag, roomTex, stratosItem: dioStratos, behindDesk: dioBehind, mixCam, handCam } = require('./props.js'); // κάμερα, σκηνικό γραφείου, Στράτος-κούκλα, rewind → props/diorama.js · props/ui.js (2η χρήση: pf06)
 
 // VO = vo/ep02_vo.mp3 @ 0,2s — `node vo.js ep02` take 1 (seed 1000, κείμενο v2 · «tag» με λατινικά: δοκιμαστικό 3 γραφών, διάλεξε ο Αλέξανδρος) · μεταγραφή Scribe ✔
 // · «Πιο μεγάλο. Λίγο ακόμα.» και «Να πετάει! Να σκάει!» ήταν κολλητά στο take → χωρισμένα στη σιωπή ανάμεσα στις λέξεις (7,36 · 8,20 · 8,955 χρόνος take, +0,5s)
@@ -56,21 +56,7 @@ function chatAt(t) {
 
 // ---------- υφές ----------
 const T = {
-  wall: () => D.tex('wall', 1260, 900, (x, w, h) => {
-    x.fillStyle = C.pale; x.fillRect(0, 0, w, h); L.scribble(x, [0, 0, w, h], '#C9D8F3', 11);
-    x.strokeStyle = 'rgba(30,58,138,0.09)'; x.lineWidth = 3; for (let i = 1; i < 7; i++) { x.beginPath(); x.moveTo(i * w / 7, 0); x.lineTo(i * w / 7, h - 36); x.stroke(); }
-    x.fillStyle = C.blue; x.fillRect(0, h - 36, w, 36);
-  }, 0),
-  floor: () => D.tex('floor', 1260, 600, (x, w, h) => { x.fillStyle = '#14224A'; x.fillRect(0, 0, w, h); L.scribble(x, [0, 0, w, h], '#22346C', 12); }, 0),
-  deskTop: () => D.tex('deskTop', 1360, 720, (x, w, h) => { cut(x, rectPts(6, 6, w - 12, h - 12), C.sky, { seed: 13, amp: 3, scribble: '#A9C3F3', shadow: false }); }, 0),
-  deskFront: () => D.tex('deskFront', 680, 352, (x, w, h) => { cut(x, rectPts(4, 4, w - 8, h - 8), C.blue, { seed: 14, amp: 2, scribble: '#2A4A9E', shadow: false }); }, 0),
-  mat: () => D.tex('mat', 600, 450, (x, w, h) => {
-    const p = cut(x, rrPts(8, 8, w - 16, h - 16, 14), C.navy, { seed: 21, amp: 1.5, edgeW: 6, shadow: false });
-    x.save(); L.path(x, p); x.clip();
-    for (let i = 20; i < w; i += 10) { x.strokeStyle = i % 50 === 20 ? 'rgba(143,176,238,0.30)' : 'rgba(143,176,238,0.12)'; x.lineWidth = i % 50 === 20 ? 2 : 1; x.beginPath(); x.moveTo(i, 0); x.lineTo(i, h); x.stroke(); }
-    for (let j = 20; j < h; j += 10) { x.strokeStyle = j % 50 === 20 ? 'rgba(143,176,238,0.30)' : 'rgba(143,176,238,0.12)'; x.lineWidth = j % 50 === 20 ? 2 : 1; x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); }
-    x.restore();
-  }, 0),
+  wall: roomTex.wall, floor: roomTex.floor, deskTop: roomTex.deskTop, deskFront: roomTex.deskFront, mat: roomTex.mat, // σκηνικό → props/diorama.js
   // δοκιμαστικό A4 (24 px/cm) · hole = το λογότυπο έχει ξεκολλήσει (τρύπα με το πάχος του χαρτιού)
   sheet: hole => D.tex('sheet', 504, 713, (x, w, h) => {
     cut(x, rectPts(8, 8, w - 16, h - 16), '#FBFAF6', { seed: 31, amp: 1.5, edgeW: 5, shadow: false });
@@ -105,11 +91,7 @@ const T = {
     c.fillStyle = C.navy; c.fillRect(0, 0, w, 86); txt(c, 'KOSTAS COFFEE', w / 2, 52, { font: '24px Brand', color: '#fff' });
   }, { seed: 7300 }); }, list.join('|')),
   mug: () => D.tex('mug', 260, 300, x => mug(x, 118, 190, 1.15, ST.T, true)),
-  shelf: () => D.tex('shelf', 680, 170, (x, w, h) => {
-    const rolls = [C.navy, BRAND, C.mid, C.paper, C.sky, C.gold, BRAND, C.pale, C.navy, C.mid];
-    rolls.forEach((col, i) => { const rx = 30 + i * 62, rh = 100 + (i % 3) * 12; cut(x, rrPts(rx, h - 34 - rh, 50, rh, 10), col, { seed: 60 + i, amp: 1.5, edgeW: 6, shadow: false }); x.fillStyle = 'rgba(11,27,63,0.25)'; x.beginPath(); x.ellipse(rx + 25, h - 34 - rh + 10, 14, 6, 0, 0, 7); x.fill(); });
-    cut(x, rectPts(4, h - 36, w - 8, 26), C.navy, { seed: 59, amp: 1.5, edgeW: 6, shadow: false });
-  }, 0),
+  shelf: roomTex.shelf,
   board: () => D.tex('board', 330, 270, (x, w, h) => {
     cut(x, rectPts(8, 8, w - 16, h - 16), C.paper, { seed: 70, amp: 2, edgeW: 6, shadow: false, scribble: '#ECE6D6' });
     [C.navy, BRAND, C.mid, C.sky, C.gold].forEach((col, i) => { cut(x, rectPts(30 + i * 56, 34, 44, 64), col, { seed: 71 + i, amp: 1, edgeW: 4, shadow: false }); x.fillStyle = C.ink; x.beginPath(); x.arc(52 + i * 56, 40, 4, 0, 7); x.fill(); });
@@ -213,34 +195,19 @@ function stratosItem(cam, t, tau, pos, lookAt) {
   const P = poseSpring(POSES, t);
   if (lookAt != null) P.look = lerp(P.look, clamp((lookAt - pos[0]) * 0.35, -15, 15), 0.85);
   const rest = t > 13.0 && t < 19.4 ? 'flat' : 'smile', conf = tau >= T_POP + 0.5, drop = clamp(prog(tau, T_POP + 0.5, T_POP + 0.65));
-  const pxcm = cam.F / Math.max(20, cam.toCam(V.add(pos, [0, 140, 0]))[2]), s = clamp(Math.round(pxcm * 175 / 1243 * 1.15 * 4) / 4, 0.75, 3.25);
-  const cw = Math.ceil(640 * s), ch = Math.ceil(1320 * s), sy = 400 * s, PXC = 1243 * s / 175;
-  const it = { w: cw / PXC, h: ch / PXC, anchor: [0.5, (sy + 878 * s) / ch], pos, clip: behindDesk(cam) };
-  const w0 = ST.warn ? ST.warn.length : 0;
-  it.t = D.tex('stratos', cw, ch, x => {
-    stratos(x, cw / 2, sy, s, { ...P, mouth: lipsync(VO, rest), blink: blinkNow() });
-    if (conf) { x.save(); x.translate(cw / 2 + 22 * s, sy + (10 - 140 - 40 * (1 - drop)) * s); x.rotate(0.5); x.scale(s, s); cut(x, rectPts(-12, -7, 24, 14), BRAND, { seed: 91, amp: 0.8, edgeW: 4 }); x.restore(); }
-  }, t + ':' + s);
-  // lint χεριών: οι θέσεις είναι σε px υφής → px οθόνης μέσω της κάρτας · το safe zone ελέγχεται μόνο στην οθόνη (όχι στην υφή)
-  if (ST.warn) for (let k = ST.warn.length - 1; k >= w0; k--) { const w = ST.warn[k]; if (/safe zone/.test(w.msg)) { ST.warn.splice(k, 1); continue; } const q = cam.proj(D.world(it, w.x / cw, w.y / ch)); w.x = q[0]; w.y = q[1]; }
-  return it;
+  return dioStratos(cam, t, { pos, pose: { ...P, mouth: lipsync(VO, rest), blink: blinkNow() }, clip: dioBehind(cam, R), draw: (x, s, cw, sy) => { // κομφετί στο μουστάκι
+    if (conf) { x.save(); x.translate(cw / 2 + 22 * s, sy + (10 - 140 - 40 * (1 - drop)) * s); x.rotate(0.5); x.scale(s, s); cut(x, rectPts(-12, -7, 24, 14), BRAND, { seed: 91, amp: 0.8, edgeW: 4 }); x.restore(); } } });
 }
-const behindDesk = cam => (c, off) => { // ό,τι στέκεται πίσω από το γραφείο κρύβεται κάτω από την πίσω άκρη του
-  const a = cam.proj([R.desk.x0, 0, R.desk.z1]), b = cam.proj([R.desk.x1, 0, R.desk.z1]), k = (b[1] - a[1]) / (b[0] - a[0]), y = xx => a[1] + (xx - a[0]) * k;
-  c.moveTo(-2000 + off, -3000); c.lineTo(W + 2000 + off, -3000); c.lineTo(W + 2000 + off, y(W + 2000) + off); c.lineTo(-2000 + off, y(-2000) + off); c.closePath();
-};
 
 // ---------- κάμερα (πλάνα σε πραγματικό χρόνο) ----------
 const H0 = { pos: [12, 50, -86], look: [-1, 4, 0], fov: 34, ap: 30 }, H1 = { pos: [9, 40, -66], look: [-2, 6, -4], fov: 34, ap: 30 };
 const MED0 = { pos: [-2, 46, -88], look: [-5, 60, 84], fov: 40, ap: 22 }, MED1 = { pos: [-3, 50, -70], look: [-5, 61, 84], fov: 40, ap: 22 };
 const CTA0 = { pos: [-2, 44, -122], look: [-4, 56, 84], fov: 40, ap: 20 }, CTA1 = { pos: [-3, 47, -102], look: [-4, 57, 84], fov: 40, ap: 20 };
 const PH0 = { pos: V.add(PHONE, [0, 32, -8]), look: V.add(PHONE, [0, 0, 1.5]), fov: 40, ap: 26, roll: 0.42 }, PH1 = { ...PH0, pos: V.add(PHONE, [0, 28, -6.5]) };
-const mixCam = (a, b, p) => ({ pos: V.lerp(a.pos, b.pos, p), look: V.lerp(a.look, b.look, p), fov: lerp(a.fov, b.fov, p), ap: lerp(a.ap, b.ap, p), roll: lerp(a.roll || 0, b.roll || 0, p), focusAt: V.lerp(a.focusAt, b.focusAt, p) });
 // hook · κινητό (πλημμύρα) · Στράτος «ξέρεις» · δοκιμαστικό (ξεκολλάει) · ευρύ (μεγαλώνει) · πτήση · med (σκάει) · κινητό (το πρώτο) · close · rewind · CTA · επιστροφή
 const SHOTS = [0, 1.0, 3.4, 5.0, 6.9, 9.6, 12.15, 13.9, 17.35, RW[0], RW[1], LOOP_AT];
 function shot(t) { let i = 0; while (i + 1 < SHOTS.length && t >= SHOTS[i + 1]) i++; return i; }
 function camAt(t, tau, lg) {
-  const hand = [Math.sin(t * 1.3) * 0.35 + Math.sin(t * 2.9) * 0.15, Math.sin(t * 1.7 + 1) * 0.3, 0];   // κάμερα στο χέρι (ελάχιστα)
   const lc = lg ? lg.c : HINGE, sh = shot(t);
   let o;
   if (sh === 0) o = mixCam({ ...H0, focusAt: lc }, { ...H0, pos: V.add(H0.pos, [-0.5, -2, 4]), focusAt: lc }, easeInOut(prog(t, 0, 1.0)));
@@ -261,7 +228,7 @@ function camAt(t, tau, lg) {
   else o = mixCam({ ...CTA1, focusAt: HEAD }, { ...H0, focusAt: HINGE }, easeInOut(prog(t, 24.8, 25.45)));
   // κάμερα στο χέρι: στο frame 0 / στο τέλος μηδέν (seamless loop)
   const hk = sh === 0 ? clamp(t / 0.6) : sh === 11 ? 1 - prog(t, 24.8, 25.45) : 1;
-  o.pos = V.add(o.pos, V.mul(hand, hk));
+  o.pos = V.add(o.pos, handCam(t, hk));
   return o;
 }
 const MB = t => { const sh = shot(t); return sh === 5 || sh === 9 ? 5 : sh === 11 && t > 24.75 && t < 25.5 ? 5 : (t > 8.35 && t < 8.85) || (t > T_POP - 0.02 && t < T_POP + 0.3) ? 3 : 1; };
@@ -296,15 +263,6 @@ function build(t) {
   return { cam, items, R, light: Lk.light, window: Lk.window, patch: 0.9, shaft: 0.8, dust: 90, grade: { from: [0, H * 0.3], warm: 0.24, bloom: 0.12 } };
 }
 
-// ---------- UI: rewind sticker ----------
-function rewindTag(ctx, t) {
-  const p = M.springTo(t, RW[0], 0, 1, { f: 3, z: 0.45 }) * (1 - clamp(prog(t, RW[1] - 0.15, RW[1] + 0.05))); if (p <= 0.01) return;
-  ctx.save(); ctx.translate(890, 560); ctx.scale(p, p); ctx.rotate(0.06);
-  cut(ctx, rrPts(-86, -48, 172, 96, 22), C.navy, { seed: 97, amp: 2, edgeW: 8 });
-  ctx.fillStyle = `rgba(255,255,255,${Math.floor(t * 4) % 2 ? 1 : 0.75})`;
-  for (const dx of [-36, 6]) { ctx.beginPath(); ctx.moveTo(dx + 34, -26); ctx.lineTo(dx, 0); ctx.lineTo(dx + 34, 26); ctx.closePath(); ctx.fill(); }
-  ctx.restore();
-}
 const CAPS = [[-1, HOOK1], [1.35, 'με αναποφάσιστο πελάτη σε γραφιστικό,'], [3.45, 'ξέρεις ακριβώς τι έρχεται.'], [5.1, '«Κάν\' το να ξεχωρίζει.»'], [7.1, '«Πιο μεγάλο.»'], [8.25, '«Λίγο ακόμα.»'],
   [9.6, '«Να πετάει!»'], [12.15, '«Να σκάει!»'], [14.0, 'Και τότε έρχεται το καλύτερο.'], [15.5, '«Τελικά θα προχωρήσουμε'], [16.78, 'με το πρώτο.»'],
   [19.35, 'Αν είσαι γραφίστας,'], [20.28, 'καταλαβαίνεις για τι μιλάω.'], [21.6, 'Αν δεν είσαι, στείλ\' το στον γραφίστα σου'], [23.82, 'ή κάν\' τον tag.'], [LOOP_AT, HOOK1]];
@@ -314,7 +272,7 @@ function scene(ctx, lt) {
   D.frame(ctx, t, build, { mb: MB(t) });
   captionSeq(ctx, t, CAPS);
   if (t < 5.1) seriesTag(ctx, t + 1, TAG); else if (t >= LOOP_AT) seriesTag(ctx, t - LOOP_AT + 1, TAG);
-  rewindTag(ctx, t);
+  rewindTag(ctx, t, RW[0], RW[1]);
   if (t > 23.82 && t < LOOP_AT) ctaButton(ctx, t, 23.85, 540, 1330, '@γραφίστας');
 }
 

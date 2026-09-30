@@ -3,6 +3,8 @@
 // CLI:  node ep.js sheet            -> <name>_sheet.png (12 evenly spaced frames, cheap review)
 //       node ep.js preview 1.2 5.0  -> <name>_<t>.png
 //       node ep.js render [out.mp4] -> 1080x1920 30fps H.264
+//                                      παράλληλα (pf06): κομμάτια σε JOBS processes (default πυρήνες − 1, max 6 · env JOBS=1 ή ep.JOBS: 1 = σειριακά) → H.264 concat χωρίς re-encode
+//                                      · GC ανά 4 frames σε κάθε worker (αλλιώς ~3 GB/process → swap) · το lint επίσης παράλληλο (~3×)
 //       node ep.js lint             -> anatomy/safe-zone warnings for the whole video (10 samples/s), exit 1 if any
 //       node ep.js sfx              -> μόνο ήχος: <n>_sfx.wav + <n>_sfx.md και remux στο υπάρχον MP4 (χωρίς νέο video render)
 //       node ep.js vo               -> φράσεις του VO_FILE σε χρόνο video (σχόλιο στην κορυφή / timing sheet / SFX cues), χωρίς render
@@ -28,7 +30,8 @@ const L = require('./lib.js');
 const { C, ST, W, H, FPS, cut, rng, lerp, easeInOut } = L;
 const SFX = require('./sfx.js');
 const { spawn, spawnSync } = require('child_process');
-const fs = require('fs');
+const fs = require('fs'), os = require('os'), path = require('path');
+const UI = require('./props/ui.js');
 
 const LOOP_BLOCKS = 12; // loop lint: max περιοχές 40×40 px που αλλάζουν > 20% ανάμεσα στο τελευταίο και το πρώτο frame (boil/grain/σπίθες μένουν κάτω)
 const HOOK_BLOCKS = 60; // hook lint (§5.1): περιοχές 40×40 που αλλάζουν > 20% ανάμεσα σε δύο δείγματα (0,5s) = «αλλαγή εικόνας» (όχι αργό zoom)
@@ -85,13 +88,14 @@ module.exports = function run(ep) {
   }
   if (require.main !== module.parent) return { frame, TOTAL };
   (async () => {
-    const mode = process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d'); ST.MODE = mode;
+    // _part = worker του παράλληλου render/lint (par() κάτω): node ep.js _part <render|lint> <a> <b> <out>
+    const part = process.argv[2] === '_part', mode = part ? process.argv[3] : process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d'); ST.MODE = mode;
     if (mode === 'info') return console.log(JSON.stringify({ name, total: TOTAL }));
     if (mode === 'vo') return VO ? voPrint(ep.VO_FILE, VO, ep.VO_AT || 0, TOTAL, VO.who) : console.log('vo: το επεισόδιο δεν έχει VO_FILE');
     const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
     ST.lint = mode !== 'render';
     const WARN = new Map(); // msg -> [firstT, lastT]
-    for (const [m, t] of sfxWarn()) WARN.set(m, [t, t]);
+    if (!part) for (const [m, t] of sfxWarn()) WARN.set(m, [t, t]);
     const drawWarn = () => { ctx.save(); for (const w of ST.warn) { ctx.strokeStyle = '#FF1E50'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(w.x, w.y, 70, 0, 7); ctx.stroke(); ctx.font = 'bold 30px Round'; const tw = Math.min(ctx.measureText(w.msg).width, 1000); const bx = Math.max(10, Math.min(W - tw - 30, w.x - tw / 2)); ctx.fillStyle = '#FF1E50'; ctx.fillRect(bx - 10, w.y + 78, tw + 20, 44); ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(w.msg, bx, w.y + 100, 1000); } ctx.restore(); };
     const draw = t => { ST.FRAME = Math.round(t * FPS); ST.capBottom = null; ST.capText = null; ST.warn = []; ctx.clearRect(0, 0, W, H); frame(ctx, t); if (guide && mode !== 'render') { L.safeGuide(ctx); drawWarn(); } for (const w of ST.warn) { const r = WARN.get(w.msg); r ? (r[1] = t) : WARN.set(w.msg, [t, t]); } };
     const report = () => { if (!WARN.size) { console.log('lint ✔ καθαρό'); return 0; } console.log(`lint: ${WARN.size} warning(s)`); for (const [m, [a, b]] of WARN) console.log(`  ${a.toFixed(1)}–${b.toFixed(1)}s  ${m}`); return 1; };
@@ -114,7 +118,44 @@ module.exports = function run(ep) {
       const changes = diffs.filter(b => b > HOOK_BLOCKS).length;
       if (changes < 2) WARN.set(`hook: ${changes} αλλαγή εικόνας στα πρώτα 3s (θέλει ≥ 2 · κάθε ~1s: νέο κάδρο, snap, pop) → §5.1`, [0, 3]);
     };
-    if (mode === 'lint') { for (let t = 0; t < TOTAL; t += 0.1) draw(t); if (ep.LOOP !== false) loopCheck(); hookCheck(); process.exitCode = report(); return; }
+    // ---------- παράλληλα (pf06 →): τα frames είναι stateless (§1b) → κομμάτια σε JOBS processes · default πυρήνες − 1 (max 6) · JOBS=1 (env) ή ep.JOBS: 1 = σειριακά
+    const lintTimes = () => { const T = []; for (let t = 0; t < TOTAL; t += 0.1) T.push(t); return T; }; // 10 δείγματα/s, ίδια με το σειριακό
+    const rawIn = ['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', `${FPS}`, '-i', '-'], x264 = ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium'];
+    const pipeFrame = async ff => { if (!ff.stdin.write(Buffer.from(ctx.getImageData(0, 0, W, H).data.buffer))) await new Promise(r => ff.stdin.once('drain', r)); };
+    if (part) { // worker: frames/δείγματα [a, b) → render: κομμάτι H.264 στο out · lint: warnings + seriesTag log (JSON) στο out
+      const a = +process.argv[4], b = +process.argv[5], out = process.argv[6];
+      if (mode === 'lint') { ST.TAGLOG = []; const T = lintTimes(); for (let i = a; i < b; i++) { draw(T[i]); if (global.gc && (i - a) % 4 === 3) global.gc(); } fs.writeFileSync(out, JSON.stringify({ warn: [...WARN], tags: ST.TAGLOG })); return; }
+      const ff = spawn('ffmpeg', [...rawIn, ...x264, '-threads', '2', out], { stdio: ['pipe', 'ignore', 'inherit'] });
+      for (let f = a; f < b; f++) { draw(f / FPS); await pipeFrame(ff); process.stdout.write('\x01'); if (global.gc && (f - a) % 4 === 3) global.gc(); } // GC: οι canvases που πετιούνται ελευθερώνονται αμέσως (αλλιώς ~3 GB/process → swap)
+      ff.stdin.end(); const code = await new Promise(r => ff.on('close', r)); if (code) throw new Error(`ffmpeg exit ${code} (${out})`); return;
+    }
+    const JOBS = Math.max(1, Math.floor(+(process.env.JOBS || ep.JOBS || Math.min(6, os.cpus().length - 1))));
+    const par = async (kind, n, chunks, onTick) => { // n δουλειές σε chunks κομμάτια [a, b) → ουρά με JOBS workers · onTick(k) = πρόοδος (render: 1 ανά frame)
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), `sx-${name}-`)), procs = new Set();
+      const R = Array.from({ length: chunks }, (_, k) => [Math.round(k * n / chunks), Math.round((k + 1) * n / chunks), path.join(dir, `${String(k).padStart(3, '0')}.${kind === 'render' ? 'mp4' : 'json'}`)]);
+      const one = ([a, b, out]) => new Promise((res, rej) => {
+        const p = spawn(process.execPath, ['--expose-gc', process.argv[1], '_part', kind, a, b, out], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, JOBS: '1' } }); procs.add(p);
+        let err = ''; p.stderr.on('data', d => err += d); p.stdout.on('data', d => onTick && onTick(String(d).split('\x01').length - 1));
+        p.on('close', c => { procs.delete(p); c ? rej(new Error(`worker ${kind} ${a}–${b}: exit ${c}\n${err.slice(-3000)}`)) : res(); });
+      });
+      let next = 0;
+      try { await Promise.all(Array.from({ length: Math.min(JOBS, chunks) }, async () => { while (next < R.length) await one(R[next++]); })); }
+      catch (e) { next = R.length; for (const p of procs) p.kill(); fs.rmSync(dir, { recursive: true, force: true }); throw e; }
+      return { dir, outs: R.map(r => r[2]) };
+    };
+    const t0 = Date.now(), mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    if (mode === 'lint') {
+      const T = lintTimes();
+      if (JOBS > 1 && T.length > 60) {
+        const { dir, outs } = await par('lint', T.length, JOBS), tags = [], add = (m, a, b) => { const w = WARN.get(m); w ? (w[0] = Math.min(w[0], a), w[1] = Math.max(w[1], b)) : WARN.set(m, [a, b]); };
+        for (const f of outs) { const r = JSON.parse(fs.readFileSync(f)); for (const [m, [a, b]] of r.warn) add(m, a, b); tags.push(...r.tags); }
+        for (const [m, t] of UI.seriesTagLint(tags)) add(m, t, t);
+        fs.rmSync(dir, { recursive: true, force: true });
+      } else for (const t of T) draw(t);
+      if (ep.LOOP !== false) loopCheck(); hookCheck(); process.exitCode = report();
+      if (process.env.TIMING) console.log(`(lint ${mmss((Date.now() - t0) / 1e3)} · ${JOBS > 1 && T.length > 60 ? JOBS : 1} process)`);
+      return;
+    }
     if (mode === 'sfx') {
       const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : '') + (MU ? ' + μουσική' : ''));
       if (fs.existsSync(mp4)) { const tmp = mp4.replace(/\.mp4$/, '') + '.tmp.mp4'; const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp]); if (r.status === 0) { fs.renameSync(tmp, mp4); console.log('remux', mp4); } else console.log('✘ remux', String(r.stderr)); }
@@ -129,9 +170,22 @@ module.exports = function run(ep) {
     const out = process.argv[3] || `${name}.mp4`, N = Math.round(TOTAL * FPS);
     const wav = CUES.length || VO || MU ? writeSfx() : null; // πρώτα ο ήχος (1s): άγνωστο preset → σφάλμα πριν το video render
     const aIn = wav ? ['-i', wav] : [], aOut = wav ? ['-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '192k', '-shortest'] : [];
-    const ff = spawn('ffmpeg', ['-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', `${FPS}`, '-i', '-', ...aIn, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium', ...aOut, '-movflags', '+faststart', out], { stdio: ['pipe', 'ignore', 'ignore'] });
-    for (let f = 0; f < N; f++) { draw(f / FPS); const buf = Buffer.from(ctx.getImageData(0, 0, W, H).data.buffer); if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r)); }
-    ff.stdin.end(); await new Promise(r => ff.on('close', r)); console.log('done', out, TOTAL + 's', wav ? `+ ${wav}, ${name}_sfx.md (${CUES.length} SFX)` : '(silent)');
+    const P = JOBS > 1 && N > 90;
+    if (P) { // παράλληλα: κομμάτια H.264 (ίδιες ρυθμίσεις) → concat χωρίς re-encode + ήχος
+      let done = 0, shown = 0; console.log(`render ${N} frames · ${JOBS} processes`);
+      const { dir, outs } = await par('render', N, Math.min(JOBS * 3, Math.ceil(N / 30)), k => {
+        done += k; const pc = Math.floor(done / N * 10); if (pc <= shown) return; shown = pc; const el = (Date.now() - t0) / 1e3;
+        console.log(`  ${pc * 10}% · ${mmss(el)}` + (done < N ? ` · ~${mmss(el * (N - done) / done)} ακόμα` : ''));
+      });
+      const list = path.join(dir, 'list.txt'); fs.writeFileSync(list, outs.map(f => `file '${f}'`).join('\n'));
+      const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', list, ...aIn, ...(wav ? aOut : ['-map', '0:v']), '-c:v', 'copy', '-movflags', '+faststart', out]);
+      fs.rmSync(dir, { recursive: true, force: true }); if (r.status) throw new Error('ffmpeg concat: ' + r.stderr);
+    } else {
+      const ff = spawn('ffmpeg', [...rawIn, ...aIn, ...x264, ...aOut, '-movflags', '+faststart', out], { stdio: ['pipe', 'ignore', 'ignore'] });
+      for (let f = 0; f < N; f++) { draw(f / FPS); await pipeFrame(ff); }
+      ff.stdin.end(); await new Promise(r => ff.on('close', r));
+    }
+    console.log('done', out, TOTAL + 's', `(${mmss((Date.now() - t0) / 1e3)} · ${P ? JOBS : 1} process)`, wav ? `+ ${wav}, ${name}_sfx.md (${CUES.length} SFX)` : '(silent)');
   })();
 };
 

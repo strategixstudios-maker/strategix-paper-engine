@@ -51,20 +51,22 @@ function tex(key, w, h, draw, v = ST.B) {
   const e0 = TEX.get(key); if (e0 && e0.v === v && e0.w === w && e0.h === h) return e0;
   const c = e0 && e0.w === w && e0.h === h ? e0.c : createCanvas(w, h), x = c.getContext('2d');
   x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, h); x.save(); draw(x, w, h); x.restore();
-  const e = { key, c, w, h, v }; TEX.set(key, e); return e;
+  const e = { key, c, w, h, v }; TEX.set(key, e);
+  if (e0 && e0.c === c) e.pool = { back: e0.back || e0.pool?.back, sil: e0.sil || e0.pool?.sil, shc: e0.shc || e0.pool?.shc }; // νέα έκδοση ίδιου μεγέθους: ξαναχρησιμοποιεί τους canvases (λιγότερη μνήμη, pf06)
+  return e;
 }
 function derived(e, kind) { // 'back' = πίσω όψη (ίδιο σχήμα, άβαφο χαρτί) · 'sil' = σιλουέτα για σκιές
   if (e[kind]) return e[kind];
-  const c = createCanvas(e.w, e.h), x = c.getContext('2d'); x.drawImage(e.c, 0, 0); x.globalCompositeOperation = 'source-in';
+  const c = e.pool?.[kind] || createCanvas(e.w, e.h), x = c.getContext('2d'); x.globalCompositeOperation = 'copy'; x.drawImage(e.c, 0, 0); x.globalCompositeOperation = 'source-in';
   x.fillStyle = kind === 'sil' ? '#070C24' : BACK; x.fillRect(0, 0, e.w, e.h);
   if (kind === 'back') { x.globalCompositeOperation = 'source-atop'; L.scribble(x, [0, 0, e.w, e.h], '#DCD4C0', 3); }
-  return (e[kind] = c);
+  x.globalCompositeOperation = 'source-over'; return (e[kind] = c);
 }
 function shaded(e, k, back) { // φωτισμός ανά γωνία: k < 1 σκιά (ψυχρό navy) · k > 1 φως (ζεστό)
   const base = back ? derived(e, 'back') : e.c; if (Math.abs(k - 1) < 0.015) return base;
   const q = Math.round(k * 50) / 50, key = (back ? 'b' : 'f') + q;
   if (e.shk === key) return e.shc;
-  const c = e.shc || createCanvas(e.w, e.h), x = c.getContext('2d');
+  const c = e.shc || e.pool?.shc || createCanvas(e.w, e.h), x = c.getContext('2d');
   x.globalCompositeOperation = 'copy'; x.drawImage(base, 0, 0); x.globalCompositeOperation = 'source-atop';
   x.fillStyle = q < 1 ? `rgba(14,20,56,${(1 - q) * 0.95})` : `rgba(255,228,184,${(q - 1) * 1.5})`; x.fillRect(0, 0, e.w, e.h);
   x.globalCompositeOperation = 'source-over'; e.shk = key; e.shc = c; return c;
@@ -98,7 +100,8 @@ function blurDraw(dst, dOff, src, box, r, alpha = 1, op) {
 // item = { t: tex() | fill: χρώμα (σκέτο χαρτί: κομφετί) , w, h (cm), pos (σημείο anchor στον κόσμο), anchor [ax, ay] (0..1 της υφής, default [0.5, 1] = κάτω-κέντρο),
 //          rot [rx, ry, rz], bend(u, v) → cm προς την μπροστινή όψη (τσάκισμα / καμπύλωμα), surface (ξαπλωμένο στο γραφείο / κολλημένο στον τοίχο: μπαίνει στο σκηνικό,
 //          δέχεται σκιές) + lift (cm, πόσο «πατάει»: σκιά επαφής, default 0.15), shadow (default true), lit (default true), alpha, clip(ctx, off) (path σε px οθόνης + off),
-//          n/m (πλέγμα προοπτικής · default αυτόματα), backFill (χρώμα πίσω όψης για fill) }
+//          n/m (πλέγμα προοπτικής · default αυτόματα), backFill (χρώμα πίσω όψης για fill), zBias (cm: σειρά ζωγραφικής σαν να ήταν πιο κοντά),
+//          dofAt [u, v] (σημείο της υφής που ορίζει το θόλωμα, αντί για το κέντρο: άκρη δαχτύλου, μύτη μαχαιριού) }
 function world(it, u, v) {
   const [ax, ay] = it.anchor || [0.5, 1];
   const p = [(u - ax) * it.w, (ay - v) * it.h, it.bend ? -it.bend(u, v) : 0];
@@ -112,7 +115,7 @@ function prep(cam, it, Lt) {
   const nf = it._back ? V.mul(nrm, -1) : nrm;
   it._k = it.lit === false ? 1 : clamp(1 + 0.45 * (V.dot(nf, Lt.to) - Lt.ref), 0.6, 1.14); // «έκθεση» για ό,τι κοιτάει την κάμερα: εκεί k = 1 (τα χρώματα του brand ως έχουν)
   if (it.fill) it._k = 0.86 + (it._k - 0.55) * 0.55; // κομφετί: στενότερο εύρος (όχι μαύρα κομμάτια), λάμπουν όταν γυρίζουν προς το φως
-  it._z = cam.toCam(ctr)[2];
+  it._zc = cam.toCam(it.dofAt ? world(it, ...it.dofAt) : ctr)[2]; it._z = cam.toCam(ctr)[2] - (it.zBias || 0); // zBias (cm): σειρά ζωγραφικής σαν να ήταν πιο κοντά (μικρό κομμάτι μπροστά από μεγάλο, π.χ. καρότσι μπροστά από τη ράγα · pf06) · το θόλωμα μένει από το _zc
   let n = it.n, m = it.m;
   if (it.fill) n = m = 1;
   else if (!n) {
@@ -331,7 +334,7 @@ function draw(ctx, scene, t) {
   const Lr = scratch('lay'); let cur = -1, box = null;
   const flush = () => { if (box) blurDraw(ctx, 0, Lr.c, box, cur); scratch('lay'); box = null; };
   for (const it of obj) {
-    const r = cam.coc(it._z), lvl = r < 1.5 ? 0 : LEVELS.reduce((b, l) => Math.abs(l - r) < Math.abs(b - r) ? l : b, 0);
+    const r = cam.coc(it._zc ?? it._z), lvl = r < 1.5 ? 0 : LEVELS.reduce((b, l) => Math.abs(l - r) < Math.abs(b - r) ? l : b, 0);
     if (lvl !== cur) { flush(); cur = lvl; }
     if (lvl === 0) { drawItem(ctx, 0, it); continue; }
     drawItem(Lr.x, PAD, it); box = box ? [Math.min(box[0], it._box[0]), Math.min(box[1], it._box[1]), Math.max(box[2], it._box[2]), Math.max(box[3], it._box[3])] : it._box.slice();

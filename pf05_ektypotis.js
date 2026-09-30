@@ -31,8 +31,8 @@ const VO = []; // lip-sync από την ένταση του αρχείου (ST.
 const TAG = 'Πώς φτιάχνεται;', HOOK = 'Αυτός ο εκτυπωτής έχει μόνο 4 μελάνια.';
 
 // ---------- χρώματα ----------
-const INK = { C: '#16A3E0', M: '#E2358E', Y: '#F6D22F', K: '#262833' }, CH = ['C', 'M', 'Y', 'K'];
-const STEEL = '#AEB8CC', STEELD = '#7E89A2', STEELL = '#D5DCE9', BODY = '#E9EDF4', LINER = '#E6DFCD', MUST = '#E8B04A';
+const { INK, INKS: CH, METAL, printerFront, contour, contourAt: contourOf } = require('./props.js');   // → props/printing.js (2η χρήση: pf06)
+const { steel: STEEL, dark: STEELD, light: STEELL, body: BODY, liner: LINER } = METAL, MUST = '#E8B04A';
 // κεραυνός (ρεύμα) — σχήμα, όχι emoji (οι γραμματοσειρές μας δεν έχουν ⚡)
 const bolt = (ctx, x, y, s, col) => { ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = col; ctx.strokeStyle = C.navy; ctx.lineWidth = 3; ctx.beginPath();
   [[6, -24], [-12, 4], [-1, 4], [-6, 24], [12, -6], [1, -6]].forEach(([a, b], i) => (i ? ctx.lineTo(a, b) : ctx.moveTo(a, b))); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); };
@@ -106,25 +106,8 @@ function printArt(ctx, o = {}) {
   ctx.restore();
 }
 // περίγραμμα κοπής (contour cut): ART + 16px περιθώριο, πολικό από το κέντρο → [x, y] σε ART + μήκη
-const CONT = (() => {
-  const D = 16, c = L.createCanvas(AW, AW), x = c.getContext('2d');
-  for (let a = 0; a < 20; a++) x.drawImage(ART, Math.cos(a / 20 * 2 * Math.PI) * D, Math.sin(a / 20 * 2 * Math.PI) * D);
-  x.drawImage(ART, 0, 0);
-  const d = x.getImageData(0, 0, AW, AW).data, cx = 300, cy = 320, N = 220, R = [];
-  for (let n = 0; n < N; n++) {
-    const a = n / N * 2 * Math.PI - Math.PI / 2; let r = 296;                             // από την κορυφή, δεξιόστροφα
-    for (; r > 0; r--) { const px = Math.round(cx + Math.cos(a) * r), py = Math.round(cy + Math.sin(a) * r); if (px >= 0 && py >= 0 && px < AW && py < AW && d[(py * AW + px) * 4 + 3] > 80) break; }
-    R.push(r);
-  }
-  const pts = R.map((_, n) => { let s = 0; for (let k = -4; k <= 4; k++) s += R[(n + k + N) % N]; const r = s / 9, a = n / N * 2 * Math.PI - Math.PI / 2; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; });
-  let s = 0; const len = pts.map((p, i) => (s += i ? Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0));
-  return { pts, len, total: s + Math.hypot(pts[0][0] - pts[N - 1][0], pts[0][1] - pts[N - 1][1]) };
-})();
-function contourAt(p) { // σημείο του περιγράμματος στο ποσοστό p (0..1), από την κορυφή δεξιόστροφα
-  const L0 = clamp(p) * CONT.total, { pts, len } = CONT; let i = 1; while (i < pts.length && len[i] < L0) i++;
-  const a = pts[i - 1], b = pts[i % pts.length], f = (L0 - len[i - 1]) / ((i < pts.length ? len[i] : CONT.total) - len[i - 1] || 1);
-  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, i];
-}
+const CONT = contour(ART, { cx: 300, cy: 320, rMax: 296 });
+const contourAt = p => contourOf(CONT, p); // σημείο του περιγράμματος στο ποσοστό p (0..1), από την κορυφή δεξιόστροφα
 // αυτοκόλλητο: (x, y) = κέντρο, s κλίμακα (1 = 600px) · o.die: κομμένο (λευκό βινύλιο γύρω γύρω + σκιά) · o.lift ύψος σκιάς · o.rot
 function sticker(ctx, x, y, s, o = {}) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(o.rot || 0); ctx.scale(s, s); ctx.translate(-300, -300);
@@ -139,25 +122,6 @@ function sticker(ctx, x, y, s, o = {}) {
 const BEAN = [264, 110];                                                                    // σημείο του σκούφου (ART) για το μακροπλάνο
 
 // ---------- εκτυπωτής, πρόσοψη (hook): σώμα, στάντ, παράθυρο με το καρότσι, πάνελ, σχισμή εξόδου, βινύλιο που κρέμεται ----------
-function printerFront(ctx, t, o = {}) {
-  for (const lx of [150, 930]) { cut(ctx, rrPts(lx - 22, 800, 44, 860, 12), STEELD, { seed: 9200 + lx, amp: 1.5, edgeW: 5 }); cut(ctx, rrPts(lx - 95, 1640, 190, 36, 16), C.navy, { seed: 9203 + lx, amp: 1.5, edgeW: 5 }); }
-  cut(ctx, rrPts(150, 1420, 780, 30, 12), STEEL, { seed: 9206, amp: 1.5, edgeW: 5 });
-  cut(ctx, rrPts(60, 560, 960, 270, 40), BODY, { seed: 9210, amp: 2, scribble: '#DCE2EC' });
-  cut(ctx, rrPts(60, 560, 960, 64, 28), '#CBD3E1', { seed: 9211, amp: 1.5, edgeW: 5, shadow: false });
-  const win = cut(ctx, rrPts(206, 642, 672, 108, 22), '#34466F', { seed: 9212, amp: 1.5, edgeW: 6 });
-  ctx.save(); L.path(ctx, win); ctx.clip();
-  ctx.fillStyle = STEEL; ctx.fillRect(206, 668, 672, 10);                                               // ράγα
-  const cx = o.car ?? lerp(330, 750, 0.5 + 0.5 * Math.sin(t * 5));
-  cut(ctx, rrPts(cx - 58, 662, 116, 76, 12), C.navy, { seed: 9213, amp: 1, edgeW: 4, shadow: false });
-  CH.forEach((k, i) => { ctx.fillStyle = INK[k]; ctx.fillRect(cx - 40 + i * 22, 650, 10, 20); });
-  ctx.restore();
-  cut(ctx, rrPts(84, 642, 104, 108, 16), '#CBD3E1', { seed: 9214, amp: 1.5, edgeW: 5, shadow: false });   // πόρτα φυσιγγίων
-  CH.forEach((k, i) => cut(ctx, rrPts(98 + i * 22, 660, 16, 72, 6), INK[k], { seed: 9215 + i, amp: 0.8, edge: false, shadow: false }));
-  cut(ctx, rrPts(898, 642, 96, 108, 16), C.navy, { seed: 9220, amp: 1.5, edgeW: 5 });                    // πάνελ
-  dot(ctx, 922, 672, 9, '#7EE0A0'); dot(ctx, 948, 672, 9, C.paper); dot(ctx, 972, 672, 9, C.paper);
-  ctx.fillStyle = '#8FB0EE'; ctx.fillRect(914, 696, 66, 34);
-  cut(ctx, rrPts(170, 786, 740, 30, 12), '#22304F', { seed: 9222, amp: 1, edgeW: 5, shadow: false });    // σχισμή εξόδου
-}
 function vinylHang(ctx) { cut(ctx, [[190, 800], [890, 800], [890, 1600], [870, 1640], [210, 1640], [190, 1600]], '#FFFFFF', { seed: 9230, amp: 1.5, edgeW: 0, sy: 10 }); }
 // φυσίγγιο (πρόσοψη, όρθιο): σώμα navy, ετικέτα στο χρώμα του μελανιού, γράμμα
 function cartridge(ctx, x, y, k, s = 1) {

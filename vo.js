@@ -1,7 +1,7 @@
 // vo.js — VO «Stratos» από το ElevenLabs API με ΣΤΑΘΕΡΕΣ ρυθμίσεις (ίδια φωνή σε κάθε επεισόδιο · STYLE_GUIDE §5d)
 // Ο connector του ElevenLabs δεν δέχεται stability / seed και το site θέλει χειροκίνητες ρυθμίσεις κάθε φορά → εδώ είναι κλειδωμένες.
 // Key: export ELEVENLABS_API_KEY=… στο ~/.zshrc (ΠΟΤΕ στο git).
-// CLI:  node vo.js <ep> [--takes 2] [--seed N] [--tempo 1.08]  → κείμενο από vo/<ep>.txt → <ep>_take<k>.mp3 (μονόλογος: ήδη σε STRATOS.tempo) + .words.json (χρόνοι λέξεων) στη ρίζα (εκτός git)
+// CLI:  node vo.js <ep> [--takes 2] [--seed N] [--tempo 1.12]  → κείμενο από vo/<ep>.txt → <ep>_take<k>.mp3 (μονόλογος: ήδη σε STRATOS.tempo) + .words.json (χρόνοι λέξεων) στη ρίζα (εκτός git)
 //       μετά: node render.js vo <ep>_take1.mp3 --gap 0.3 [--keep …] --out vo/<ep>_vo.mp3 --at 0.2 (βλ. §5d)
 // Διάλογος («Το Εργαστήριο»): κάθε γραμμή `ΟΝΟΜΑ: κείμενο` (ΣΤΡΑΤΟΣ · ΦΟΙΒΟΣ · ΡΕΝΑ) → default (er02): TTS ανά ομιλητή = όλες οι ατάκες του σε ΕΝΑ generation
 //       (η φωνή όπως στο voice test — το text-to-dialogue του er01 δεν έμοιαζε με τις επιλεγμένες) → κόψιμο ανά ατάκα (timestamps) → σειρά σεναρίου με παύση --turn 0.3
@@ -19,7 +19,7 @@ const STRATOS = {
   seed: 1000,                                      // take k → seed + k − 1 (ίδιο κείμενο + ίδιο seed ≈ ίδιο αποτέλεσμα)
   lang: 'el',
   format: 'mp3_44100_128',
-  tempo: 1.08,                                     // μονόλογος: atempo στα takes (ad_xeimonas →, «πιο γρήγορα» · ίδιος τόνος φωνής) → ο Αλέξανδρος ακούει την τελική ταχύτητα · --tempo 1 = όπως βγαίνει από το API
+  tempo: 1.12,                                     // μονόλογος: atempo στα takes (ad_xeimonas 1.08 → pf06 1.12, «λίγο πιο γρήγορα» · ίδιος τόνος φωνής) → ο Αλέξανδρος ακούει την τελική ταχύτητα · --tempo 1 = όπως βγαίνει από το API
 };
 
 async function tts(text, seed, key, voice = STRATOS.voice) {
@@ -152,7 +152,7 @@ async function dialogue(lines, seed, key) {
 
 if (require.main === module) (async () => {
   const [ep, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
-  if (!ep) { console.log('usage: node vo.js <ep> [--takes 2] [--seed N] [--tempo 1.08] [--turn 0.3] [--each | --dialogue]   (κείμενο: vo/<ep>.txt)'); process.exit(1); }
+  if (!ep) { console.log('usage: node vo.js <ep> [--takes 2] [--seed N] [--tempo 1.12] [--turn 0.3] [--each | --dialogue]   (κείμενο: vo/<ep>.txt)'); process.exit(1); }
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) { console.log('vo: λείπει το ELEVENLABS_API_KEY → export ELEVENLABS_API_KEY=… στο ~/.zshrc και νέο terminal'); process.exit(1); }
   const txtFile = `vo/${ep}.txt`; if (!fs.existsSync(txtFile)) { console.log(`vo: δεν υπάρχει το ${txtFile}`); process.exit(1); }
