@@ -25,3 +25,6 @@ regress/
 
 # μουσική (ElevenLabs Music, music.js · μπαίνει στο git)
 !music/*.mp3
+
+# macOS Finder
+.DS_Store
