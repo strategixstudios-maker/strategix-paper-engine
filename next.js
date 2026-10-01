@@ -5,8 +5,8 @@
 //   το context μένει μικρό (μέτρηση 2026-10-01: μετά το 1ο render ~337K tokens context σε κάθε βήμα = το μισό κόστος του επεισοδίου).
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const ROOT = __dirname;
-const isEp = f => /^[a-z]+\d+[\w]*\.js$/.test(f) && !f.includes('_legacy') && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(ROOT, f), 'utf8'));
-const idOf = n => n.replace(/\.js$/, '').split('_')[0];
+const isEp = f => /^[a-z]+\d*_\w+\.js$/.test(f) && !f.includes('_legacy') && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(ROOT, f), 'utf8'));
+const idOf = n => { n = n.replace(/\.js$/, ''); return /^ad_/.test(n) ? n : n.split('_')[0]; }; // pf06_autokollita → pf06 · ads: ολόκληρο (ad_event)
 const mt = f => fs.existsSync(path.join(ROOT, f)) ? fs.statSync(path.join(ROOT, f)).mtimeMs : 0;
 const git = (...a) => { const r = spawnSync('git', a, { cwd: ROOT, encoding: 'utf8' }); return r.status === 0 ? r.stdout.trim() : ''; };
 
@@ -27,7 +27,7 @@ function state(id) {
 }
 const latest = () => { // το επεισόδιο που άλλαξε τελευταίο (αρχείο επεισοδίου · vo/<ep>.txt · scripts/<ep>.md)
   const c = [...fs.readdirSync(ROOT).filter(isEp).map(f => [idOf(f), mt(f)]),
-    ...fs.readdirSync(path.join(ROOT, 'vo')).filter(f => /^[a-z]+\d+\.txt$/.test(f)).map(f => [f.replace('.txt', ''), mt('vo/' + f)]),
+    ...fs.readdirSync(path.join(ROOT, 'vo')).filter(f => /^([a-z]+\d+|ad_\w+)\.txt$/.test(f)).map(f => [f.replace('.txt', ''), mt('vo/' + f)]),
     ...(fs.existsSync(path.join(ROOT, 'scripts')) ? fs.readdirSync(path.join(ROOT, 'scripts')).filter(f => f.endsWith('.md')).map(f => [f.replace('.md', ''), mt('scripts/' + f)]) : [])];
   return c.sort((a, b) => b[1] - a[1])[0]?.[0];
 };
@@ -80,7 +80,7 @@ function after(name, mode, ok = true) {
 }
 
 if (require.main === module) {
-  const id = (process.argv[2] || latest() || '').replace(/\.js$/, '').split('_')[0];
+  const id = idOf(process.argv[2] || latest() || '');
   if (!id) { console.log(block('κανένα επεισόδιο σε εξέλιξη', { clear: true, effort: 'high', say: '«νέο επεισόδιο: <ιδέα>»' })); process.exit(0); }
   const s = state(id), y = b => b ? '✔' : '·';
   console.log(`${s.name || id}: σενάριο ${y(s.script)} · vo txt ${y(s.txt)} · takes ${s.takes.length || '·'} · VO ${y(s.vo)} · κώδικας ${y(s.epFile)} · μουσική ${y(s.music)} · MP4 ${s.mp4 ? (s.fresh ? '✔' : 'παλιό') : '·'}`

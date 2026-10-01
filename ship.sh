@@ -11,7 +11,7 @@ BASE=$(git rev-parse origin/main)
 git add -A
 # lint gate: κάθε επεισόδιο που άλλαξε πρέπει να βγαίνει «lint ✔ καθαρό»
 # επεισόδιο = .js στη ρίζα που καλεί το render.js, όχι _legacy (χωρίς λίστα prefixes: νέα σειρά μπαίνει αυτόματα · ίδιο κριτήριο με το regress.js)
-for f in $(git diff --cached --name-only --diff-filter=AM "$BASE" | grep -E '^[^/]+\.js$' | grep -v '_legacy' || true); do
+for f in $(git diff --cached --name-only --diff-filter=AM "$BASE" | grep -E '^[a-z]+[0-9]*_[^/]+\.js$' | grep -v '_legacy' || true); do
   grep -qE "^[^/]*require\('\./render\.js'\)\(" "$f" || continue
   echo "lint $f"; node "$f" lint || { [ -n "$FORCE" ] || { echo "✘ $f όχι καθαρό (FORCE=1 για παράκαμψη)"; exit 1; }; }
 done

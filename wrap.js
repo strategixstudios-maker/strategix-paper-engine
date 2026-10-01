@@ -4,7 +4,7 @@
 //       + τυπώνει σκελετό εγγραφής για το EPISODES.md (3–6 γραμμές) · μετά: commit + push
 // Θέλει το επεισόδιο να κάνει module.exports = require('./render.js')({...}) (σκελετός new.js · pf06 →).
 const fs = require('fs'), path = require('path');
-const id = (process.argv[2] || '').replace(/\.js$/, '').split('_')[0];
+const id = ((a) => /^ad_/.test(a) ? a : a.split('_')[0])((process.argv[2] || '').replace(/\.js$/, ''));
 if (!id) { console.log('usage: node wrap.js <ep> [--force]'); process.exit(1); }
 const f = fs.readdirSync(__dirname).find(x => (x === id + '.js' || x.startsWith(id + '_')) && x.endsWith('.js') && /require\('\.\/render\.js'\)\(/.test(fs.readFileSync(path.join(__dirname, x), 'utf8')) && !x.includes('_legacy'));
 if (!f) { console.log(`wrap: δεν βρέθηκε επεισόδιο ${id}`); process.exit(1); }

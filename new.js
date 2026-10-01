@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path');
 const [file, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
 if (!file || !/^[a-z]+\d*_[\w]+$/.test(file.replace(/\.js$/, ''))) { console.log("usage: node new.js <ep>_<όνομα> [--look diorama|flat] [--tag 'Σειρά'] [--force]   π.χ. node new.js pf07_kouppes"); process.exit(1); }
-const name = file.replace(/\.js$/, ''), ep = name.split('_')[0], out = path.join(__dirname, name + '.js'), look = opt('look') || 'diorama';
+const name = file.replace(/\.js$/, ''), ep = /^ad_/.test(name) ? name : name.split('_')[0], out = path.join(__dirname, name + '.js'), look = opt('look') || 'diorama';
 if (fs.existsSync(out) && !rest.includes('--force')) { console.log(`new: υπάρχει ήδη το ${name}.js (--force για αντικατάσταση)`); process.exit(1); }
 const SERIES = { pf: 'Πώς φτιάχνεται;', ms: 'Μάθε με τον Στράτο', pm: 'Πριν / Μετά', ep: 'Ο πελάτης είπε…', er: 'Το Εργαστήριο' }; // ad → χωρίς ετικέτα
 const tag = opt('tag') ?? SERIES[ep.replace(/\d+$/, '')] ?? '';

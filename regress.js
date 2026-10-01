@@ -12,7 +12,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const ROOT = __dirname, TMP = path.join(os.tmpdir(), 'strategix-regress');
 const sh = (cmd, cwd = ROOT) => execSync(cmd, { cwd, encoding: 'utf8', maxBuffer: 1 << 28 });
 // επεισόδιο = .js στη ρίζα που καλεί το render (γραμμή που δεν είναι σχόλιο), όχι _legacy — χωρίς λίστα prefixes: νέα σειρά μπαίνει αυτόματα · ίδιο κριτήριο με το ship.sh
-const isEp = (f, dir = ROOT) => /^[^/]+\.js$/.test(f) && !f.includes('_legacy') && fs.existsSync(path.join(dir, f)) && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(dir, f), 'utf8'));
+const isEp = (f, dir = ROOT) => /^[a-z]+\d*_\w+\.js$/.test(f) && !f.includes('_legacy') && fs.existsSync(path.join(dir, f)) && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(dir, f), 'utf8'));
 const argv = process.argv.slice(2), fresh = argv.includes('--fresh'), only = [], refs = [];
 for (const a of argv.filter(a => a !== '--fresh')) { const f = a.endsWith('.js') ? a : a + '.js'; isEp(f) ? only.push(f) : refs.push(a); }
 const base = refs[0] || 'HEAD', hash = sh(`git rev-parse --verify "${base}^{commit}"`).trim();
@@ -38,7 +38,7 @@ const eps = [...new Set([...fs.readdirSync(B).filter(f => isEp(f, B)), ...fs.rea
 // ---------- ένα επεισόδιο σε ένα tree: lint → sheet clean → sfx ----------
 const TIMEOUT = +process.env.REGRESS_TIMEOUT || 420; // s ανά βήμα (diorama: lint ~1–2 λεπτά)
 const run = (dir, args) => new Promise(res => {
-  const p = spawn(process.execPath, args, { cwd: dir, env: { ...process.env, JOBS: '1' } }); let out = '', err = '', slow = false; // JOBS=1: τα επεισόδια τρέχουν ήδη παράλληλα εδώ (όχι workers μέσα σε workers)
+  const p = spawn(process.execPath, args, { cwd: dir, env: { ...process.env, JOBS: '1', NO_HINT: '1' } }); let out = '', err = '', slow = false; // JOBS=1: τα επεισόδια τρέχουν ήδη παράλληλα εδώ (όχι workers μέσα σε workers)
   const kill = setTimeout(() => { slow = true; p.kill('SIGKILL'); }, TIMEOUT * 1e3);
   p.stdout.on('data', d => out += d); p.stderr.on('data', d => err += d);
   p.on('close', code => { clearTimeout(kill); res({ code, out, err: slow ? `timeout > ${TIMEOUT}s (όχι crash · REGRESS_TIMEOUT=…)\n` + err : err }); });
