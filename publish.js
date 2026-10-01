@@ -3,14 +3,15 @@
 // Φάκελοι (MP4 εκτός git): ρίζα = σε έλεγχο · publish/scheduled/ = στο Postiz με ημερομηνία · publish/posted/ = live. Log: publish/log.json (στο git, Postiz IDs → analytics).
 // CLI:  node publish.js [status]                        → sync + ουρά + επόμενο slot
 //       node publish.js next                            → επόμενο slot: τελευταίο post (Postiz + log) + 3 μέρες στις 19:00 · αν έχει περάσει → το νωρίτερο 19:00 ≥ 2 ώρες από τώρα
-//       node publish.js schedule <ep> <caption.json> [--at ISO] [--dry]  → upload + post στα 4 κανάλια + MP4 → publish/scheduled/ + log (--dry: μόνο εμφάνιση)
+//       node publish.js schedule <ep> <caption.json> [--at ISO] [--dry]  → upload + post στα 4 κανάλια στο επόμενο ελεύθερο slot (τέλος ουράς) + MP4 → publish/scheduled/ + log (--dry: μόνο εμφάνιση)
+//       node publish.js schedule <ep> <caption.json> --date YYYY-MM-DD   → μόνο όταν ο Αλέξανδρος ορίσει ημερομηνία: μπαίνει εκείνη τη μέρα 19:00, όσα είναι από εκεί και μετά +3 μέρες
+//       node publish.js move <ep> YYYY-MM-DD [--dry]   → ήδη scheduled επεισόδιο σε ημερομηνία του Αλέξανδρου: το κενό του κλείνει (όσα ήταν μετά −3), όσα είναι από τη νέα μέρα και μετά +3
 //       node publish.js sync                            → ό,τι βγήκε live → publish/posted/ (+ URLs στο log) · σφάλματα πλατφόρμας → αναφορά
 //       node publish.js cancel <ep>                     → σβήνει τα posts από το Postiz (μόνο αν δεν έχουν βγει), MP4 πίσω στη ρίζα
 //       node publish.js manual <ep> [ISO]               → post που έγινε εκτός Postiz (με το χέρι): μετράει για το επόμενο slot, MP4 → publish/posted/
 //       node publish.js skip <αρχείο.mp4>               → δεν δημοσιεύεται ποτέ (demo κ.λπ.)
 //       node publish.js batch [--dry]                   → schedule με τη σειρά του publish/plan.txt όσα δεν είναι ακόμα στο log (λεζάντα: publish/captions/<ep>.json)
-// Κύκλος περιεχομένου (§9): Μάθηση → Πώς φτιάχνεται → Γέλιο → Πριν/Μετά → Πώληση · ποτέ ίδιο είδος στη σειρά · Πώληση το πολύ 1 στα 5 → warning στο schedule.
-//       schedule … --insert → νέο επεισόδιο στην πρώτη θέση της ουράς που ταιριάζει στον κύκλο· όσα έρχονται μετά μετακινούνται +3 μέρες (σβήνονται και ξαναμπαίνουν στο Postiz)
+// ΣΕΙΡΑ (Αλέξανδρος, 2026-10-01): ό,τι ετοιμάζεται μπαίνει στο τέλος της ουράς · καμία αναδιάταξη ανά είδος (ο κύκλος §9 καταργήθηκε) · μετακίνηση ΜΟΝΟ με --date / move όταν το ζητήσει ο ίδιος.
 // caption.json: { "text": "λεζάντα + hashtags (IG · TikTok · FB)", "title": "τίτλος YouTube (≤100)", "youtube"?: "περιγραφή YT", "instagram"?|"tiktok"?|"facebook"?: override,
 //                 "tags"?: [...] (YouTube · default = τα hashtags του text) }
 const fs = require('fs'), path = require('path'), os = require('os'), { spawnSync } = require('child_process');
@@ -33,15 +34,7 @@ const SETTINGS = {
 
 // είδος ανά σειρά (prefix αρχείου) · ep = «Ο πελάτης είπε...» (κωμικό)
 const KIND = { ms: 'Μάθηση', pf: 'Πώς φτιάχνεται', er: 'Γέλιο', ep: 'Γέλιο', pm: 'Πριν/Μετά', ad: 'Πώληση' };
-const CYCLE = ['Μάθηση', 'Πώς φτιάχνεται', 'Γέλιο', 'Πριν/Μετά', 'Πώληση'], SALE = 'Πώληση', SALE_EVERY = 5;
 const kind = ep => KIND[(ep.match(/^[a-z]+/) || [''])[0]] || '?';
-// προβλήματα κύκλου για τη θέση i μιας σειράς ειδών (ίδιο είδος δίπλα · δύο Πωλήσεις σε λιγότερες από 5 θέσεις)
-function cycleIssues(seq, i) {
-  const k = seq[i], out = [];
-  if (seq[i - 1] === k || seq[i + 1] === k) out.push(`ίδιο είδος (${k}) δίπλα`);
-  if (k === SALE && seq.some((x, j) => j !== i && x === SALE && Math.abs(j - i) < SALE_EVERY)) out.push(`2 Πωλήσεις σε λιγότερα από ${SALE_EVERY} posts`);
-  return out;
-}
 
 const die = m => { console.error('✖ ' + m); process.exit(1); };
 const hashtags = s => [...(s || '').matchAll(/#([\p{L}\p{N}_]+)/gu)].map(m => m[1]);
@@ -102,19 +95,35 @@ function createPosts(cap, media, t, ids) {
   return Object.fromEntries(res.map(r => [byInt[r.integration], r.postId]));
 }
 
-// --insert: πρώτη θέση στην ουρά (scheduled, από τη 2η ώρα και μετά) όπου το νέο είδος δεν σπάει τον κύκλο → { j, t, shift: [entries που μετακινούνται] }
-function insertPlan(log, ep) {
-  const now = Date.now() + SLOT.lead * 3600e3, all = byDate(log.posts), queue = all.filter(p => p.status === 'scheduled' && +new Date(p.date) > now);
-  for (let q = 0; q <= queue.length; q++) {
-    const at = q < queue.length ? all.indexOf(queue[q]) : all.length, seq = all.map(p => kind(p.ep));
-    seq.splice(at, 0, kind(ep));
-    if (!cycleIssues(seq, at).length) return q < queue.length ? { t: +new Date(queue[q].date), shift: queue.slice(q) } : null;
-  }
-  return null; // καμία θέση μέσα στην ουρά → στο τέλος (κανονικό slot)
-}
 
-function schedule(ep, capFile, at, dry, insert, sim = []) { // sim: posts του batch --dry που δεν γράφτηκαν στο log (για τον έλεγχο κύκλου)
-  if (!ep || !capFile) die('node publish.js schedule <ep> <caption.json> [--at ISO] [--dry]');
+// θέση σε ημερομηνία του Αλέξανδρου: νέες ημερομηνίες της ουράς → [{ e, nt }] μόνο για όσα αλλάζουν (σβήνονται και ξαναμπαίνουν στο Postiz)
+// from = παλιά θέση του επεισοδίου που μετακινείται (move) → όσα ήταν μετά −3 μέρες (κλείνει το κενό) · μετά όσα πέφτουν στη νέα μέρα ή αργότερα +3
+function shiftPlan(log, t, skipEp, from) {
+  const out = [];
+  for (const e of log.posts.filter(p => p.status === 'scheduled' && p.ep !== skipEp)) {
+    let d = day(+new Date(e.date));
+    if (from && +new Date(e.date) > from) d = addDays(d, -SLOT.every);
+    if (slotAt(d) >= t) d = addDays(d, SLOT.every);
+    if (d !== day(+new Date(e.date))) out.push({ e, nt: slotAt(d) });
+  }
+  return out.sort((a, b) => a.nt - b.nt);
+}
+function applyShift(log, shift, ids) {
+  sync(log);
+  const busy = shift.filter(({ e }) => Object.values(e.state || {}).some(s => s !== 'QUEUE'));
+  if (busy.length) die(`δεν είναι πια σε αναμονή: ${busy.map(({ e }) => `${e.ep} ${JSON.stringify(e.state)}`).join(' · ')} → καμία αλλαγή`);
+  for (const { e, nt } of shift) { // νέα posts με το ίδιο media, μετά σβήσιμο των παλιών
+    const old = Object.values(e.postiz);
+    e.postiz = createPosts(e.caption, e.media, nt, ids); e.date = iso(nt); delete e.state;
+    for (const id of old) pz('posts:delete', id);
+    save(log); console.log(`  ${e.ep} → ${fmt(nt)}`);
+  }
+}
+const dateArg = d => { if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '')) die(`ημερομηνία YYYY-MM-DD: ${d}`); const t = slotAt(d); if (t < Date.now() + SLOT.lead * 3600e3) die(`${d} 19:00: παρελθόν ή < ${SLOT.lead} ώρες από τώρα`); return t; };
+const showShift = shift => console.log(shift.length ? `μετακινούνται: ${shift.map(({ e, nt }) => `${e.ep} ${day(+new Date(e.date))} → ${day(nt)}`).join(' · ')}` : 'καμία άλλη μετακίνηση');
+
+function schedule(ep, capFile, at, dry, date) {
+  if (!ep || !capFile) die('node publish.js schedule <ep> <caption.json> [--date YYYY-MM-DD] [--at ISO] [--dry]');
   const log = load(), old = log.posts.find(p => p.ep === ep);
   if (old) die(`${ep}: υπάρχει ήδη στο log (${old.status}${old.date ? ', ' + fmt(old.date) : ''}) → cancel πρώτα αν είναι νέα έκδοση`);
   const files = fs.readdirSync(ROOT).filter(f => (f === ep + '.mp4' || f.startsWith(ep + '_')) && f.endsWith('.mp4'));
@@ -124,29 +133,16 @@ function schedule(ep, capFile, at, dry, insert, sim = []) { // sim: posts του
   if (!cap.text) die('caption.json: λείπει το "text"');
   if (!cap.title || cap.title.length < 2 || cap.title.length > 100) die('caption.json: "title" (YouTube) 2–100 χαρακτήρες');
   for (const k of ['instagram', 'tiktok-business']) if (text(k).length > 2200) die(`${k}: λεζάντα > 2200 χαρακτήρες`);
-  const plan = insert && !at ? insertPlan(log, ep) : null;
-  const t = at ? +new Date(at) : plan ? plan.t : nextSlot(log).t;
+  const t = date ? dateArg(date) : at ? +new Date(at) : nextSlot(log).t, shift = date ? shiftPlan(log, t) : [];
   if (!(t > Date.now())) die(`ημερομηνία στο παρελθόν: ${at}`);
-  const seq = byDate([...log.posts, ...sim, { ep, date: iso(t) }]), i = seq.findIndex(p => p.ep === ep && !p.status);
-  const issues = plan ? [] : cycleIssues(seq.map(p => kind(p.ep)), i);
 
   console.log(`${ep} (${kind(ep)}) · ${file} → ${fmt(t)} (ώρα Ελλάδας) · ${Object.keys(CH).join(' · ')}`);
-  if (plan) console.log(`--insert: μπαίνει πριν από ${plan.shift.map(e => e.ep).join(', ')} → αυτά +${SLOT.every} μέρες`);
-  if (issues.length) console.log(`⚠ κύκλος: ${issues.join(' · ')} (§9) → --insert ή άλλη σειρά`);
+  if (date) showShift(shift);
   for (const k of Object.keys(CH)) console.log(`\n[${k}]${k === 'youtube' ? ' «' + cap.title + '»' : ''}\n${text(k)}`);
   if (dry) return console.log('\n(--dry: τίποτα δεν ανέβηκε)');
 
   const ids = integrations();
-  if (plan) { // από το τέλος προς τα πίσω: κάθε post της ουράς +3 μέρες (νέα posts με το ίδιο media, μετά σβήσιμο των παλιών)
-    sync(log);
-    for (const e of [...plan.shift].reverse()) {
-      if (Object.values(e.state || {}).some(s => s !== 'QUEUE')) die(`${e.ep}: δεν είναι πια σε αναμονή (${JSON.stringify(e.state)}) → χωρίς --insert`);
-      const nt = slotAt(addDays(day(+new Date(e.date)), SLOT.every)), old = Object.values(e.postiz);
-      e.postiz = createPosts(e.caption, e.media, nt, ids); e.date = iso(nt); delete e.state;
-      for (const id of old) pz('posts:delete', id);
-      save(log); console.log(`  ${e.ep} → ${fmt(nt)}`);
-    }
-  }
+  if (shift.length) applyShift(log, shift, ids);
   const up = pz('upload', path.join(ROOT, file));
   if (!up.path) die(`upload: ${JSON.stringify(up)}`);
   const media = { id: up.id, path: up.path }, postiz = createPosts(cap, media, t, ids);
@@ -189,10 +185,17 @@ function status() {
   }
   const wait = fs.readdirSync(ROOT).filter(f => f.endsWith('.mp4') && !log.posts.some(p => p.file === f) && !(log.skip || []).includes(f));
   console.log(`\nστη ρίζα, χωρίς δημοσίευση (${wait.length}): ${wait.join(' · ') || '—'}`);
-  const seq = byDate(log.posts).map(p => kind(p.ep)), lastK = seq[seq.length - 1], sales = seq.slice(-(SALE_EVERY - 1)).includes(SALE);
-  const want = lastK ? CYCLE[(CYCLE.indexOf(lastK) + 1) % CYCLE.length] : CYCLE[0];
   console.log(`\nεπόμενο slot: ${fmt(t)}${last ? ` (τελευταίο post ${fmt(last)})` : ''}`);
-  console.log(`κύκλος: τελευταίο ${lastK || '—'} → επόμενο ιδανικά ${want === SALE && sales ? CYCLE[0] : want}${sales ? ' · Πώληση όχι πριν περάσουν 5' : ''}`);
+}
+
+function moveTo(ep, date, dry) {
+  if (!ep || !date) die('node publish.js move <ep> YYYY-MM-DD [--dry]');
+  const log = load(), e = log.posts.find(p => p.ep === ep && p.status === 'scheduled');
+  if (!e) die(`${ep}: δεν υπάρχει scheduled post στο log`);
+  const t = dateArg(date), from = +new Date(e.date), shift = shiftPlan(log, t, ep, from);
+  console.log(`${ep}: ${fmt(from)} → ${fmt(t)}`); showShift(shift);
+  if (dry) return console.log('(--dry: τίποτα δεν άλλαξε)');
+  applyShift(log, [{ e, nt: t }, ...shift], integrations());
 }
 
 function cancel(ep) {
@@ -216,11 +219,9 @@ function batch(dry) {
   const todo = plan.filter(ep => !load().posts.some(p => p.ep === ep));
   if (!todo.length) return console.log('batch: όλα του plan.txt είναι ήδη στο log');
   const t0 = nextSlot(load()).t; // --dry: ημερομηνίες υπολογισμένες εδώ (το log δεν αλλάζει) · κανονικά: κάθε schedule ξαναδιαβάζει το Postiz
-  const sim = [];
   todo.forEach((ep, i) => {
     const t = dry ? iso(slotAt(addDays(day(t0), SLOT.every * i))) : undefined;
-    console.log(`\n── ${i + 1}/${todo.length}`); schedule(ep, path.join(DIR, 'captions', ep + '.json'), t, dry, false, sim);
-    if (dry) sim.push({ ep, date: t, status: 'sim' });
+    console.log(`\n── ${i + 1}/${todo.length}`); schedule(ep, path.join(DIR, 'captions', ep + '.json'), t, dry);
   });
   console.log(`\n✔ batch: ${todo.length} ${dry ? '(--dry)' : 'scheduled'}`);
 }
@@ -244,14 +245,15 @@ function manual(ep, at) {
 
 if (require.main === module) {
   const [cmd = 'status', ...a] = process.argv.slice(2), opt = k => { const i = a.indexOf('--' + k); return i < 0 ? undefined : a[i + 1]; };
-  const pos = a.filter((x, i) => !x.startsWith('--') && !(i && a[i - 1] === '--at'));
+  const pos = a.filter((x, i) => !x.startsWith('--') && !(i && /^--(at|date)$/.test(a[i - 1])));
   if (cmd === 'status') status();
   else if (cmd === 'next') { const { t, last } = nextSlot(load()); console.log(`${fmt(t)}  ${iso(t)}${last ? `  (τελευταίο ${fmt(last)})` : ''}`); }
-  else if (cmd === 'schedule') { schedule(pos[0], pos[1], opt('at'), a.includes('--dry'), a.includes('--insert')); if (!a.includes('--dry')) try { require('./next.js').after(pos[0], 'publish', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; } }
+  else if (cmd === 'schedule') { if (a.includes('--insert')) console.log('(--insert καταργήθηκε 2026-10-01 → τέλος ουράς · ημερομηνία μόνο με --date όταν τη ζητήσει ο Αλέξανδρος)'); schedule(pos[0], pos[1], opt('at'), a.includes('--dry'), opt('date')); if (!a.includes('--dry')) try { require('./next.js').after(pos[0], 'publish', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; } }
   else if (cmd === 'sync') { const log = load(); const n = sync(log); console.log(n.join('\n') || 'τίποτα νέο'); }
   else if (cmd === 'cancel') cancel(pos[0]);
+  else if (cmd === 'move') moveTo(pos[0], pos[1], a.includes('--dry'));
   else if (cmd === 'manual') manual(pos[0], pos[1]);
   else if (cmd === 'skip') skip(pos[0]);
   else if (cmd === 'batch') batch(a.includes('--dry'));
-  else die(`άγνωστη εντολή: ${cmd} (status · next · schedule · batch · sync · cancel · manual · skip)`);
+  else die(`άγνωστη εντολή: ${cmd} (status · next · schedule · move · batch · sync · cancel · manual · skip)`);
 }

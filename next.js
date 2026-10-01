@@ -47,21 +47,21 @@ function block(title, o) {
 }
 function advise(s) {
   const id = s.id, ep = s.name || id;
-  if (!s.script && !s.txt && !s.epFile) return block(`${id}: φάση 1 · σενάριο`, { clear: true, effort: 'high', say: `«νέο επεισόδιο ${id}: <ιδέα / σενάριο>»`, note: 'σενάριο σε πίνακα → έγκριση → scripts/' + id + '.md + vo/' + id + '.txt · node publish.js status → τι είδος χρειάζεται' });
+  if (!s.script && !s.txt && !s.epFile) return block(`${id}: φάση 1 · σενάριο`, { clear: true, effort: 'high', say: `«νέο επεισόδιο ${id}: <ιδέα / σενάριο>»`, note: 'σενάριο σε πίνακα → έγκριση → scripts/' + id + '.md + vo/' + id + '.txt' });
   if (!s.vo) {
     if (!s.txt) return block(`${id}: φάση 1 · κείμενο VO`, { run: `κείμενο → vo/${id}.txt (§5d) → node vo.js ${id}` });
     if (!s.takes.length) return block(`${id}: φάση 1 · VO`, { run: `node vo.js ${id}   (2 takes + αυτόματος έλεγχος Scribe)` });
     return block(`${id}: φάση 1 · διάλεξε take`, { say: `«take 1» ή «take 2» (άκου ${s.takes.join(', ')})`, note: `μετά ο Claude: node render.js vo ${id}_takeN.mp3 --gap 0.3 --out vo/${id}_vo.mp3 --at 0.2` });
   }
   if (!s.epFile) return block(`${id}: τέλος φάσης 1 → φάση 2 · κώδικας`, { run: `node new.js ${id}_<όνομα>   (σκελετός με VO, captions, σκηνές)`, clear: true, effort: 'high', say: `«${id}: κώδικας»` });
-  if (s.post) return block(`${ep}: ${s.post.status === 'posted' ? 'δημοσιεύτηκε' : 'στο Postiz ' + (s.post.date || '').slice(0, 10)} ✔ → επόμενο επεισόδιο`, { clear: true, effort: 'high', say: '«νέο επεισόδιο: <ιδέα>»', note: 'node publish.js status → ποιο είδος χρειάζεται (κύκλος §9) · αλλαγή σε αυτό: «' + id + ': σημειώσεις: …» (πριν βγει: node publish.js cancel ' + id + ')' });
+  if (s.post) return block(`${ep}: ${s.post.status === 'posted' ? 'δημοσιεύτηκε' : 'στο Postiz ' + (s.post.date || '').slice(0, 10)} ✔ → επόμενο επεισόδιο`, { clear: true, effort: 'high', say: '«νέο επεισόδιο: <ιδέα>»', note: 'αλλαγή σε αυτό: «' + id + ': σημειώσεις: …» (πριν βγει: node publish.js cancel ' + id + ')' });
   if (!s.mp4 && s.tracked && !s.dirty && s.logged) return block(`${ep}: παλιό επεισόδιο (στο git, χωρίς MP4 εδώ) · μένει όπως παραδόθηκε`, { note: 'αλλαγή μόνο αν τη ζητήσεις: «' + id + ': σημειώσεις: …»' });
   if (!s.mp4) return block(`${ep}: φάση 2 · κώδικας ως το 1ο render`, { run: `${s.music ? '' : `node music.js ${id} · `}node ${ep}.js check → preview → node ${ep}.js render` });
   if (!s.fresh && (!s.tracked || s.dirty)) return block(`${ep}: ο κώδικας άλλαξε μετά το MP4`, { run: `node ${ep}.js check → node ${ep}.js render  (μόνο ήχος: node ${ep}.js sfx)` });
   if (!s.tracked || s.dirty || !s.timing || !s.logged) return block(`${ep}.mp4 έτοιμο → φάση 3 · σημειώσεις`, {
     clear: true, effort: 'medium', say: `«${id}: σημειώσεις: …» (ΟΛΕΣ σε ένα μήνυμα) ή «${id}: προχώρα» αν είναι εντάξει`,
     note: 'high αντί για medium μόνο αν οι σημειώσεις ζητάνε νέα σκηνή/κίνηση · στο «προχώρα»: node wrap.js ' + id + ' → commit + push → publish' });
-  return block(`${ep}: έτοιμο, όχι στο Postiz`, { say: `«${id}: προχώρα» → node publish.js schedule ${id} publish/captions/${id}.json --insert`, effort: 'medium' });
+  return block(`${ep}: έτοιμο, όχι στο Postiz`, { say: `«${id}: προχώρα» → node publish.js schedule ${id} publish/captions/${id}.json`, effort: 'medium' });
 }
 
 // ---------- στο τέλος των εργαλείων ----------
@@ -75,7 +75,7 @@ function after(name, mode, ok = true) {
   else if (mode === 'vo-tight') m = block(`${id}: VO έτοιμο (vo/${id}_vo.mp3 + λέξεις)`, { run: `node new.js ${id}_<όνομα> → node music.js ${id}`, clear: true, effort: 'high', say: `«${id}: κώδικας»`, note: 'το /clear αφού γίνει το new.js (ο σκελετός κρατάει VO + σενάριο)' });
   else if (mode === 'new') m = block(`${ep}.js σκελετός έτοιμος`, { run: state(id).music ? '' : `node music.js ${id}`, clear: true, effort: 'high', say: `«${id}: κώδικας»`, note: 'αν είσαι ήδη στη φάση 2 (λίγο context), συνέχισε χωρίς /clear' });
   else if (mode === 'wrap') m = block(`${ep}: timing sheet + EPISODES`, { run: 'commit + push (Claude) → publish μόνο μετά το «προχώρα» για αυτό το MP4' });
-  else if (mode === 'publish') m = block(`${id} στο Postiz ✔`, { clear: true, effort: 'high', say: '«νέο επεισόδιο: <ιδέα>»', note: 'node publish.js status → ποιο είδος χρειάζεται μετά' });
+  else if (mode === 'publish') m = block(`${id} στο Postiz ✔`, { clear: true, effort: 'high', say: '«νέο επεισόδιο: <ιδέα>»' });
   if (m) console.log(m);
 }
 
