@@ -47,7 +47,7 @@ function block(title, o) {
 }
 function advise(s) {
   const id = s.id, ep = s.name || id;
-  if (!s.script && !s.txt && !s.epFile) return block(`${id}: φάση 1 · σενάριο`, { clear: true, effort: 'high', say: `«νέο επεισόδιο ${id}: <ιδέα / σενάριο>»`, note: 'σενάριο σε πίνακα → έγκριση → scripts/' + id + '.md + vo/' + id + '.txt' });
+  if (!s.script && !s.txt && !s.epFile) return block(`${id}: φάση 1 · σενάριο`, { clear: true, effort: 'high', say: `«νέο επεισόδιο ${id}: <ιδέα / σενάριο>»`, note: 'docs/scripts.md → σενάριο σε πίνακα → έγκριση → scripts/' + id + '.md + vo/' + id + '.txt' });
   if (!s.vo) {
     if (!s.txt) return block(`${id}: φάση 1 · κείμενο VO`, { run: `κείμενο → vo/${id}.txt (§5d) → node vo.js ${id}` });
     if (!s.takes.length) return block(`${id}: φάση 1 · VO`, { run: `node vo.js ${id}   (2 takes + αυτόματος έλεγχος Scribe)` });
