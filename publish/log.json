@@ -58,6 +58,12 @@
         "tiktok-business": "cmupg9eg407ovqw0ybig375mg",
         "facebook": "cmupg9ehi07owqw0y4lcv1pev",
         "youtube": "cmupg9ejm07oxqw0yabmzp517"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -78,6 +84,12 @@
         "tiktok-business": "cmupg9bco07u7pe0ydotbboek",
         "facebook": "cmupg9bfx07u8pe0yflq6him2",
         "youtube": "cmupg9bix07u9pe0yq0yodw78"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -98,6 +110,12 @@
         "tiktok-business": "cmupg987d07ooqw0yn37ghwjj",
         "facebook": "cmupg98a707opqw0yunf75ens",
         "youtube": "cmupg98bx07oqqw0ynrq3akny"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -118,6 +136,12 @@
         "tiktok-business": "cmupg94xp07u3pe0yefa23mcl",
         "facebook": "cmupg950u07u4pe0yc77xl65v",
         "youtube": "cmupg953r07u5pe0ygx018nyu"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -138,6 +162,12 @@
         "tiktok-business": "cmupg91l907tzpe0ytwimb2mp",
         "facebook": "cmupg91or07u0pe0y0932ux79",
         "youtube": "cmupg91se07u1pe0ysoqxk7v0"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -158,6 +188,12 @@
         "tiktok-business": "cmupg8xzo07o8qw0y94429drq",
         "facebook": "cmupg8y1807o9qw0y7jqdqfbt",
         "youtube": "cmupg8y2v07oaqw0ya3zz1u3p"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -178,6 +214,12 @@
         "tiktok-business": "cmupg8ul607o3qw0yldsk18b4",
         "facebook": "cmupg8uny07o4qw0yhblwm5q3",
         "youtube": "cmupg8uph07o5qw0yzl80bs1y"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -198,6 +240,12 @@
         "tiktok-business": "cmupg8ru407nwqw0yync0yzv8",
         "facebook": "cmupg8rwp07nxqw0ygahdr1yq",
         "youtube": "cmupg8rye07nyqw0yh7mty2ia"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -218,6 +266,12 @@
         "tiktok-business": "cmupg8lkc07tnpe0y5lv0dt5n",
         "facebook": "cmupg8lmy07tope0ybswpb9u9",
         "youtube": "cmupg8lpg07tppe0yro3r67zi"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -238,13 +292,19 @@
         "tiktok-business": "cmupg8onx07trpe0yx6mlqh9q",
         "facebook": "cmupg8oq707tspe0y0x0qvxng",
         "youtube": "cmupg8ot507ttpe0ye8r9ueyo"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
       "ep": "ad_event",
       "file": "ad_event.mp4",
       "status": "scheduled",
-      "date": "2026-11-18T17:00:00.000Z",
+      "date": "2026-11-09T17:00:00.000Z",
       "caption": {
         "title": "Γυμναστήριο ή σύλλογος; Όλα για το event σου από έναν συνεργάτη",
         "text": "Έχεις γυμναστήριο ή σύλλογο και ετοιμάζεις το επόμενό σου event;\n\nΡούχα για την ομάδα με στάμπα ή κέντημα και αριθμό στην πλάτη, banners και roll-up, αυτοκόλλητα δαπέδου και σήμανση, μετάλλια και βραβεία με χάραξη laser. Όλα από έναν συνεργάτη, με το ίδιο λογότυπο παντού.\n\nΕσύ οργανώνεις το event, εμείς φροντίζουμε τα υπόλοιπα. Στείλε μας μήνυμα για προσφορά.\n\n#strategixstudios #γυμναστήριο #αθλητικόςσύλλογος #event #αθλητικάρούχα"
@@ -254,10 +314,10 @@
         "path": "https://uploads.postiz.com/ibCf32pYk1.mp4"
       },
       "postiz": {
-        "instagram": "cmupg8idy07thpe0yr4chh6ev",
-        "tiktok-business": "cmupg8igv07tipe0y0063mmkj",
-        "facebook": "cmupg8ij507tjpe0y020ymchf",
-        "youtube": "cmupg8ilo07tkpe0yaetd8pp9"
+        "instagram": "cmuphdd3l08ejpe0yq13z34y0",
+        "tiktok-business": "cmuphdd6z08ekpe0yfvcyrvn0",
+        "facebook": "cmuphddaf08elpe0y4zrk1in4",
+        "youtube": "cmuphddcn08empe0y2esen2e7"
       }
     },
     {
@@ -278,6 +338,12 @@
         "tiktok-business": "cmupg9hg707ufpe0yeo2y24qo",
         "facebook": "cmupg9hk507ugpe0ydocr8uoi",
         "youtube": "cmupg9hnq07uhpe0yi41ar4bl"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -298,6 +364,12 @@
         "tiktok-business": "cmupg9kk307uope0yc6cxtdwp",
         "facebook": "cmupg9kmt07uppe0yn6njxinb",
         "youtube": "cmupg9kp307uqpe0yrnyvxa2s"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -318,6 +390,12 @@
         "tiktok-business": "cmupgam1707uype0yynypljpp",
         "facebook": "cmupgam4907uzpe0ytpz8sjw9",
         "youtube": "cmupgam7207v0pe0ymx3wl9tw"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     }
   ],
