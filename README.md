@@ -3,26 +3,25 @@
 ## Αρχεία
 | Αρχείο | Τι είναι |
 |---|---|
-| `CLAUDE.md` | Οδηγίες για το Claude Code: ρόλοι, workflow επεισοδίου (1 session), κανόνας 2ης φοράς, οικονομία tokens |
-| `PROJECT_INSTRUCTIONS.md` | Το κείμενο για τα Instructions του claude.ai Project (bootstrap → `CHAT.md`) |
-| `CHAT.md` | chat: ιδέες/σενάρια χωρίς clone · επεισόδιο κατ' εξαίρεση → `.patch` · εφαρμογή patch στο Claude Code |
-| `STYLE_GUIDE.md` | Η «βίβλος»: αισθητική, παλέτα, fonts, Στράτος, κανόνες social, safe zones, SFX/VO, workflow |
+| `CLAUDE.md` | Οδηγίες για το Claude Code: φάσεις επεισοδίου (μικρά sessions με /clear), κανόνας 2ης φοράς, οικονομία tokens |
+| `ENGINE.md` | Χάρτης του engine σε 2 λεπτά + ανατομία επεισοδίου |
+| `STYLE_GUIDE.md` + `docs/` | Η «βίβλος» (πυρήνας) + λεπτομέρειες ανά βήμα: vo · sfx · music · photos · crew · publish |
 | `HANDS.md` | Κανόνες χεριών/πόζας + lint |
-| `EPISODES.md` | Log επεισοδίων (δεν φορτώνεται αυτόματα) |
-| `BACKLOG.md` | Βελτιώσεις engine που περιμένουν |
-| `lib.js` | Engine: torn-paper `cut()`, captions/`captionSeq`, pops, easing, lip-sync, fonts, `SAFE` |
-| `stratos.js` | Ο Στράτος (rig v2). `node stratos.js` → character sheet PNG |
-| `hands.js` | Χέρια v3: τύποι × όψεις, auto view, lint. `node hands.js sheet` → HANDS_SHEET.png |
+| `PROJECT_INSTRUCTIONS.md` · `CHAT.md` | claude.ai Project: ιδέες/σενάρια χωρίς clone · επεισόδιο κατ' εξαίρεση → `.patch` |
+| `EPISODES.md` · `BACKLOG.md` | Log επεισοδίων · βελτιώσεις engine σε αναμονή (δεν φορτώνονται αυτόματα) |
+| `next.js` | **Τι κάνω τώρα;** Φάση κάθε επεισοδίου + «▶ ΕΠΟΜΕΝΟ» (/clear · /effort · τι γράφεις) |
+| `new.js` · `wrap.js` | Σκελετός νέου επεισοδίου (VO → captions, σκηνές, loop) · timing sheet + EPISODES στο κλείσιμο |
+| `lib.js` | Πυρήνας: torn-paper `cut()`, captions, pops, easing, lip-sync, `voText()` (χρόνοι λέξεων + captions από το VO), fonts, `SAFE` |
+| `motion.js` | Κίνηση με φυσική: springs, trapez/raster, lag, shake, fall, particles, `kf`, `rewindTau` |
+| `stratos.js` · `crew.js` · `hands.js` | Στράτος (rig v2) · Φοίβος & Ρένα · χέρια v4 (`node hands.js sheet`) |
+| `diorama.js` | Χάρτινη μακέτα 3D: κάμερα, φως, σκιές, βάθος πεδίου, motion blur |
 | `props.js` + `props/` | Props ανά θέμα (`props/<θέμα>.js`)· όλα μαζί με `require('./props.js')` |
-| `render.js` | Runner: sheet / preview / lint / render MP4 (+SFX, VO, ducking) / sfx (μόνο ήχος + remux) / vo (φράσεις + σφίξιμο παυσών του VO) |
-| `sfx.js` | Procedural SFX: presets + mixer + WAV. `node sfx.js demo` → sfx_demo.wav |
-| `api.js` | Κατάλογος του engine: `node api.js [λέξη]` · `--check` (περιγραφές props) |
-| `regress.js` | Τι αλλάζει σε ΟΛΑ τα επεισόδια (lint · frames · ήχος) σε σχέση με ένα commit |
-| `setup.sh` | Εγκατάσταση canvas + fonts σε νέο container |
-| `ship.sh` | chat → repo: lint (+ regress αν άλλαξε το engine) + ένα `.patch` για `git am` στο Claude Code |
-| `<ep>.js` + `<ep>_timing_sheet.md` | Επεισόδια — λίστα και σημειώσεις στο `EPISODES.md` |
-| `vo/` | VO sources (τα μόνα mp3 στο git) |
-| `stratos_character_sheet.png`, `stratos_v1_vs_v2.png` | Visual references του Στράτου |
+| `render.js` | Runner: check / sheet / preview / lint / render MP4 (+VO, μουσική, SFX, ducking) / sfx / vo |
+| `sfx.js` · `vo.js` · `music.js` · `photos.js` · `publish.js` | Procedural SFX · VO «Stratos» + έλεγχος Scribe · μουσική · φωτογραφίες προϊόντων · Postiz |
+| `api.js` · `regress.js` | Κατάλογος του engine (`node api.js [λέξη]`) · έλεγχος όλων των επεισοδίων μετά από αλλαγή engine |
+| `setup.sh` · `ship.sh` | Εγκατάσταση canvas + fonts · chat → `.patch` |
+| `<ep>.js` + `<ep>_timing_sheet.md` | Επεισόδια — λίστα στο `EPISODES.md` |
+| `scripts/` · `vo/` · `music/` · `sfx/` · `photos/` | Σενάρια (φάση 1) · VO sources · μουσική · ήχοι-αρχεία · φωτογραφίες (στο git) |
 
 ## Ροή δουλειάς
 - **Claude Code** (τοπικά): όλη η παραγωγή — σενάριο → VO → κώδικας → MP4 → commit + push, 1 επεισόδιο = 1 session (βλ. CLAUDE.md).
@@ -30,25 +29,16 @@
 
 ## Γρήγορη χρήση
 ```bash
-bash setup.sh                           # μία φορά σε νέο μηχάνημα/container (canvas + fonts)
-node api.js                             # τι υπάρχει στο engine (node api.js thermos → λεπτομέρειες + αρχείο:γραμμή)
-node render.js vo ~/Downloads/vo.mp3    # φράσεις + παύσεις του VO (πριν γραφτεί το επεισόδιο)
-node render.js vo ~/Downloads/vo.mp3 --gap 0.3 --keep 4 --out vo/ep02_vo.mp3 --at 0.2   # σφίξιμο παυσών → vo/ + χρονισμοί σε χρόνο video
-node ep01_whatsapp_logo.js sheet        # 12 frames + safe-zone overlay + lint (sheet clean = χωρίς overlay)
-node ep01_whatsapp_logo.js lint         # πρέπει «lint ✔ καθαρό»
-node ep01_whatsapp_logo.js render       # MP4 με SFX + _sfx.wav + _sfx.md
-node ep01_whatsapp_logo.js sfx          # μόνο ήχος (~1s) + remux στο MP4
-node ep01_whatsapp_logo.js vo           # φράσεις του VO_FILE σε χρόνο video
-node regress.js                         # μετά από αλλαγή στο engine: τι άλλαξε σε όλα τα επεισόδια vs HEAD
+bash setup.sh                     # μία φορά σε νέο μηχάνημα (canvas + fonts)
+node next.js                      # τι κάνω τώρα; (φάση + επόμενο βήμα)
+node vo.js pf07                   # VO: 2 takes + έλεγχος Scribe
+node render.js vo pf07_take1.mp3 --gap 0.3 --out vo/pf07_vo.mp3 --at 0.2
+node new.js pf07_kouppes          # σκελετός επεισοδίου (μακέτα · --look flat)
+node pf07_kouppes.js check        # lint + sheet → «lint ✔ καθαρό»
+node pf07_kouppes.js preview 1.2 5 9      # ένα grid · --crop x,y,w,h για λεπτομέρεια
+node pf07_kouppes.js render       # MP4 + ήχος · μόνο ήχος: sfx
+node wrap.js pf07                 # timing sheet + EPISODES
+node api.js                       # κατάλογος του engine (node api.js <λέξη> → λεπτομέρειες)
+node regress.js                   # μετά από αλλαγή στο engine
 ```
-
-## Νέο επεισόδιο (template)
-```js
-const L = require('./lib.js'); const { lipsync, blinkNow } = L;
-const { stratos } = require('./stratos.js'); const P = require('./props.js');
-const VO = []; // lip-sync από την ένταση του VO_FILE
-function s1(ctx, lt) { P.tiles(ctx); stratos(ctx, 540, 1100, 1, { legs: false, mouth: lipsync(VO), blink: blinkNow() });
-  L.captionSeq(ctx, lt, [[0.1, 'Hook εδώ'], [2.4, 'Δεύτερο κομμάτι']]); P.seriesTag(ctx, lt, 'Όνομα σειράς'); } // χωρίς #N (STYLE_GUIDE §7)
-require('./render.js')({ name: 'ep02', SCENES: [[s1, 4.5]], WIPES: 'all', VO_FILE: 'vo/ep02_vo.mp3', VO_AT: 0.2,
-  SFX: [[0.3, 'pop'], [2.4, 'ding']] }); // wipes → auto whoosh · με VO → auto ducking των SFX
-```
+Ανατομία επεισοδίου → `ENGINE.md`.

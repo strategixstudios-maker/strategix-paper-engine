@@ -61,7 +61,7 @@ function advise(s) {
   if (!s.tracked || s.dirty || !s.timing || !s.logged) return block(`${ep}.mp4 έτοιμο → φάση 3 · σημειώσεις`, {
     clear: true, effort: 'medium', say: `«${id}: σημειώσεις: …» (ΟΛΕΣ σε ένα μήνυμα) ή «${id}: προχώρα» αν είναι εντάξει`,
     note: 'high αντί για medium μόνο αν οι σημειώσεις ζητάνε νέα σκηνή/κίνηση · στο «προχώρα»: node wrap.js ' + id + ' → commit + push → publish' });
-  return block(`${ep}: έτοιμο, όχι στο Postiz`, { say: `«${id}: προχώρα» → node publish.js schedule ${id} publish/captions/${id}.json --insert`, effort: 'low' });
+  return block(`${ep}: έτοιμο, όχι στο Postiz`, { say: `«${id}: προχώρα» → node publish.js schedule ${id} publish/captions/${id}.json --insert`, effort: 'medium' });
 }
 
 // ---------- στο τέλος των εργαλείων ----------
