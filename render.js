@@ -26,6 +26,12 @@
 // MUSIC (§5e): ep.MUSIC_FILE = 'music/<ep>.mp3' (από το `node music.js <ep>`, στο repo), MUSIC_GAIN (1 = default). Χαλί πολύ χαμηλά: κανονικοποίηση σε MUSIC_RMS
 //      (≈ 15 dB κάτω από το VO, ίδια ένταση σε κάθε επεισόδιο) · άλλα −6 dB κάτω από τις φράσεις του VO · fade in 0,3s / out 0,8s → <n>_music.wav stem + στο <n>_mix.wav.
 // `node <ep>.js info` → {"name","total"} (διάρκεια για το music.js)
+//       node ep.js check            -> lint + sheet σε μία εντολή (το συνηθισμένο checkpoint)
+//       node ep.js preview 1.2 5 9  -> ΕΝΑ <name>_preview.png (grid μισής ανάλυσης, λιγότερα tokens στο διάβασμα) · --full = ξεχωριστά PNG πλήρους ανάλυσης
+//                                      · preview 5.0 --crop x,y,w,h = κομμάτι του frame σε πλήρη ανάλυση (χέρια, κείμενο, λεπτομέρειες)
+// Σκηνές σε ενιαίο χρόνο (pf06 →): CUTS: [0, 2.6, …, TOTAL] + SCENE(ctx, t) αντί για SCENES · WIPES default 'all'
+// Captions/ετικέτα από το engine: CAPS: V.caps() (lib voText) → captionSeq σε χρόνο video πάνω από τη σκηνή · TAG: 'Πώς φτιάχνεται;' → seriesTag στο hook
+//      (ως HOOK_END, default η 1η αλλαγή σκηνής) · LOOP_AT: t → από εκεί ξαναμπαίνουν το caption του hook (αν λείπει από τα CAPS) + το TAG (seamless loop, §5.7)
 const L = require('./lib.js');
 const { C, ST, W, H, FPS, cut, rng, lerp, easeInOut } = L;
 const SFX = require('./sfx.js');
@@ -38,6 +44,7 @@ const HOOK_BLOCKS = 60; // hook lint (§5.1): περιοχές 40×40 που α�
 const NOISE = [0, 1, 2].map(k => { const c = L.createCanvas(360, 640), x = c.getContext('2d'), im = x.createImageData(360, 640), r = rng(k + 5); for (let i = 0; i < im.data.length; i += 4) { const v = 205 + r() * 50; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c; });
 
 module.exports = function run(ep) {
+  if (ep.CUTS && ep.SCENE) { const K = ep.CUTS; ep.SCENES = K.slice(0, -1).map((t0, i) => [(ctx, lt) => ep.SCENE(ctx, t0 + lt), K[i + 1] - t0]); if (ep.WIPES === undefined) ep.WIPES = 'all'; }
   // LOOP (§5.7): ουρά που γυρίζει στο frame 0, ώστε το τέλος να δένει με την αρχή · true = torn-paper wipe (+ auto whoosh) · 'cut' = seamless κόψιμο · LOOP_DUR (default 0.3s = wipe + 2 frames · 'cut': 2 frames)
   const CUT = ep.LOOP === 'cut';
   if (ep.LOOP) {
@@ -49,6 +56,8 @@ module.exports = function run(ep) {
   const STARTS = []; let acc = 0; for (const [, d] of ep.SCENES) { STARTS.push(acc); acc += d; }
   const TOTAL = acc, TR = ep.TR || 0.22, name = ep.name || 'video';
   const wipes = ep.WIPES === 'all' ? STARTS.map((_, i) => i).slice(1) : (ep.WIPES || []);
+  const CAPS = ep.CAPS && (ep.LOOP_AT != null && !ep.CAPS.some(c => Math.abs(c[0] - ep.LOOP_AT) < 1e-6) ? [...ep.CAPS, [ep.LOOP_AT, ep.CAPS[0][1]]] : ep.CAPS);
+  const HOOK_END = ep.HOOK_END ?? (STARTS[1] ?? TOTAL);
   // VO: track στο μήκος του video + envelope για lip-sync + φράσεις για ducking (voLoad, κάτω)
   let VO = null;
   if (ep.VO_FILE) { VO = voLoad(ep.VO_FILE, ep.VO_AT || 0, ep.VO_GAIN ?? 1, TOTAL); ST.VOENV = VO.env; ST.VOWHO = VO.who = voWho(ep.VO_FILE, ep.VO_AT || 0); }
@@ -61,10 +70,10 @@ module.exports = function run(ep) {
   const muWarn = () => !ep.MUSIC_FILE ? [] : !MU ? [[`MUSIC: δεν υπάρχει το αρχείο «${ep.MUSIC_FILE}» → node music.js <ep>`, 0]] : MU.end < TOTAL - 0.05 ? [[`MUSIC: το αρχείο (${MU.end.toFixed(2)}s) τελειώνει πριν από το video (${TOTAL.toFixed(2)}s) → node music.js <ep>`, MU.end]] : [];
   const sfxWarn = () => [...voWarn(), ...muWarn(), ...CUES.flatMap(([t, nm, o = {}]) => [...(SFX.P[nm] ? [] : [`SFX: άγνωστο preset «${nm}»`]), ...(nm === 'file' && !fs.existsSync(o.src || '') ? [`SFX: δεν υπάρχει το αρχείο «${o.src}»`] : []), ...(t >= 0 && t < TOTAL ? [] : [`SFX: «${nm}» εκτός χρόνου`])].map(m => [m, t]))];
   const writeSfx = () => {
-    const wav = `${name}_sfx.wav`, f = t => t.toFixed(2).replace('.', ','); SFX.writeWav(wav, SFX.mix(CUES, TOTAL));
+    const wav = `${name}_sfx.wav`, f = t => t.toFixed(2).replace('.', ','), MX = SFX.mix(CUES, TOTAL); SFX.writeWav(wav, MX);
     fs.writeFileSync(`${name}_sfx.md`, `# ${name} — SFX (auto από sfx.js)\n| Χρόνος | SFX | Σημείωση |\n|---|---|---|\n` + CUES.map(([t, nm, o = {}]) => `| ${f(t)}${o.dur ? '–' + f(t + o.dur) : ''} | ${nm} | ${o.note || ''} |`).join('\n') + '\n');
     if (!VO && !MU) return wav;
-    const [L0, R0] = SFX.mix(CUES, TOTAL), lim = x => { const s = Math.abs(x); return s < 0.85 ? x : Math.sign(x) * (0.85 + 0.15 * Math.tanh((s - 0.85) / 0.15)); };
+    const [L0, R0] = MX, lim = x => { const s = Math.abs(x); return s < 0.85 ? x : Math.sign(x) * (0.85 + 0.15 * Math.tanh((s - 0.85) / 0.15)); };
     const v = i => VO ? VO.v[i] : 0, Lm = L0.map((x, i) => lim(x + v(i) + (MU ? MU.L[i] : 0))), Rm = R0.map((x, i) => lim(x + v(i) + (MU ? MU.R[i] : 0)));
     if (VO) SFX.writeWav(`${name}_vo.wav`, [VO.v, VO.v]);
     if (MU) SFX.writeWav(`${name}_music.wav`, [MU.L, MU.R]);
@@ -77,6 +86,9 @@ module.exports = function run(ep) {
     ST.T = t; ST.B = Math.floor(t * 12);
     let i = STARTS.length - 1; while (i > 0 && t < STARTS[i]) i--; ST.SCENE = i;
     ctx.save(); ep.SCENES[i][0](ctx, t - STARTS[i]); ctx.restore();
+    const tc = ep.LOOP && i === STARTS.length - 1 ? 0 : t; // ουρά του loop = frame 0
+    if (CAPS) L.captionSeq(ctx, tc, CAPS);
+    if (ep.TAG) { if (tc < HOOK_END) UI.seriesTag(ctx, tc + 1, ep.TAG); else if (ep.LOOP_AT != null && tc >= ep.LOOP_AT) UI.seriesTag(ctx, tc - ep.LOOP_AT + 1, ep.TAG); }
     for (const k of wipes) { // torn-paper wipe
       const d = t - STARTS[k]; if (Math.abs(d) >= TR) continue;
       const col = k % 2 ? C.paper : C.sky; let top, bot;
@@ -86,13 +98,14 @@ module.exports = function run(ep) {
     ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.45; ctx.drawImage(NOISE[ST.B % 3], 0, 0, W, H); ctx.restore();
     const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.75); g.addColorStop(0, 'rgba(0,0,20,0)'); g.addColorStop(1, 'rgba(0,0,20,0.28)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   }
-  if (require.main !== module.parent) return { frame, TOTAL };
+  if (require.main !== module.parent) return { frame, TOTAL, STARTS, CUES, CAPS, name, ep, VO };
   (async () => {
     // _part = worker του παράλληλου render/lint (par() κάτω): node ep.js _part <render|lint> <a> <b> <out>
     const part = process.argv[2] === '_part', mode = part ? process.argv[3] : process.argv[2] || 'render', cv = L.createCanvas(W, H), ctx = cv.getContext('2d'); ST.MODE = mode;
     if (mode === 'info') return console.log(JSON.stringify({ name, total: TOTAL }));
     if (mode === 'vo') return VO ? voPrint(ep.VO_FILE, VO, ep.VO_AT || 0, TOTAL, VO.who) : console.log('vo: το επεισόδιο δεν έχει VO_FILE');
-    const guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
+    let guide = (mode === 'sheet' && process.argv[3] !== 'clean') || process.argv.includes('guide');
+    const hint = (m, ok) => { if (!part && !process.env.NO_HINT) try { require('./next.js').after(name, m, ok); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; } }; // «επόμενο βήμα» (next.js)
     ST.lint = mode !== 'render';
     const WARN = new Map(); // msg -> [firstT, lastT]
     if (!part) for (const [m, t] of sfxWarn()) WARN.set(m, [t, t]);
@@ -144,8 +157,13 @@ module.exports = function run(ep) {
       return { dir, outs: R.map(r => r[2]) };
     };
     const t0 = Date.now(), mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-    if (mode === 'lint') {
-      const T = lintTimes();
+    const sheetMake = () => {
+      const n = 12, sw = 270, sh = 480, sheet = L.createCanvas(sw * 6, sh * 2), sx = sheet.getContext('2d');
+      for (let i = 0; i < n; i++) { const t = avoidWipe((i + 0.5) * TOTAL / n); draw(t); sx.drawImage(cv, (i % 6) * sw, Math.floor(i / 6) * sh, sw, sh); sx.fillStyle = '#000'; sx.fillRect((i % 6) * sw, Math.floor(i / 6) * sh, 70, 30); sx.fillStyle = '#fff'; sx.font = '22px Round'; sx.fillText(t.toFixed(1) + 's', (i % 6) * sw + 6, Math.floor(i / 6) * sh + 22); }
+      fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`);
+    };
+    if (mode === 'lint' || mode === 'check') { // check = lint + sheet (με τις κόκκινες ζώνες · `check clean` χωρίς) σε μία εντολή
+      ST.MODE = 'lint'; const T = lintTimes();
       if (JOBS > 1 && T.length > 60) {
         const { dir, outs } = await par('lint', T.length, JOBS), tags = [], add = (m, a, b) => { const w = WARN.get(m); w ? (w[0] = Math.min(w[0], a), w[1] = Math.max(w[1], b)) : WARN.set(m, [a, b]); };
         for (const f of outs) { const r = JSON.parse(fs.readFileSync(f)); for (const [m, [a, b]] of r.warn) add(m, a, b); tags.push(...r.tags); }
@@ -154,19 +172,24 @@ module.exports = function run(ep) {
       } else for (const t of T) draw(t);
       if (ep.LOOP !== false) loopCheck(); hookCheck(); process.exitCode = report();
       if (process.env.TIMING) console.log(`(lint ${mmss((Date.now() - t0) / 1e3)} · ${JOBS > 1 && T.length > 60 ? JOBS : 1} process)`);
-      return;
+      if (mode === 'check') { ST.MODE = 'sheet'; guide = !process.argv.includes('clean'); WARN.clear(); sheetMake(); }
+      hint(mode, !process.exitCode); return;
     }
     if (mode === 'sfx') {
-      const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : '') + (MU ? ' + μουσική' : ''));
+      const wav = writeSfx(), mp4 = process.argv[3] || `${name}.mp4`; console.log(wav, `${name}_sfx.md`, CUES.length + ' cues' + (VO ? ' + VO' : '') + (MU ? ' + μουσική' : '')); process.on('exit', () => hint('sfx', true));
       if (fs.existsSync(mp4)) { const tmp = mp4.replace(/\.mp4$/, '') + '.tmp.mp4'; const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp]); if (r.status === 0) { fs.renameSync(tmp, mp4); console.log('remux', mp4); } else console.log('✘ remux', String(r.stderr)); }
       return;
     }
-    if (mode === 'preview') { for (const t of process.argv.slice(3).filter(a => a !== 'guide').map(Number)) { draw(t); fs.writeFileSync(`${name}_${t}.png`, cv.toBuffer('image/png')); } return; }
-    if (mode === 'sheet') {
-      const n = 12, sw = 270, sh = 480, sheet = L.createCanvas(sw * 6, sh * 2), sx = sheet.getContext('2d');
-      for (let i = 0; i < n; i++) { const t = avoidWipe((i + 0.5) * TOTAL / n); draw(t); sx.drawImage(cv, (i % 6) * sw, Math.floor(i / 6) * sh, sw, sh); sx.fillStyle = '#000'; sx.fillRect((i % 6) * sw, Math.floor(i / 6) * sh, 70, 30); sx.fillStyle = '#fff'; sx.font = '22px Round'; sx.fillText(t.toFixed(1) + 's', (i % 6) * sw + 6, Math.floor(i / 6) * sh + 22); }
-      fs.writeFileSync(`${name}_sheet.png`, sheet.toBuffer('image/png')); console.log(`${name}_sheet.png`); loopCheck(); report(); return;
+    if (mode === 'preview') { // ≥ 2 χρόνοι → ένα grid μισής ανάλυσης (ένα διάβασμα αντί για πολλά) · --full = ξεχωριστά PNG · --crop x,y,w,h = κομμάτι σε πλήρη ανάλυση
+      const a = process.argv.slice(3), ci = a.indexOf('--crop'), crop = ci >= 0 ? a[ci + 1].split(',').map(Number) : null;
+      const ts = a.filter((x, k) => /^-?[\d.]+$/.test(x) && a[k - 1] !== '--crop').map(Number);
+      if (crop) { const [x, y, w, h] = crop, c = L.createCanvas(w, h); for (const t of ts) { draw(t); c.getContext('2d').drawImage(cv, x, y, w, h, 0, 0, w, h); fs.writeFileSync(`${name}_${t}_crop.png`, c.toBuffer('image/png')); console.log(`${name}_${t}_crop.png`); } return; }
+      if (ts.length < 2 || a.includes('--full')) { for (const t of ts) { draw(t); fs.writeFileSync(`${name}_${t}.png`, cv.toBuffer('image/png')); console.log(`${name}_${t}.png`); } return; }
+      const cols = Math.min(4, ts.length), rows = Math.ceil(ts.length / cols), gw = W / 2, gh = H / 2, G = L.createCanvas(gw * cols, gh * rows), gx = G.getContext('2d');
+      ts.forEach((t, k) => { draw(t); const x = (k % cols) * gw, y = Math.floor(k / cols) * gh; gx.drawImage(cv, x, y, gw, gh); gx.fillStyle = '#000'; gx.fillRect(x, y, 96, 36); gx.fillStyle = '#fff'; gx.font = '26px Round'; gx.fillText(t.toFixed(2) + 's', x + 8, y + 27); });
+      fs.writeFileSync(`${name}_preview.png`, G.toBuffer('image/png')); console.log(`${name}_preview.png (${ts.length} frames, grid)`); return;
     }
+    if (mode === 'sheet') { sheetMake(); loopCheck(); report(); return; }
     const out = process.argv[3] || `${name}.mp4`, N = Math.round(TOTAL * FPS);
     const wav = CUES.length || VO || MU ? writeSfx() : null; // πρώτα ο ήχος (1s): άγνωστο preset → σφάλμα πριν το video render
     const aIn = wav ? ['-i', wav] : [], aOut = wav ? ['-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '192k', '-shortest'] : [];
@@ -186,6 +209,7 @@ module.exports = function run(ep) {
       ff.stdin.end(); await new Promise(r => ff.on('close', r));
     }
     console.log('done', out, TOTAL + 's', `(${mmss((Date.now() - t0) / 1e3)} · ${P ? JOBS : 1} process)`, wav ? `+ ${wav}, ${name}_sfx.md (${CUES.length} SFX)` : '(silent)');
+    hint('render', true);
   })();
 };
 

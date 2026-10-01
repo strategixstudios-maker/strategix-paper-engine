@@ -102,6 +102,17 @@ function pathT(P, o) {
   return T - dw;
 }
 
+// ---------- keyframes · χρόνος ιστορίας ----------
+// keyframes K = [[t, v], ...] (v αριθμός ή array) → τιμή στο t με easing ανά τμήμα (default easeInOut) · κάμερα, πόζες χωρίς spring (pf05 → pf06)
+function kf(t, K, e = L.easeInOut) {
+  if (t <= K[0][0]) return K[0][1];
+  for (let i = 1; i < K.length; i++) if (t <= K[i][0]) { const a = K[i - 1][1], b = K[i][1], u = e(L.prog(t, K[i - 1][0], K[i][0])); return Array.isArray(a) ? a.map((v, j) => lerp(v, b[j], u)) : lerp(a, b, u); }
+  return K[K.length - 1][1];
+}
+// rewind (◀◀): ο χρόνος της ιστορίας τ ως το t0, μετά γυρίζει από το from στο to μέσα στο [t0, t1] (easeInOut) και μένει στο to (ep02 tauOf · pf06 tauHook)
+// → όλη η σκηνή ζωγραφίζεται με τ = rewindTau(t, …) και ξαναπαίζει ανάποδα χωρίς state
+const rewindTau = (t, [t0, t1], from, to) => t < t0 ? t : lerp(from, to, L.easeInOut(L.prog(t, t0, t1)));
+
 // ---------- follow-through · αδράνεια ----------
 // κομμάτι που ακολουθεί το fn(t) με ελατήριο (καλώδια, σωλήνας, ποδιά, κρεμαστά): ολοκλήρωση σε παράθυρο win s πριν το t σε σταθερό πλέγμα → χωρίς state
 // fn(t) → αριθμός ή array · o = { f (Hz, default 2), z (default 0,35), win (s, default 2), dt } → τιμή (ή array) του follower
@@ -186,4 +197,4 @@ function smear(ctx, t, fn, o = {}) {
   for (let i = n - 1; i >= 0; i--) { ctx.save(); if (i) ctx.globalAlpha *= a * (1 - i / n); fn(ctx, t - i * dt, i); ctx.restore(); }
 }
 
-module.exports = { stepResp, resp, springTo, springKeys, wobble, trapez, raster, pathMove, pathT, lag, deriv, accel, shake, shakes, squash, fall, particles, streak, smear };
+module.exports = { stepResp, resp, springTo, springKeys, wobble, trapez, raster, pathMove, pathT, kf, rewindTau, lag, deriv, accel, shake, shakes, squash, fall, particles, streak, smear };

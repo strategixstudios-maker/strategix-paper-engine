@@ -230,6 +230,54 @@ function lipsync(VO, rest = 'smile', who) { const t = ST.T;
   if (who && ST.VOWHO && !ST.VOWHO.some(([a, b, w]) => w === who && t >= a && t <= b)) return rest;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
+// ---------- VO → χρόνοι λέξεων + captions (vo/<ep>_vo.words.json, από vo.js + render.js vo --gap) ----------
+// const V = L.voText('vo/<ep>_vo.mp3', 0.2) → V.W('ξεθωρ') = αρχή λέξης σε χρόνο video (πρόθεμα, χωρίς τόνους · n = πολλοστή εμφάνιση · from = μετά από)
+//   · V.E(…) = τέλος λέξης · V.caps({ loop }) → [[t, 'κομμάτι'], ...] για captionSeq: πρόταση → κομμάτια ≤ 2 γραμμές, κόψιμο σε κόμμα / παύση / πριν από «και, σε, για…»
+//   · το 1ο κομμάτι φαίνεται από το frame 0 (hook) · loop: t → στο τέλος ξαναμπαίνει το 1ο κομμάτι (seamless, §5.7) · text/at: { i: … } διορθώσεις ανά κομμάτι
+//   · γραφή TTS → caption: SPELL (Στράτετζιξ → Strategix) + o.spell. Έτσι δεν γράφεται με το χέρι ούτε πίνακας χρόνων ούτε τα captions (12 + 9 επεισόδια ως το pf06).
+const SPELL = { 'Στράτετζιξ': 'Strategix', 'Στρατίτζικς': 'Strategix' };
+const normW = s => String(s).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+const GLUE = new Set(['και', 'σε', 'για', 'με', 'στο', 'στον', 'στη', 'στην', 'στα', 'στις', 'στους', 'που', 'να', 'αλλα', 'απο', 'οτι', 'αν', 'οπως', 'ενω', 'γιατι', 'ομως', 'or', 'and']); // καλό σημείο κοψίματος: πριν από αυτές
+const NOEND = new Set([...GLUE, 'ο', 'η', 'το', 'οι', 'τα', 'τον', 'την', 'τη', 'του', 'της', 'των', 'τους', 'τις', 'ενα', 'μια', 'ενας', 'θα', 'δεν', 'μην', 'ολο', 'ολη', 'ολα', 'ολους', 'καθε', 'πιο', 'πολυ']); // κομμάτι δεν τελειώνει σε άρθρο/πρόθεση
+const CLITIC = new Set(['σου', 'μου', 'μας', 'σας']); // «την ομάδα | σου» ✘: η κτητική αντωνυμία μένει με το προηγούμενο
+function voText(file, at = 0.2, o = {}) {
+  const wf = file.replace(/\.\w+$/, '.words.json');
+  if (!fs.existsSync(wf)) throw new Error(`voText: δεν υπάρχει το ${wf} → node render.js vo <take>.mp3 --gap 0.3 --out ${file} (μεταφέρει τις λέξεις)`);
+  const spell = { ...SPELL, ...(o.spell || {}) };
+  const words = JSON.parse(fs.readFileSync(wf, 'utf8')).map(([a, b, w]) => { const k = w.replace(/[^\p{L}\p{N}]/gu, ''); return [a + at, b + at, spell[k] ? w.replace(k, spell[k]) : w]; });
+  const find = (w, n = 1, from = -1) => {
+    const q = normW(w); let k = 0;
+    for (const x of words) if (x[0] >= from && normW(x[2]).startsWith(q) && ++k === n) return x;
+    throw new Error(`voText: η λέξη «${w}»${n > 1 ? ` (${n}η φορά)` : ''} δεν υπάρχει στο VO · λέξεις: ${words.map(x => x[2]).join(' ')}`);
+  };
+  const W = (w, n, from) => find(w, n, from)[0], E = (w, n, from) => find(w, n, from)[1];
+  function caps(c = {}) {
+    const lead = c.lead ?? 0.08, maxC = c.max ?? 44, cv = createCanvas(10, 10).getContext('2d'); cv.font = `${CAP.font}px Hand`;
+    const fits = s => wrap(cv, s, CAP.w - 90).length <= 2, len = ws => ws.map(x => x[2]).join(' ').length;
+    const split = ws => { // πρόταση → κομμάτια: ≤ maxC χαρακτήρες και ≤ 2 γραμμές, αλλιώς το καλύτερο σημείο (κόμμα · παύση · πριν από «και/σε/για…» · ισορροπία)
+      const s = ws.map(x => x[2]).join(' ');
+      if (ws.length < 2 || (s.length <= maxC && fits(s))) return [ws];
+      let best = 1, bs = -1e9;
+      for (let i = 1; i < ws.length; i++) {
+        const l = len(ws.slice(0, i)), r = len(ws.slice(i)), pause = ws[i][0] - ws[i - 1][1];
+        const fitL = fits(ws.slice(0, i).map(x => x[2]).join(' ')), fitR = fits(ws.slice(i).map(x => x[2]).join(' '));
+        const sc = -Math.abs(l - r) + (/,$/.test(ws[i - 1][2]) ? 30 : 0) + (pause > 0.15 ? 20 : 0) + (GLUE.has(normW(ws[i][2])) ? 12 : 0)
+          - (i < 2 || ws.length - i < 2 ? 25 : 0) - (NOEND.has(normW(ws[i - 1][2])) ? 40 : 0) - (CLITIC.has(normW(ws[i][2])) ? 45 : 0) - (fitL ? 0 : 60) - (fitR ? 0 : 60);
+        if (sc > bs) { bs = sc; best = i; }
+      }
+      return [...split(ws.slice(0, best)), ...split(ws.slice(best))];
+    };
+    const sent = []; let cur = [];
+    for (const x of words) { cur.push(x); if (/[.!?;…:]["»]?$/.test(x[2])) { sent.push(cur); cur = []; } }
+    if (cur.length) sent.push(cur);
+    const out = sent.flatMap(split).map((ws, i) => [i ? +(ws[0][0] - lead).toFixed(2) : (c.first ?? -1), ws.map(x => x[2]).join(' ')]);
+    for (const [i, s] of Object.entries(c.text || {})) out[i][1] = s;
+    for (const [i, t] of Object.entries(c.at || {})) out[i][0] = t;
+    if (c.loop != null) out.push([c.loop, out[0][1]]);
+    return out;
+  }
+  return { words, W, E, caps, end: words.length ? words[words.length - 1][1] : at };
+}
 const blinkNow = (off = 0) => ((ST.T + off) % 2.7) > 2.58; // blink για λίγα frames κάθε 2,7s → stratos({ blink: blinkNow() }) · off = μετατόπιση ανά χαρακτήρα (όχι όλοι μαζί)
 // ---------- κάμερα & χρώματα (pf04 → pf05) ----------
 // κάμερα: το σημείο (x, y) του κόσμου στη θέση (sx, sy) της οθόνης με zoom z (μέσα σε ctx.save/restore)
@@ -241,4 +289,4 @@ const snap = (t, t0, a, b, dur = 0.12) => lerpArr(a, b, easeOut(prog(t, t0, t0 +
 function hexRGB(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
 // ανάμειξη δύο hex χρωμάτων → 'rgb(…)' · t 0 = a, 1 = b (γυαλάδα, σκούρεμα, μετάβαση χρώματος)
 function mixHex(a, b, t) { const A = hexRGB(a), B = hexRGB(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; }
-module.exports={cam,snap,lerpArr,hexRGB,mixHex,lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,cutGroup,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};
+module.exports={voText,SPELL,cam,snap,lerpArr,hexRGB,mixHex,lipsync,blinkNow,createCanvas,W,H,FPS,C,ST,rng,clamp,lerp,prog,easeOut,easeIn,easeInOut,spring,rectPts,rrPts,circlePts,heartPts,starPts,tear,path,bbox,scribble,cut,cutGroup,txt,wrap,pop,check,logoMark,brandMark,BADGE,badge,bubble,caption,captionSeq,burst,person,handPen,SAFE,CAP,safeGuide};

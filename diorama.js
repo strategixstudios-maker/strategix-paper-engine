@@ -314,7 +314,10 @@ function grade(ctx, o = {}) {
 // ---------- ένα frame της μακέτας ----------
 // scene = { cam: camera(), items: [...], light: { dir (κατεύθυνση που ταξιδεύει το φως), soft (0.03–0.1), shadow (0..1), warm }, R: { desk, wall, floor },
 //           window: { c, a, b, panes }, patch (0..1), shaft (0..1), dust (πλήθος), grade: { from, warm, cool, bloom } | false }
+// lint (ST.MODE 'lint'): χωρίς σκιές / κηλίδα φωτός / DOF / δέσμη / grade — τα warnings (χέρια, captions, safe zone) βγαίνουν από τις θέσεις, όχι από τα εφέ → lint ~πολλές φορές
+// γρηγορότερο · render / sheet / preview μένουν πλήρη (ίδια pixels) · LINT_FULL=1 → πλήρες και στο lint
 function draw(ctx, scene, t) {
+  const lite = ST.MODE === 'lint' && !process.env.LINT_FULL;
   const cam = scene.cam, R = scene.R || {}, lt = scene.light || {};
   const dir = V.norm(lt.dir || [0.62, -0.72, 0.32]);
   const Lt = { dir, to: V.mul(dir, -1), soft: lt.soft ?? 0.06, shadow: lt.shadow ?? 0.34, warm: lt.warm || 'rgba(255,214,150,1)' };
@@ -324,23 +327,24 @@ function draw(ctx, scene, t) {
   // 1 σκηνικό: επιφάνειες (με τη σειρά που δόθηκαν) + σκιές επαφής → σκιές των αντικειμένων → κηλίδα φωτός → DOF ανά σειρά
   const S = scratch('set');
   S.x.fillStyle = scene.bg || '#1B2A55'; S.x.fillRect(0, 0, PW, PH);
-  for (const it of surf) { if (it.lift !== 0 && !it.base) contact(S.x, cam, it, Lt); drawItem(S.x, PAD, it); }
-  for (const it of obj) castShadow(S.x, cam, it, Lt, R);
+  for (const it of surf) { if (it.lift !== 0 && !it.base && !lite) contact(S.x, cam, it, Lt); drawItem(S.x, PAD, it); }
+  if (!lite) for (const it of obj) castShadow(S.x, cam, it, Lt, R);
   // σκιά περιβάλλοντος: ό,τι δεν βλέπει το παράθυρο πέφτει λίγο (ψυχρό) → η κηλίδα φωτός και τα αντικείμενα ξεχωρίζουν
   if (scene.ambient !== 0) { S.x.save(); S.x.globalCompositeOperation = 'multiply'; S.x.fillStyle = scene.ambient || '#CDD4EA'; S.x.fillRect(0, 0, PW, PH); S.x.restore(); }
-  if (scene.window && scene.patch) windowPatch(S, cam, Lt, R, scene.window, scene.patch);
-  setDOF(ctx, cam, R, S);
+  if (scene.window && scene.patch && !lite) windowPatch(S, cam, Lt, R, scene.window, scene.patch);
+  if (lite) ctx.drawImage(S.c, PAD, PAD, W, H, 0, 0, W, H); else setDOF(ctx, cam, R, S);
   // 2 αντικείμενα από πίσω προς τα μπρος, σε ομάδες ίδιου θολώματος
   const Lr = scratch('lay'); let cur = -1, box = null;
   const flush = () => { if (box) blurDraw(ctx, 0, Lr.c, box, cur); scratch('lay'); box = null; };
   for (const it of obj) {
-    const r = cam.coc(it._zc ?? it._z), lvl = r < 1.5 ? 0 : LEVELS.reduce((b, l) => Math.abs(l - r) < Math.abs(b - r) ? l : b, 0);
+    const r = lite ? 0 : cam.coc(it._zc ?? it._z), lvl = r < 1.5 ? 0 : LEVELS.reduce((b, l) => Math.abs(l - r) < Math.abs(b - r) ? l : b, 0);
     if (lvl !== cur) { flush(); cur = lvl; }
     if (lvl === 0) { drawItem(ctx, 0, it); continue; }
     drawItem(Lr.x, PAD, it); box = box ? [Math.min(box[0], it._box[0]), Math.min(box[1], it._box[1]), Math.max(box[2], it._box[2]), Math.max(box[3], it._box[3])] : it._box.slice();
   }
   flush();
   // 3 δέσμη + σκόνη, grade
+  if (lite) return;
   if (scene.window && scene.shaft) shaft(ctx, cam, Lt, R, scene.window, t, scene.shaft, scene.dust ?? 70);
   if (scene.grade !== false) grade(ctx, scene.grade || {});
 }
