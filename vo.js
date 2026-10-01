@@ -8,7 +8,16 @@
 //       · --each = κάθε ατάκα σε δικό της generation (αν η φωνή «θυμάται» κείμενο ανάμεσα στις ατάκες, er02) · --dialogue = όλος ο διάλογος σε ένα text-to-dialogue (er01) · guest ενός επεισοδίου: `ΒΑΣΙΛΗΣ: @vo/<ep>_vasilis1.mp3` = έτοιμο κλιπ (π.χ. τσιρίγματα
 //       καρτούν από ElevenLabs SFX) στην ίδια ένταση με τις φωνές, key = λατινικά του ονόματος ('vasilis')
 //       + <ep>_take<k>.who.json = [[a, b, 'rena'], ...] (ποιος μιλάει πότε) → το `render.js vo --gap` το μεταφέρει στο vo/<ep>_vo.who.json → lipsync(VO, rest, who)
-const fs = require('fs'), { spawnSync } = require('child_process');
+// Έλεγχος (§5d): κάθε take μεταγράφεται αυτόματα (Scribe) και συγκρίνεται με το κείμενο → ⚠ λέξεις που περισσεύουν / λείπουν (το eleven_v3 προσθέτει λέξεις, er02)
+//       · node vo.js <ep> --check [take.mp3 …] = μόνο ο έλεγχος σε υπάρχοντα takes · --no-check = χωρίς · requests με retry σε 429/5xx
+const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
+// fetch με retry (429 / 5xx / δίκτυο): 3 προσπάθειες, αναμονή 2s → 6s
+async function fetchRetry(url, opt) {
+  for (let k = 0; ; k++) {
+    try { const r = await fetch(url, opt); if ((r.status === 429 || r.status >= 500) && k < 2) { await new Promise(z => setTimeout(z, 2000 * (2 * k + 1))); continue; } return r; }
+    catch (e) { if (k >= 2) throw e; await new Promise(z => setTimeout(z, 2000 * (2 * k + 1))); }
+  }
+}
 
 // ---------- ρυθμίσεις «Stratos» — ΜΗΝ αλλάζουν ανά επεισόδιο (αλλαγή = άλλη φωνή σε σχέση με τα προηγούμενα) ----------
 const STRATOS = {
@@ -25,7 +34,7 @@ const STRATOS = {
 async function tts(text, seed, key, voice = STRATOS.voice) {
   const body = { text, model_id: STRATOS.model, voice_settings: STRATOS.settings, seed, language_code: STRATOS.lang };
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=${STRATOS.format}`;
-  const post = b => fetch(url, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' }, body: JSON.stringify(b) });
+  const post = b => fetchRetry(url, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' }, body: JSON.stringify(b) });
   let r = await post(body);
   if (r.status === 400 && /language/i.test(await r.clone().text())) { delete body.language_code; r = await post(body); } // αν το μοντέλο δεν δέχεται language_code
   if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
@@ -35,7 +44,7 @@ async function tts(text, seed, key, voice = STRATOS.voice) {
 // το `render.js vo` τα μεταφέρει στο --cut/--gap και τυπώνει το κείμενο κάθε φράσης (χρονισμοί λέξεων χωρίς εικασίες · δεν χρειάζεται forced alignment)
 async function ttsWords(text, seed, key, voice = STRATOS.voice) {
   const body = { text, model_id: STRATOS.model, voice_settings: STRATOS.settings, seed, language_code: STRATOS.lang };
-  const post = b => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=${STRATOS.format}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+  const post = b => fetchRetry(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=${STRATOS.format}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
   let r = await post(body);
   if (r.status === 400 && /language/i.test(await r.clone().text())) { delete body.language_code; r = await post(body); }
   if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
@@ -110,7 +119,7 @@ async function ttsDialogue(lines, seed, key, turn = 0.3, raw, each = false) {
       console.log(`    ${n}: ${idx.length} ατάκες, μία-μία (--each)`); continue;
     }
     const body = { text, model_id: STRATOS.model, voice_settings: STRATOS.settings, seed, language_code: STRATOS.lang };
-    const post = b => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${CAST[n].voice}/with-timestamps?output_format=${STRATOS.format}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+    const post = b => fetchRetry(`https://api.elevenlabs.io/v1/text-to-speech/${CAST[n].voice}/with-timestamps?output_format=${STRATOS.format}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
     let r = await post(body);
     if (r.status === 400 && /language/i.test(await r.clone().text())) { delete body.language_code; r = await post(body); }
     if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
@@ -137,7 +146,7 @@ async function ttsDialogue(lines, seed, key, turn = 0.3, raw, each = false) {
 // ο διάλογος δέχεται μόνο stability (όχι similarity/style) · with-timestamps → voice_segments (ποιος μιλάει πότε)
 async function dialogue(lines, seed, key) {
   const body = { inputs: lines.map(([n, text]) => ({ text, voice_id: CAST[n].voice })), model_id: STRATOS.model, settings: { stability: STRATOS.settings.stability }, seed, language_code: STRATOS.lang };
-  const post = (b, ts) => fetch(`https://api.elevenlabs.io/v1/text-to-dialogue${ts ? '/with-timestamps' : ''}?output_format=${STRATOS.format}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+  const post = (b, ts) => fetchRetry(`https://api.elevenlabs.io/v1/text-to-dialogue${ts ? '/with-timestamps' : ''}?output_format=${STRATOS.format}`, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
   let r = await post(body, true);
   if (r.status === 400 && /language/i.test(await r.clone().text())) { delete body.language_code; r = await post(body, true); }
   if (r.status === 404) { // χωρίς timestamps: μόνο ήχος, ο ομιλητής ανά φράση μπαίνει με το χέρι
@@ -150,6 +159,50 @@ async function dialogue(lines, seed, key) {
   return { audio: Buffer.from(j.audio_base64, 'base64'), who };
 }
 
+// ---------- έλεγχος με μεταγραφή (Scribe · ElevenLabs speech-to-text) ----------
+// θέλει το permission «Speech to Text» στο API key (elevenlabs.io → Developers → API keys → Edit) · χωρίς αυτό → ⚠ και ο έλεγχος γίνεται με τον connector όπως πριν
+async function transcribe(file, key) {
+  const fd = new FormData(); fd.append('model_id', 'scribe_v1'); fd.append('language_code', 'el'); fd.append('tag_audio_events', 'false');
+  fd.append('file', new Blob([fs.readFileSync(file)], { type: 'audio/mpeg' }), path.basename(file));
+  const r = await fetchRetry('https://api.elevenlabs.io/v1/speech-to-text', { method: 'POST', headers: { 'xi-api-key': key }, body: fd, signal: AbortSignal.timeout(300e3) });
+  if (r.status === 401 || r.status === 403) return { denied: (await r.text()).slice(0, 160) };
+  if (!r.ok) throw new Error(`Scribe ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  const j = await r.json(); return { text: j.text, words: (j.words || []).filter(w => w.type === 'word').map(w => [w.start, w.end, w.text]) };
+}
+// σύγκριση κειμένου ↔ μεταγραφής: λέξεις χωρίς τόνους/στίξη, ελληνικά ≈ λατινικά («laptop» = «λάπτοπ»), 1 γράμμα διαφορά σε λέξεις ≥ 5 → ίδια · LCS
+const GRL = { α: 'a', β: 'v', γ: 'g', δ: 'd', ε: 'e', ζ: 'z', η: 'i', θ: 'th', ι: 'i', κ: 'k', λ: 'l', μ: 'm', ν: 'n', ξ: 'x', ο: 'o', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', υ: 'i', φ: 'f', χ: 'ch', ψ: 'ps', ω: 'o' };
+const nw = s => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+const lat = s => [...nw(s)].map(c => GRL[c] ?? c).join('').replace(/[^a-z0-9]/g, '').replace(/(.)\1+/g, '$1').replace(/[eiy]/g, 'i').replace(/[ou]/g, 'o');
+function lev(a, b) { if (Math.abs(a.length - b.length) > 2) return 9; const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
+const same = (a, b) => { const x = lat(a), y = lat(b); return x === y || (Math.max(x.length, y.length) >= 5 && lev(x, y) <= (x.length >= 9 ? 2 : 1)); };
+function wordDiff(text, heard) {
+  const A = text.replace(/\[[^\]]*\]/g, ' ').replace(/^[^\s:]+\s*:\s*@\S+\s*$/gm, ' ').replace(/^[^\s:]+\s*:/gm, ' ').split(/\s+/).filter(w => nw(w)), B = heard;
+  const n = A.length, m = B.length, D = Array.from({ length: n + 1 }, () => new Int16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) D[i][j] = same(A[i], B[j][2]) ? D[i + 1][j + 1] + 1 : Math.max(D[i + 1][j], D[i][j + 1]);
+  const extra = [], miss = []; let i = 0, j = 0;
+  const push = (L, x) => { const p = L[L.length - 1]; if (p && p.k === x.k - 1) { p.w.push(x.w); p.k = x.k; } else L.push({ ...x, w: [x.w] }); };
+  while (i < n || j < m) {
+    if (i < n && j < m && same(A[i], B[j][2])) { i++; j++; }
+    else if (j < m && (i >= n || D[i][j + 1] >= D[i + 1][j])) { push(extra, { k: j, t: B[j][0], w: B[j][2] }); j++; }
+    else { push(miss, { k: i, t: j < m ? B[j][0] : null, w: A[i] }); i++; }
+  }
+  return { extra, miss, n, m };
+}
+async function checkTake(file, text, key) {
+  const T = await transcribe(file, key);
+  if (T.denied) { console.log(`  ⚠ Scribe: το API key δεν έχει «Speech to Text» → elevenlabs.io → Developers → API keys → Edit → Speech to Text: Access · ως τότε: έλεγχος με τον connector`); return null; }
+  const d = wordDiff(text, T.words), at = t => t != null ? ' @' + t.toFixed(1).replace('.', ',') + 's' : '';
+  // ίδιο σημείο: λέξη του κειμένου που ακούστηκε αλλιώς (Scribe ή προφορά) → «κείμενο → ακούστηκε» · μόνο + = λέξεις που ΠΡΟΣΘΕΣΕ η φωνή (ο κίνδυνος του v3)
+  const sub = [], extra = d.extra.filter(e => { const m = d.miss.find(x => !x.used && x.t != null && Math.abs(x.t - e.t) < 1.5 && x.w.length <= 3 && e.w.length <= 3); if (!m) return true; m.used = 1; sub.push(`«${m.w.join(' ')}» → «${e.w.join(' ')}»${at(e.t)}`); return false; });
+  const miss = d.miss.filter(x => !x.used);
+  if (!extra.length && !miss.length && !sub.length) console.log(`  Scribe ✔ ${path.basename(file)}: ${d.m} λέξεις, όλες του κειμένου, καμία έξτρα`);
+  else console.log(`  ${extra.length || miss.length ? '⚠' : '≈'} Scribe ${path.basename(file)}: ` + [...extra.map(r => `+«${r.w.join(' ')}»${at(r.t)}`), ...miss.map(r => `−«${r.w.join(' ')}»${at(r.t)}`), ...sub].join(' · ')
+    + `\n    (+ = ακούγεται αλλά δεν υπάρχει στο κείμενο → άκου εκεί · − = λείπει · «α» → «β» = ακούστηκε αλλιώς, συνήθως λάθος της μεταγραφής ή ξένη λέξη · χρόνος = στο take)`);
+  fs.writeFileSync(file.replace(/\.mp3$/, '.scribe.json'), JSON.stringify({ text: T.text, extra: d.extra, miss: d.miss }));
+  return d;
+}
+
 if (require.main === module) (async () => {
   const [ep, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
   if (!ep) { console.log('usage: node vo.js <ep> [--takes 2] [--seed N] [--tempo 1.12] [--turn 0.3] [--each | --dialogue]   (κείμενο: vo/<ep>.txt)'); process.exit(1); }
@@ -157,6 +210,10 @@ if (require.main === module) (async () => {
   if (!key) { console.log('vo: λείπει το ELEVENLABS_API_KEY → export ELEVENLABS_API_KEY=… στο ~/.zshrc και νέο terminal'); process.exit(1); }
   const txtFile = `vo/${ep}.txt`; if (!fs.existsSync(txtFile)) { console.log(`vo: δεν υπάρχει το ${txtFile}`); process.exit(1); }
   const text = fs.readFileSync(txtFile, 'utf8').trim(), takes = Number(opt('takes') || 2), seed0 = Number(opt('seed') ?? STRATOS.seed), lines = parseDialogue(text);
+  if (rest.includes('--check')) { // μόνο έλεγχος σε υπάρχοντα takes
+    const files = rest.filter(a => a.endsWith('.mp3')); if (!files.length) for (let k = 1; fs.existsSync(`${ep}_take${k}.mp3`); k++) files.push(`${ep}_take${k}.mp3`);
+    for (const f of files) await checkTake(f, text, key); return;
+  }
   console.log(`vo: ${ep} · ${text.length} χαρακτήρες · ${STRATOS.model}${lines ? ` · διάλογος ${lines.length} ατάκες (${[...new Set(lines.map(l => l[0]))].join(' · ')})` : ''} · stability ${STRATOS.settings.stability} · seed ${seed0}${takes > 1 ? '…' + (seed0 + takes - 1) : ''}`);
   for (let k = 1; k <= takes; k++) {
     const out = `${ep}_take${k}.mp3`;
@@ -164,6 +221,8 @@ if (require.main === module) (async () => {
     else if (rest.includes('--dialogue')) { const D = await dialogue(lines, seed0 + k - 1, key); fs.writeFileSync(out, D.audio); if (D.who) fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
     else { const D = await ttsDialogue(lines, seed0 + k - 1, key, Number(opt('turn') ?? 0.3), out.replace(/\.mp3$/, '.%.raw.mp3'), rest.includes('--each')); encode(D.pcm, out); fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
     console.log(`  take ${k} (seed ${seed0 + k - 1}) → ${out}${lines ? ' + .who.json' : ' + .words.json'}`);
+    if (!rest.includes('--no-check')) await checkTake(out, text, key).catch(e => console.log(`  ⚠ Scribe: ${e.message}`));
   }
+  try { require('./next.js').after(ep, 'vo', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 })().catch(e => { console.error(e.message); process.exit(1); });
-module.exports = { STRATOS, CAST, tts, ttsWords, dialogue, ttsDialogue, parseDialogue };
+module.exports = { STRATOS, CAST, tts, ttsWords, dialogue, ttsDialogue, parseDialogue, transcribe, wordDiff, checkTake };
