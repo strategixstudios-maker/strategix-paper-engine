@@ -123,6 +123,17 @@ const P = {
     return n;
   },
   stamp: (o, r) => P.thud({ f0: 150, f1: 60, snap: 0.8, dur: 0.28, ...o }, r),
+  // record scratch (δίσκος που σταματάει απότομα, ms03): θόρυβος + βόμβος με ταχύτητα που πάει μπρος-πίσω (o.n περάσματα) και κόβεται
+  scratch(o, r) {
+    const d = o.dur ?? 0.42, k = o.n ?? 2, n = buf(d), bp = biquad(), lp = biquad().set('lp', 3200); let ph = 0;
+    for (let i = 0; i < n.length; i++) {
+      const u = i / n.length, sp = Math.sin(Math.PI * k * u), v = Math.abs(sp), fc = 300 + 2600 * v;
+      if (i % 32 === 0) bp.set('bp', fc, 2.2);
+      ph += TAU * (60 + 340 * v) / SR;
+      n[i] = (bp.run(W(r)) * 1.4 + lp.run(Math.sign(Math.sin(ph)) * 0.35)) * (0.25 + v) * fade(u, 0.01, 0.06);
+    }
+    return n;
+  },
   // ticks slider (count ticks, pitch ανεβαίνει)
   ticks(o, r) {
     const cnt = o.count ?? 12, gap = o.gap ?? 0.05, f = o.f ?? 2100, rise = o.rise ?? 1.3, n = buf(cnt * gap + 0.02), bp = biquad().set('bp', 4000, 2);
@@ -284,7 +295,7 @@ const P = {
   },
 };
 // default gains (σχετική ένταση στο stem)
-const GAIN = { galvo: 0.45, ring: 0.4, file: 0.6, drop: 0.5, flow: 0.5, stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
+const GAIN = { scratch: 0.6, galvo: 0.45, ring: 0.4, file: 0.6, drop: 0.5, flow: 0.5, stitch: 0.5, plotter: 0.5, peel: 0.6, squeegee: 0.5, spray: 0.5, laser: 0.5, air: 0.4, slide: 0.55, shimmer: 0.5, whoosh: 0.75, swoosh: 0.7, zoom: 0.7, tear: 0.7, ding: 0.6, lid: 0.6, ticks: 0.55, beep: 0.3, blip: 0.45, sent: 0.55, boing: 0.55 };
 
 function norm(x, pk = 0.7) { let m = 0; for (const v of x) m = Math.max(m, Math.abs(v)); if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= pk / m; return x; }
 function make(name, o = {}) {
@@ -313,7 +324,7 @@ module.exports = { SR, P, GAIN, make, mix, writeWav };
 if (require.main === module) {
   const [cmd = 'demo', seed] = process.argv.slice(2);
   if (cmd === 'demo') {
-    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }], ['stitch', { dur: 2.5 }], ['drop'], ['drop', { dur: 2, rate: 3, rise: 25 }], ['flow', { dur: 2 }], ['ring', { count: 2 }]];
+    const list = [['whoosh', { seed: 1 }], ['whoosh', { seed: 2 }], ['tear'], ['pop'], ['blip'], ['boing'], ['click'], ['beep', { count: 2 }], ['ding'], ['thud'], ['stamp'], ['scratch'], ['ticks'], ['slide'], ['lid'], ['air'], ['zoom'], ['swoosh'], ['sent'], ['shimmer'], ['laser', { dur: 3 }], ['plotter', { dur: 2.5 }], ['peel', { dur: 2.5 }], ['squeegee', { strokes: 3, dur: 1.8 }], ['spray', { dur: 1.8 }], ['stitch', { dur: 2.5 }], ['drop'], ['drop', { dur: 2, rate: 3, rise: 25 }], ['flow', { dur: 2 }], ['ring', { count: 2 }]];
     let t = 0.3; const cues = [];
     for (const [nm, o = {}] of list) { const len = make(nm, o)[0].length / SR; cues.push([t, nm, o]); console.log(`${t.toFixed(1).padStart(5)}s  ${nm}${o.seed ? ' (seed ' + o.seed + ')' : ''}`); t += len + 0.6; }
     writeWav('sfx_demo.wav', mix(cues, t + 0.3)); console.log('sfx_demo.wav', t.toFixed(1) + 's');

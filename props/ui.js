@@ -98,12 +98,12 @@ function qmark(ctx, x, y, s, rot = 0) {
   txt(ctx, '?', 0, 0, { font: 'bold 640px Round', color: BRAND, edge: 26, edgeC: '#FBFAF6' });
   ctx.restore();
 }
-// βήμα διαδικασίας: αριθμός σε μπλε κύκλο + λέξη, αριστερά κάτω από το caption · pop στο st · o.y (default 568 = κάτω από caption 2 γραμμών) (pf04 → pf05)
+// βήμα διαδικασίας: αριθμός (ή γράμμα: 'Α', ms03) σε μπλε κύκλο + λέξη, αριστερά κάτω από το caption · pop στο st · o.y (default 568 = κάτω από caption 2 γραμμών) (pf04 → pf05)
 function stepChip(ctx, lt, st, n, label, o = {}) {
-  ctx.font = 'bold 44px Round'; const w = ctx.measureText(label).width + 124, x = (o.x ?? 72) + w / 2, y = o.y ?? 568;
+  ctx.font = 'bold 44px Round'; const w = ctx.measureText(label).width + 124, x = (o.x ?? 72) + w / 2, y = o.y ?? 568, sn = typeof n === 'number' ? n : String(n).charCodeAt(0) % 50;
   pop(ctx, lt, st, x, y, () => {
-    cut(ctx, rrPts(-w / 2, -40, w, 80, 40), C.paper, { seed: 7000 + n, amp: 2, edgeW: 7 });
-    cut(ctx, circlePts(-w / 2 + 42, 0, 29, 29, 20), BRAND, { seed: 7010 + n, amp: 1, edgeW: 4, shadow: false });
+    cut(ctx, rrPts(-w / 2, -40, w, 80, 40), C.paper, { seed: 7000 + sn, amp: 2, edgeW: 7 });
+    cut(ctx, circlePts(-w / 2 + 42, 0, 29, 29, 20), BRAND, { seed: 7010 + sn, amp: 1, edgeW: 4, shadow: false });
     txt(ctx, String(n), -w / 2 + 42, 2, { font: 'bold 40px Round', color: '#fff' });
     txt(ctx, label, -w / 2 + 84, 2, { font: 'bold 44px Round', color: C.ink, align: 'left' });
   }, -0.03);

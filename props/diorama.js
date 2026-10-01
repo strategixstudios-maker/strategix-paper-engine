@@ -54,10 +54,11 @@ const behindDesk = (cam, R = ROOM) => (c, off) => {
 };
 
 // ---------- Στράτος ως χάρτινη κούκλα (ep02): ζωντανή υφή, ανάλυση ανάλογα με την απόσταση της κάμερας, lint χεριών στην οθόνη ----------
+// υφή 1000 px × s σε πλάτος: χωράει shrug / χέρια ανοιχτά (ms03 v1: στα 640 τα χέρια κόβονταν) · o.texW για άλλο πλάτος
 // o = { pos (πόδια, cm), pose (opts του stratos(): συνήθως poseSpring(POSES, t)), mouth (default lipsync([], 'smile')), clip, draw(x, s, cw, sy) = πάνω στην υφή (props στο χέρι) }
 function stratosItem(cam, t, o) {
   const pos = o.pos, pxcm = cam.F / Math.max(20, cam.toCam(V.add(pos, [0, 140, 0]))[2]), s = clamp(Math.round(pxcm * 175 / 1243 * 1.15 * 4) / 4, 0.75, 3.25);
-  const cw = Math.ceil(640 * s), ch = Math.ceil(1320 * s), sy = 400 * s, PXC = 1243 * s / 175;
+  const cw = Math.ceil((o.texW || 1000) * s), ch = Math.ceil(1320 * s), sy = 400 * s, PXC = 1243 * s / 175;
   const it = { w: cw / PXC, h: ch / PXC, anchor: [0.5, (sy + 878 * s) / ch], pos, clip: o.clip };
   const w0 = ST.warn ? ST.warn.length : 0;
   it.t = D.tex(o.key || 'stratos', cw, ch, x => {
