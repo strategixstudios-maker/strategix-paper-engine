@@ -247,7 +247,7 @@ if (require.main === module) {
   const pos = a.filter((x, i) => !x.startsWith('--') && !(i && a[i - 1] === '--at'));
   if (cmd === 'status') status();
   else if (cmd === 'next') { const { t, last } = nextSlot(load()); console.log(`${fmt(t)}  ${iso(t)}${last ? `  (τελευταίο ${fmt(last)})` : ''}`); }
-  else if (cmd === 'schedule') schedule(pos[0], pos[1], opt('at'), a.includes('--dry'), a.includes('--insert'));
+  else if (cmd === 'schedule') { schedule(pos[0], pos[1], opt('at'), a.includes('--dry'), a.includes('--insert')); if (!a.includes('--dry')) try { require('./next.js').after(pos[0], 'publish', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; } }
   else if (cmd === 'sync') { const log = load(); const n = sync(log); console.log(n.join('\n') || 'τίποτα νέο'); }
   else if (cmd === 'cancel') cancel(pos[0]);
   else if (cmd === 'manual') manual(pos[0], pos[1]);

@@ -348,4 +348,6 @@ if (require.main === module) {
     src = out;
   }
   voPrint(src, voLoad(src, at), at, undefined, who && who.map(([a, b, n]) => [a + at, b + at, n]), words && words.map(([a, b, x]) => [a + at, b + at, x]));
+  const m = src.match(/^vo\/([a-z]+\d+)_vo\.mp3$/); // τελικό VO του επεισοδίου → «επόμενο βήμα»
+  if (m && (gap || opt('cut') || opt('splice') || opt('tempo'))) try { require('./next.js').after(m[1], 'vo-tight', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }

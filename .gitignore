@@ -8,6 +8,9 @@ package-lock.json
 *_sheet.png
 HANDS_SHEET.png
 *_[0-9]*.png
+*_preview.png
+*_crop.png
+*.scribe.json
 *.wav
 *.mp3
 *_sfx.md
