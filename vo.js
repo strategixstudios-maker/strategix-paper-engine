@@ -221,7 +221,10 @@ if (require.main === module) (async () => {
     else if (rest.includes('--dialogue')) { const D = await dialogue(lines, seed0 + k - 1, key); fs.writeFileSync(out, D.audio); if (D.who) fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
     else { const D = await ttsDialogue(lines, seed0 + k - 1, key, Number(opt('turn') ?? 0.3), out.replace(/\.mp3$/, '.%.raw.mp3'), rest.includes('--each')); encode(D.pcm, out); fs.writeFileSync(out.replace(/\.mp3$/, '.who.json'), JSON.stringify(D.who)); }
     console.log(`  take ${k} (seed ${seed0 + k - 1}) → ${out}${lines ? ' + .who.json' : ' + .words.json'}`);
-    if (!rest.includes('--no-check')) await checkTake(out, text, key).catch(e => console.log(`  ⚠ Scribe: ${e.message}`));
+    if (!rest.includes('--no-check')) { // διάλογος: κάθε φωνή χωριστά στο raw της (τα κλιπ guest / τσιρίγματα ο Scribe τα «διαβάζει» ως λέξεις)
+      const jobs = lines && !rest.includes('--dialogue') ? [...new Set(lines.map(l => l[0]))].filter(n => CAST[n]).map(n => [out.replace(/\.mp3$/, `.${keyOf(n)}.raw.mp3`), lines.filter(l => l[0] === n && !isClip(l[1])).map(l => l[1]).join('\n')]) : [[out, text]];
+      for (const [f, tx] of jobs) if (fs.existsSync(f)) await checkTake(f, tx, key).catch(e => console.log(`  ⚠ Scribe: ${e.message}`));
+    }
   }
   try { require('./next.js').after(ep, 'vo', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 })().catch(e => { console.error(e.message); process.exit(1); });
