@@ -100,7 +100,7 @@ function SCENE(ctx, t) {
 const run = `
 module.exports = require('./render.js')({
   name: '${name}', CUTS, SCENE, LOOP: 'cut', LOOP_AT, TAG, CAPS,
-  VO_FILE: '${voFile}', VO_AT: 0.2,${fs.existsSync(music) ? ` MUSIC_FILE: '${music}',` : ` // MUSIC_FILE: '${music}' → node music.js ${ep}`}
+  ${hasVO ? '' : '// '}VO_FILE: '${voFile}', VO_AT: 0.2,${hasVO ? '' : ' ← μόλις υπάρχει το VO (φάση 1)\n '}${fs.existsSync(music) ? ` MUSIC_FILE: '${music}',` : ` // MUSIC_FILE: '${music}' → node music.js ${ep}`}
   SFX: [                                // [t, 'preset', { gain, dur, seed, note }] · χρόνοι από λέξεις: [VT.W('πλατς'), 'thud'] · wipes → whoosh αυτόματα
   ],
 });
