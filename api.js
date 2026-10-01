@@ -1,6 +1,8 @@
 // api.js — κατάλογος του engine: τι υπάρχει και πού, χωρίς να διαβάζεις ολόκληρα αρχεία.
-// node api.js           → όλα: lib · stratos · crew · props/* (μία γραμμή ανά όνομα) + SFX presets + επιλογές render.js
+// node api.js           → συνοπτικά (~4KB): ονόματα ανά αρχείο + SFX presets + εργαλεία · πρώτα αυτό, μετά node api.js <λέξη>
+// node api.js --full    → όλα με υπογραφή + περιγραφή (~40KB, σπάνια χρειάζεται)
 // node api.js <λέξη>    → ό,τι ταιριάζει σε όνομα / περιγραφή / αρχείο, με πλήρη περιγραφή + αρχείο:γραμμή (μετά: sed -n 'a,bp' αρχείο)
+//                         render · vo · music · photos · publish · new · wrap · next → οι επιλογές του εργαλείου (σχόλιο στην κορυφή του)
 // node api.js --check   → κάθε export του props/ έχει περιγραφή (gate στο ship.sh όταν αλλάζουν props)
 // Περιγραφή = σχόλιο στην ίδια γραμμή (// ...) ή τα σχόλια ακριβώς από πάνω. Γραμμή «// ---- τίτλος ----» = ενότητα.
 const fs = require('fs'), path = require('path');
@@ -36,10 +38,20 @@ if (arg === '--check') {
   else console.log(`api ✔ ${mods.reduce((s, m) => s + m.list.length, 0)} ονόματα, όλα τα props με περιγραφή`);
   return;
 }
-if (arg) {
+const TOOLS = ['render.js', 'vo.js', 'music.js', 'photos.js', 'publish.js', 'new.js', 'wrap.js', 'next.js', 'regress.js', 'sfx.js'].filter(f => fs.existsSync(path.join(ROOT, f)));
+const head = f => { const h = fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n'), e = h.findIndex(l => !/^\/\//.test(l)); return h.slice(0, e).map(l => '  ' + l.replace(/^\/\/\s?/, '')).join('\n'); };
+if (arg && arg !== '--full' && TOOLS.includes(arg.replace(/\.js$/, '') + '.js')) { console.log(`${arg.replace(/\.js$/, '')}.js:\n` + head(arg.replace(/\.js$/, '') + '.js')); return; }
+if (arg && arg !== '--full') {
   const q = arg.toLowerCase(); let hits = 0;
   for (const m of mods) for (const e of m.list) if ([e.n, e.desc, e.sec, m.rel].some(s => s.toLowerCase().includes(q))) { hits++; console.log(`${e.sig}  ${e.at}${e.desc ? '\n  ' + e.desc : ''}`); }
   if (!hits) console.log(`api: τίποτα για «${arg}» (node api.js για όλο τον κατάλογο)`);
+  return;
+}
+if (arg !== '--full') { // συνοπτικά: μόνο ονόματα
+  for (const m of mods) console.log(`${m.rel} — ${m.title.length > 80 ? m.title.slice(0, 78) + '…' : m.title}\n  ${m.list.map(e => e.n).join(' · ')}`);
+  console.log(`\nsfx presets: ${Object.keys(require('./sfx.js').P).join(' · ')}`);
+  console.log(`εργαλεία (node api.js <όνομα> → επιλογές): ${TOOLS.map(f => f.replace('.js', '')).join(' · ')}`);
+  console.log('λεπτομέρειες: node api.js <λέξη> (υπογραφή + περιγραφή + αρχείο:γραμμή) · όλα: node api.js --full');
   return;
 }
 const cut = s => s.length > 110 ? s.slice(0, 108) + '…' : s;

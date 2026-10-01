@@ -231,15 +231,15 @@ function lipsync(VO, rest = 'smile', who) { const t = ST.T;
   if (ST.VOENV) { const e = ST.VOENV[Math.floor(t * FPS)] || 0; if (e < 0.12) return rest; const r = rng(Math.floor(t * 11) * 97 + 13)(); return e > 0.6 ? (r < 0.5 ? 'A' : 'O') : e > 0.3 ? (r < 0.5 ? 'E' : 'A') : (r < 0.6 ? 'E' : 'closed'); }
   for (const [a, b] of VO) if (t >= a && t <= b) return ['A', 'E', 'O', 'A', 'E', 'closed'][Math.floor(rng(Math.floor(t * 11) * 97 + 13)() * 6)]; return rest; }
 // ---------- VO → χρόνοι λέξεων + captions (vo/<ep>_vo.words.json, από vo.js + render.js vo --gap) ----------
-// const V = L.voText('vo/<ep>_vo.mp3', 0.2) → V.W('ξεθωρ') = αρχή λέξης σε χρόνο video (πρόθεμα, χωρίς τόνους · n = πολλοστή εμφάνιση · from = μετά από)
-//   · V.E(…) = τέλος λέξης · V.caps({ loop }) → [[t, 'κομμάτι'], ...] για captionSeq: πρόταση → κομμάτια ≤ 2 γραμμές, κόψιμο σε κόμμα / παύση / πριν από «και, σε, για…»
-//   · το 1ο κομμάτι φαίνεται από το frame 0 (hook) · loop: t → στο τέλος ξαναμπαίνει το 1ο κομμάτι (seamless, §5.7) · text/at: { i: … } διορθώσεις ανά κομμάτι
-//   · γραφή TTS → caption: SPELL (Στράτετζιξ → Strategix) + o.spell. Έτσι δεν γράφεται με το χέρι ούτε πίνακας χρόνων ούτε τα captions (12 + 9 επεισόδια ως το pf06).
-const SPELL = { 'Στράτετζιξ': 'Strategix', 'Στρατίτζικς': 'Strategix' };
+const SPELL = { 'Στράτετζιξ': 'Strategix', 'Στρατίτζικς': 'Strategix' }; // γραφή για το TTS → γραφή στο caption (voText)
 const normW = s => String(s).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 const GLUE = new Set(['και', 'σε', 'για', 'με', 'στο', 'στον', 'στη', 'στην', 'στα', 'στις', 'στους', 'που', 'να', 'αλλα', 'απο', 'οτι', 'αν', 'οπως', 'ενω', 'γιατι', 'ομως', 'or', 'and']); // καλό σημείο κοψίματος: πριν από αυτές
 const NOEND = new Set([...GLUE, 'ο', 'η', 'το', 'οι', 'τα', 'τον', 'την', 'τη', 'του', 'της', 'των', 'τους', 'τις', 'ενα', 'μια', 'ενας', 'θα', 'δεν', 'μην', 'ολο', 'ολη', 'ολα', 'ολους', 'καθε', 'πιο', 'πολυ']); // κομμάτι δεν τελειώνει σε άρθρο/πρόθεση
 const CLITIC = new Set(['σου', 'μου', 'μας', 'σας']); // «την ομάδα | σου» ✘: η κτητική αντωνυμία μένει με το προηγούμενο
+// const V = L.voText('vo/<ep>_vo.mp3', 0.2) → V.W('ξεθωρ') = αρχή λέξης σε χρόνο video (πρόθεμα, χωρίς τόνους · n = πολλοστή εμφάνιση · from = μετά από)
+//   · V.E(…) = τέλος λέξης · V.caps({ loop }) → [[t, 'κομμάτι'], ...] για captionSeq: πρόταση → κομμάτια ≤ 2 γραμμές, κόψιμο σε κόμμα / παύση / πριν από «και, σε, για…»
+//   · το 1ο κομμάτι φαίνεται από το frame 0 (hook) · loop: t → στο τέλος ξαναμπαίνει το 1ο κομμάτι (seamless, §5.7) · text/at: { i: … } διορθώσεις ανά κομμάτι
+//   · γραφή TTS → caption: SPELL (Στράτετζιξ → Strategix) + o.spell. Έτσι δεν γράφεται με το χέρι ούτε πίνακας χρόνων ούτε τα captions (12 + 9 επεισόδια ως το pf06).
 function voText(file, at = 0.2, o = {}) {
   const wf = file.replace(/\.\w+$/, '.words.json');
   if (!fs.existsSync(wf)) throw new Error(`voText: δεν υπάρχει το ${wf} → node render.js vo <take>.mp3 --gap 0.3 --out ${file} (μεταφέρει τις λέξεις)`);
