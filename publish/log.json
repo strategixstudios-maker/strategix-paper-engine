@@ -397,6 +397,26 @@
         "facebook": "QUEUE",
         "youtube": "QUEUE"
       }
+    },
+    {
+      "ep": "ab01",
+      "file": "ab01_tampela.mp4",
+      "status": "scheduled",
+      "date": "2026-11-12T17:00:00.000Z",
+      "caption": {
+        "title": "Ανοίγω φούρνο. Ποια ταμπέλα; Α ή Β;",
+        "text": "«Ανοίγω φούρνο. Ποια ταμπέλα;» Α ή Β;\n\nΤρεις γύροι: ταμπέλα, φυλλάδιο, σακούλα. Μάντεψε πριν δεις την απάντηση, και περίμενε το τέλος.\n\nΕσύ πόσα βρήκες σωστά; Γράψ' το στα σχόλια.\n\n#strategixstudios #σχεδιασμός #ταμπέλα #φυλλάδια #λογότυπο"
+      },
+      "media": {
+        "id": "bad1a17b-128e-4ad5-bd82-45954a2374c2",
+        "path": "https://uploads.postiz.com/VEH0I0KHBZ.mp4"
+      },
+      "postiz": {
+        "instagram": "cmupx717z0fsape0yzx5i1exo",
+        "tiktok-business": "cmupx71aa0fsbpe0ya20k8x1i",
+        "facebook": "cmupx71d90fscpe0yoo7gkl1w",
+        "youtube": "cmupx71fm0fsdpe0ydbrizxxt"
+      }
     }
   ],
   "skip": [
