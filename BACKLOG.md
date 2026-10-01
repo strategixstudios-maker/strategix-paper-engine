@@ -26,3 +26,4 @@
 
 - [review 2026-10] `regress.js` μόνο για τα επεισόδια που επηρεάζει μια αλλαγή: δεν γίνεται στατικά (όλα φορτώνουν το `props.js` → όλο το engine) → θα ήθελε lazy props ή coverage ανά επεισόδιο · σήμερα ~4,5 λεπτά για 19 επεισόδια, αρκεί.
 - [ep03] `stratosItem` υφή 640·s → χέρια που ανοίγουν έξω (shrug) κόβονται κάθετα · το ep03 έχει inline `stratosWide()` → option `wide` (default 1) στο props/diorama.js
+- [ab01 · έρευνα ig-research] written hook που μένει ορατό σε όλο το βίντεο (Hormozi: τίτλος σε κάθε frame) → option στο render.js (π.χ. `HOOK_TITLE`, μικρό, κάτω από το caption) · πρώτα να δούμε αν δουλεύει το ab01.
