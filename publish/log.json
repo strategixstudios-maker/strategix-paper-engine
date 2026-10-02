@@ -318,6 +318,12 @@
         "tiktok-business": "cmuphdd6z08ekpe0yfvcyrvn0",
         "facebook": "cmuphddaf08elpe0y4zrk1in4",
         "youtube": "cmuphddcn08empe0y2esen2e7"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -375,7 +381,7 @@
     {
       "ep": "ep03",
       "file": "ep03_diafores.mp4",
-      "status": "scheduled",
+      "status": "posted",
       "date": "2026-10-01T16:00:00.000Z",
       "caption": {
         "title": "Βρες τις τρεις διαφορές πριν τυπωθούν χίλιες κάρτες",
@@ -392,10 +398,16 @@
         "youtube": "cmupgam7207v0pe0ymx3wl9tw"
       },
       "state": {
-        "instagram": "QUEUE",
-        "tiktok-business": "QUEUE",
-        "facebook": "QUEUE",
-        "youtube": "QUEUE"
+        "instagram": "PUBLISHED",
+        "tiktok-business": "PUBLISHED",
+        "facebook": "PUBLISHED",
+        "youtube": "PUBLISHED"
+      },
+      "urls": {
+        "instagram": "https://www.instagram.com/reel/Dd9Smo1imSD/",
+        "tiktok-business": "https://www.tiktok.com/@strategix.studios/video/7691730285372689697",
+        "facebook": "https://www.facebook.com/reel/1624662072705125",
+        "youtube": "https://www.youtube.com/watch?v=I2DDH4bV2NQ"
       }
     },
     {
@@ -416,6 +428,12 @@
         "tiktok-business": "cmupx71aa0fsbpe0ya20k8x1i",
         "facebook": "cmupx71d90fscpe0yoo7gkl1w",
         "youtube": "cmupx71fm0fsdpe0ydbrizxxt"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -436,6 +454,32 @@
         "tiktok-business": "cmuq1ra9t0hdlpe0yedb5o8rc",
         "facebook": "cmuq1racq0hdmpe0ygve0x9gc",
         "youtube": "cmuq1rafd0hdnpe0yeshi230m"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
+      }
+    },
+    {
+      "ep": "ad_doro",
+      "file": "ad_doro.mp4",
+      "status": "scheduled",
+      "date": "2026-11-18T17:00:00.000Z",
+      "caption": {
+        "title": "Τρία δώρα σε ένα κουτί, με το λογότυπό σου",
+        "text": "Τρία δώρα σε ένα κουτί. Με το λογότυπό σου.\n\nΤαπεράκι για το μεσημεριανό, παγούρι για όλη τη μέρα και μαχαιροπίρουνα από μπαμπού. Το λογότυπο χαράζεται με λέιζερ και έρχονται έτοιμα σε κουτί δώρου: το δίνεις όπως είναι.\n\nΔώρα για την ομάδα σου; Στείλε μας μήνυμα.\n\n#strategixstudios #εταιρικάδώρα #laser #χάραξη #δώρα"
+      },
+      "media": {
+        "id": "62f60abb-bc19-48b3-9fd4-69dcf520e011",
+        "path": "https://uploads.postiz.com/MqZElaKBc5.mp4"
+      },
+      "postiz": {
+        "instagram": "cmuqzhxoh00uxmu0y761vogg4",
+        "tiktok-business": "cmuqzhxpy00uymu0y170o443d",
+        "facebook": "cmuqzhxrl00uzmu0yfh21y0yn",
+        "youtube": "cmuqzhxt000v2mu0yg7kqv2fb"
       }
     }
   ],
