@@ -1,6 +1,6 @@
 // props/ui.js — γραφικά οθόνης: μηνύματα, συννεφάκια, stamps, CTA, chips, slider, κινητό
 const L = require('../lib.js');
-const { C, ST, W, cut, rrPts, circlePts, starPts, txt, pop, clamp, prog } = L;
+const { C, ST, W, cut, rrPts, rectPts, circlePts, starPts, txt, pop, clamp, prog, lerp, easeIn, easeInOut } = L;
 const M = require('../motion.js');
 const { BRAND } = require('./core.js');
 
@@ -119,4 +119,19 @@ function rewindTag(ctx, t, t0, t1, x = 890, y = 560) {
   ctx.restore();
 }
 
-module.exports = { rewindTag, qmark, stepChip, msgBubble, speech, stamp, seriesTag, seriesTagLint, sparkle, ctaButton, uiSlider, msgOut, speechOff, checkChip, phoneFrame };
+// μεγάλος χάρτινος τίτλος στη μέση (written hook §5.1, docs/scripts.md §1 · ms03 → ad_doro) · lines = [[κείμενο, st], ...] (κάθε γραμμή pop στο st)
+// o = { y (κέντρο, default 800), fs (default 130 · μικραίνει αν δεν χωράει σε 860px), hl (γραμμή σε brand blue), end (φεύγει), rise: [t0, t1] (ανεβαίνει και σβήνει στο caption: hook) }
+function bigTitle(ctx, t, lines, o = {}) {
+  const yc = o.y ?? 800, fs0 = o.fs || 130, lh = fs0 * 1.45, y0 = yc - (lines.length - 1) * lh / 2;
+  let k = 1, dy = 0, a = 1;
+  if (o.end != null) { const q = prog(t, o.end, o.end + 0.2); if (q >= 1) return; k *= 1 - 0.35 * easeIn(q); a *= 1 - q; }
+  if (o.rise) { const q = easeInOut(prog(t, o.rise[0], o.rise[1])); if (q >= 1) return; k *= lerp(1, 0.4, q); dy = lerp(0, 330 - yc, q); a *= 1 - easeIn(q); }
+  ctx.save(); ctx.globalAlpha = a; ctx.translate(540, yc + dy); ctx.scale(k, k); ctx.translate(-540, -yc);
+  lines.forEach(([s, st], i) => {
+    ctx.font = `bold ${fs0}px Round`; const fs = Math.floor(fs0 * Math.min(1, 860 / ctx.measureText(s).width)), font = `bold ${fs}px Round`; ctx.font = font; const tw = ctx.measureText(s).width;
+    pop(ctx, t, st, 540, y0 + i * lh, () => { cut(ctx, rectPts(-tw / 2 - 40, -fs * 0.72, tw + 80, fs * 1.44), i === o.hl ? BRAND : C.paper, { seed: 8800 + i * 7 + s.length, amp: 3, edgeW: 9 }); txt(ctx, s, 0, fs * 0.05, { font, color: i === o.hl ? '#fff' : C.navy }); }, i % 2 ? 0.025 : -0.02);
+  });
+  ctx.restore();
+}
+
+module.exports = { bigTitle, rewindTag, qmark, stepChip, msgBubble, speech, stamp, seriesTag, seriesTagLint, sparkle, ctaButton, uiSlider, msgOut, speechOff, checkChip, phoneFrame };

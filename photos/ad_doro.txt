@@ -1,0 +1,6 @@
+# ad_doro — BAGNER MJ1655 (site strategixstudios.com → προμηθευτής Makito/gorfactory HD)
+set https://static.gorfactory.es/images/models/1655/model/hd/1655_29_1_1.jpg
+open https://static.gorfactory.es/images/models/1655/model/hd/1655_29_2_1.jpg
+set2 https://static.gorfactory.es/images/models/1655/model/hd/1655_29_3_2.jpg
+open2 https://static.gorfactory.es/images/models/1655/model/hd/1655_29_3_3.jpg
+parts https://static.gorfactory.es/images/models/1655/model/hd/1655_29_3_1.jpg
