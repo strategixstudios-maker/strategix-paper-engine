@@ -22,7 +22,8 @@ const SLOT = { every: 3, hour: 19, tz: 'Europe/Athens', lead: 2 };  // κάθε 
 const CH = { instagram: 'instagram', 'tiktok-business': 'tiktok', facebook: 'facebook', youtube: 'youtube' };
 // ρυθμίσεις ανά πλατφόρμα (από `postiz integrations:settings <id>` · ό,τι δεν ισχύει το Postiz το πετάει σιωπηλά → έλεγχος εκεί αν αλλάξει κάτι)
 const SETTINGS = {
-  instagram: () => ({ post_type: 'post', is_trial_reel: false }),   // βίντεο post = Reel
+  instagram: () => ({ post_type: 'post',                              // βίντεο post = Reel
+    is_trial_reel: true, graduation_strategy: 'SS_PERFORMANCE' }),    // trial: πρώτα σε μη-followers, το IG το βγάζει στο feed μόνο αν πάει καλά (~72h) · Αλέξανδρος 2026-10-02
   'tiktok-business': () => ({ content_posting_method: 'DIRECT_POST', // UPLOAD = μόνο draft στο inbox του TikTok, δεν δημοσιεύει
     privacy_level: 'PUBLIC_TO_EVERYONE', duet: true, stitch: true, comment: true, autoAddMusic: 'no',
     brand_content_toggle: false, brand_organic_toggle: false,       // χωρίς δήλωση commercial content: οργανικά βίντεο από το δικό μας account (Αλέξανδρος, 2026-09-29)

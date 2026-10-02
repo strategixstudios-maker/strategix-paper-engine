@@ -14,4 +14,5 @@
   - 3–5 hashtags στο τέλος: `#strategixstudios` + θέμα (π.χ. `#laser` `#τυπογραφείο` `#λογότυπο`).
   - Ισχύουν §5.10–5.12 και §7: χωρίς αριθμό επεισοδίου, χωρίς ανεπιβεβαίωτους ισχυρισμούς, πραγματικοί τεχνικοί όροι.
   - YouTube: `title` ≤ 100 χαρακτήρες = το hook · περιγραφή = η λεζάντα · tags = τα hashtags.
+- **Instagram = trial reel** (Αλέξανδρος, 2026-10-02, από την έρευνα ig-research/hormozi): `is_trial_reel: true` + `graduation_strategy: SS_PERFORMANCE` → το reel το βλέπουν πρώτα μόνο μη-followers και το IG το βγάζει μόνο του στους followers/προφίλ αν πάει καλά (~72h, ίδιο post, κρατάει views/σχόλια). Όσο δεν περνάει μένει trial (δεν φαίνεται στο feed). TikTok · Facebook · YouTube ανεβαίνουν κανονικά. Τα posts που ήταν ήδη scheduled πριν από την αλλαγή μένουν κανονικά.
 - **TikTok**: `DIRECT_POST` (το `UPLOAD` αφήνει μόνο draft στο inbox) · **χωρίς δήλωση commercial content** («Your brand» / «Branded content» OFF: οργανικά βίντεο από το δικό μας account, από 2026-09-29) · AI label OFF (το animation είναι κώδικας). Ρυθμίσεις ανά πλατφόρμα → `SETTINGS` στο publish.js (έλεγχος με `postiz integrations:settings <id>`, ό,τι δεν ισχύει πετιέται σιωπηλά).
