@@ -481,6 +481,65 @@
         "facebook": "cmuqzhxrl00uzmu0yfh21y0yn",
         "youtube": "cmuqzhxt000v2mu0yg7kqv2fb"
       }
+    },
+    {
+      "ep": "ka01",
+      "kind": "carousel",
+      "files": [
+        "ka01_dora_01.jpg",
+        "ka01_dora_02.jpg",
+        "ka01_dora_03.jpg",
+        "ka01_dora_04.jpg",
+        "ka01_dora_05.jpg",
+        "ka01_dora_06.jpg",
+        "ka01_dora_07.jpg",
+        "ka01_dora_08.jpg"
+      ],
+      "status": "scheduled",
+      "date": "2026-10-05T16:00:00.000Z",
+      "caption": {
+        "title": "Το εταιρικό σου δώρο δουλεύει για σένα; Σετ BAGNER (MJ1655), 5 λόγοι",
+        "text": "Το εταιρικό σου δώρο δουλεύει για σένα;\n\nΈνα δώρο το πληρώνεις μία φορά. Αν το χρησιμοποιούν, το λογότυπό σου το βλέπουν κάθε μέρα οι πελάτες και η ομάδα σου. Σύρε για 5 λόγους που το σετ BAGNER (κωδ. MJ1655) δουλεύει.\n\nΘες το σετ με το λογότυπό σου; Στείλε μας μήνυμα.\n\n#strategixstudios #εταιρικάδώρα #δώρα #laser #λογότυπο"
+      },
+      "media": [
+        {
+          "id": "36f19845-0e70-4f2e-8e02-f18bbbe3f955",
+          "path": "https://uploads.postiz.com/pcOgLeRwpr.jpg"
+        },
+        {
+          "id": "bcadc46b-1719-4338-bb0e-65e145b074e8",
+          "path": "https://uploads.postiz.com/YgYY3iowwx.jpg"
+        },
+        {
+          "id": "ee4c825f-7331-40f9-b7af-ba9b5638087e",
+          "path": "https://uploads.postiz.com/q1Pj7kf3lU.jpg"
+        },
+        {
+          "id": "a02c83f3-2d6d-48e6-8b49-826a303c857c",
+          "path": "https://uploads.postiz.com/47oB8ML1r9.jpg"
+        },
+        {
+          "id": "39a53efd-5b72-4384-8983-381d2bd1d67b",
+          "path": "https://uploads.postiz.com/GiKs3ZpQfO.jpg"
+        },
+        {
+          "id": "047ae84a-9c53-4ad2-bda9-0168c2d24bf6",
+          "path": "https://uploads.postiz.com/zvTa8WGFIM.jpg"
+        },
+        {
+          "id": "4ba9c340-358c-420c-bc0d-f5aee58c8710",
+          "path": "https://uploads.postiz.com/4kwjWLqmYL.jpg"
+        },
+        {
+          "id": "86315760-838d-4eef-94e5-98a97b338bf0",
+          "path": "https://uploads.postiz.com/aPuom1bNtY.jpg"
+        }
+      ],
+      "postiz": {
+        "instagram": "cmust20jg02ptlh0yhvzb1e2y",
+        "tiktok-business": "cmust20km02pulh0y2zxp1ar8",
+        "facebook": "cmust20lv02pvlh0yde2kl1pd"
+      }
     }
   ],
   "skip": [
