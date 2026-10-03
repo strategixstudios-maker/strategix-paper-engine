@@ -44,7 +44,7 @@
 - Ιδέες που πατάνε σε υπάρχοντα σκηνικά/props κοστίζουν λιγότερο από νέο σκηνικό.
 
 ## Κανόνες κώδικα
-- Μόνο με το engine (lib.js, stratos.js, hands.js, props/, render.js, sfx.js). VO sources στο `vo/`, μουσική στο `music/` (τα μόνα mp3 στο git, μαζί με το `sfx/`). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
+- Μόνο με το engine (lib.js, stratos.js, hands.js, props/, render.js, carousel.js, sfx.js). VO sources στο `vo/`, μουσική στο `music/` (τα μόνα mp3 στο git, μαζί με το `sfx/`). Νέο SFX preset → sfx.js (`P` + `GAIN`) + `node sfx.js demo`. Νέος τύπος χεριού → hands.js σε ΟΛΕΣ τις όψεις + `node hands.js sheet`.
 - Αλλαγή στο engine → `node regress.js` (crash check σε όλα τα επεισόδια vs HEAD, συνοπτικό output).
 - `render` / `lint` τρέχουν παράλληλα (`JOBS`, default πυρήνες − 1, max 6 · `JOBS=1` = σειριακά): τα frames είναι stateless (§1b), άρα κάθε frame βγαίνει ίδιο σε όποιο process κι αν ζωγραφιστεί. Στη μακέτα το lint παραλείπει σκιές/DOF/φως (ίδια warnings, ~7× γρηγορότερο · `LINT_FULL=1` = πλήρες).
 - Αλλαγή κανόνα → STYLE_GUIDE/HANDS στο ΙΔΙΟ commit.

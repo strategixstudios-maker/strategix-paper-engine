@@ -4,11 +4,48 @@
 //         · seamless loop (LOOP: 'cut') · TAG στο hook + στο loop · μουσική αν υπάρχει · μακέτα (diorama, default) ή 2D (flat) με τον Στράτο που μιλάει
 //       Σενάριο (φάση 1): scripts/<ep>.md (πίνακας Χρόνος | Εικόνα | VO | Κείμενο/SFX + αποφάσεις) → μπαίνει ως αναφορά στην κορυφή.
 //       Μετά: συμπλήρωσε κάμερα/πλάνα/props ανά σκηνή → node <ep>.js check → preview → render (node next.js <ep> λέει πάντα το επόμενο βήμα).
+//       Carousel (ka<NN>_<όνομα>): σκελετός carousel.js με μία κάρτα ανά γραμμή του πίνακα στο scripts/<ep>.md (θέμα · τίτλος · μικρό κείμενο · γραφικό ως σχόλιο).
 const fs = require('fs'), path = require('path');
 const [file, ...rest] = process.argv.slice(2), opt = k => { const i = rest.indexOf('--' + k); return i < 0 ? undefined : rest[i + 1]; };
 if (!file || !/^[a-z]+\d*_[\w]+$/.test(file.replace(/\.js$/, ''))) { console.log("usage: node new.js <ep>_<όνομα> [--look diorama|flat] [--tag 'Σειρά'] [--force]   π.χ. node new.js pf07_kouppes"); process.exit(1); }
 const name = file.replace(/\.js$/, ''), ep = /^ad_/.test(name) ? name : name.split('_')[0], out = path.join(__dirname, name + '.js'), look = opt('look') || 'diorama';
 if (fs.existsSync(out) && !rest.includes('--force')) { console.log(`new: υπάρχει ήδη το ${name}.js (--force για αντικατάσταση)`); process.exit(1); }
+if (/^ka\d/.test(ep)) { carouselSkeleton(); process.exit(0); }
+
+// carousel (ka<NN>, STYLE_GUIDE §7): κάρτες από τον πίνακα του scripts/<ep>.md (| # | Φόντο | Τίτλος | Μικρό κείμενο | Γραφικό |) → CARDS με τίτλο + μικρό κείμενο έτοιμα, γραφικό ως σχόλιο
+function carouselSkeleton() {
+  const md = fs.existsSync(`scripts/${ep}.md`) ? fs.readFileSync(`scripts/${ep}.md`, 'utf8') : '', q = s => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+  const rows = md.split('\n').filter(l => /^\|\s*\d+/.test(l)).map(l => l.split('|').slice(1, -1).map(c => c.trim()));
+  const theme = (s, i) => /μπλε|blue/i.test(s || '') ? 'blue' : /χαρτί|λευκ|άσπρ|paper/i.test(s || '') ? 'paper' : i % 2 ? 'blue' : 'paper'; // κάρτα 1 = χαρτί, μετά εναλλάξ
+  const cards = (rows.length ? rows : [['1 · Εξώφυλλο', 'χαρτί', '<τίτλος **έμφαση**>', '<μικρό κείμενο>', '<γραφικό>'], ['2 · Re-hook', 'μπλε', '<τίτλος>', '', ''], ['3 · CTA', 'χαρτί', '<CTA>', '', '']])
+    .map(([n, bg, tl, sb, gr], i) => {
+      const subs = (sb || '').split(/<br\s*\/?>/).map(s => s.trim()).filter(Boolean);
+      return `  ['${theme(bg, i)}', (ctx, th) => { // ${n}${gr ? ' · γραφικό: ' + gr : ''}
+    let y = cardTitle(ctx, ${q(tl || '')}, X0, ${i ? 230 : 170}, th, { size: 130 });
+${subs.map((s, k) => `    y = cardSub(ctx, ${q(s)}, X0, y + ${k ? 16 : 30}, th);`).join('\n')}
+  }],`;
+    });
+  fs.writeFileSync(out, `// ${name} — CAROUSEL «${(rows[0]?.[2] || '<τίτλος>').replace(/\*\*/g, '')}» · ${cards.length} κάρτες 1080×1350 (4:5) · χωρίς VO / μουσική
+// Σενάριο: scripts/${ep}.md · σκελετός: node new.js ${name} (${new Date().toISOString().slice(0, 10)}) · look: STYLE_GUIDE §7 Carousel (κάρτα 1 = χαρτί, μετά εναλλάξ μπλε / χαρτί)
+// Runner: carousel.js (φόντο + υφή μόνο στο φόντο · σήμα + STRATEGIX STUDIOS κάτω · βελάκι → · lint) · props: node api.js carousel
+// CLI: node ${name}.js 1 2 → style frames (${name}_preview.png) · node ${name}.js check → lint + sheet · node ${name}.js → ${name}_NN.jpg + sheet
+const L = require('./lib.js');
+const { C, cut, rectPts, rrPts, circlePts, path, txt, rng } = L;
+const P = require('./props.js');                      // node api.js → κατάλογος · node api.js carousel → κάρτες
+const { BRAND, CARD, cardTitle, cardSub, cardTag, cardNum, photoClip } = P;
+const { stratos } = require('./stratos.js');
+const X0 = CARD.X0;                                   // αριστερό περιθώριο κειμένου · CARD.W × CARD.H = 1080 × 1350
+
+// κάρτα = [θέμα, (ctx, th) => …] · th = P.CARD_TH[θέμα]: ink τίτλος · acc έμφαση (**…**) · sub · dark · γραφικά γύρω από το κείμενο, όχι στο κέντρο · κάτω ~150 px μόνο σήμα + βελάκι
+const CARDS = [
+${cards.join('\n')}
+];
+
+module.exports = require('./carousel.js')({ name: '${name}', CARDS });
+`);
+  console.log(`✔ ${name}.js (carousel) · ${cards.length} κάρτες${rows.length ? ` από scripts/${ep}.md` : ' (χωρίς scripts/' + ep + '.md: placeholders)'}`);
+  try { require('./next.js').after(name, 'new', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
+}
 const SERIES = { pf: 'Πώς φτιάχνεται;', ms: 'Μάθε με τον Στράτο', pm: 'Πριν / Μετά', ep: 'Ο πελάτης είπε…', er: 'Το Εργαστήριο' }; // ad → χωρίς ετικέτα
 const tag = opt('tag') ?? SERIES[ep.replace(/\d+$/, '')] ?? '';
 const voFile = `vo/${ep}_vo.mp3`, hasVO = fs.existsSync(voFile), hasWords = fs.existsSync(`vo/${ep}_vo.words.json`), music = `music/${ep}.mp3`;

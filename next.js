@@ -6,7 +6,7 @@
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const ROOT = __dirname;
 const isEp = f => /^[a-z]+\d*_\w+\.js$/.test(f) && !f.includes('_legacy') && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(ROOT, f), 'utf8'));
-const isCarFile = f => /^ka\d+_\w+\.js$/.test(f) && /^module\.exports = \{ CARDS/m.test(fs.readFileSync(path.join(ROOT, f), 'utf8')); // carousel (ka01 →): κάρτες, όχι βίντεο
+const isCarFile = f => /^ka\d+_\w+\.js$/.test(f) && /^(module\.exports = \{ CARDS|[^/\n]*require\('\.\/carousel\.js'\)\()/m.test(fs.readFileSync(path.join(ROOT, f), 'utf8')); // carousel: κάρτες, όχι βίντεο (ka01 inline · ka02 → carousel.js)
 const idOf = n => { n = n.replace(/\.js$/, ''); return /^ad_/.test(n) ? n : n.split('_')[0]; }; // pf06_autokollita → pf06 · ads: ολόκληρο (ad_event)
 const mt = f => fs.existsSync(path.join(ROOT, f)) ? fs.statSync(path.join(ROOT, f)).mtimeMs : 0;
 const git = (...a) => { const r = spawnSync('git', a, { cwd: ROOT, encoding: 'utf8' }); return r.status === 0 ? r.stdout.trim() : ''; };
@@ -81,6 +81,14 @@ function advise(s) {
 function after(name, mode, ok = true) {
   if (process.env.NO_HINT) return;
   const id = idOf(name), ep = name.includes('_') ? name : (state(id).name || name); let m;
+  if (/^ka\d/.test(id)) { // carousel: χωρίς VO / μουσική / MP4
+    if (mode === 'new') m = block(`${ep}.js σκελετός έτοιμος (κάρτες από τον πίνακα του scripts/${id}.md)`, { clear: true, effort: 'high', say: `«${id}: κώδικας»`, note: 'αν είσαι ήδη στη φάση 2 (λίγο context), συνέχισε χωρίς /clear' });
+    else if (mode === 'cards') m = block(`🖼 ${ep}_NN.jpg έτοιμες → δες το ${ep}_sheet.png`, { clear: true, effort: 'medium', say: `«${id}: σημειώσεις: …» (ΟΛΕΣ σε ένα μήνυμα) ή «${id}: προχώρα»`,
+      note: `προχώρα (carousel): EPISODES + BACKLOG → commit + push → λεζάντα publish/captions/${id}.json → node publish.js schedule ${id} … (slot reel + 1 μέρα)` });
+    else if (mode === 'check' || mode === 'lint') m = ok ? block(`${ep}: lint ✔`, { run: `node ${ep}.js 1 2 (μόνο όσες άλλαξαν) → node ${ep}.js (όλες)` }) : block(`${ep}: lint ✘`, { run: 'διόρθωσε τα warnings πάνω → ξανά check' });
+    else if (mode === 'publish') m = block(`${id} στο Postiz ✔`, { clear: true, effort: 'high', say: '«νέο επεισόδιο: <ιδέα>»' });
+    if (m) console.log(m); return;
+  }
   if (mode === 'render') m = block(`🎬 ${ep}.mp4 έτοιμο → δες το`, { clear: true, effort: 'medium', say: `«${id}: σημειώσεις: …» (ΟΛΕΣ σε ένα μήνυμα) ή «${id}: προχώρα»`, note: 'high μόνο αν οι σημειώσεις ζητάνε νέα σκηνή/κίνηση' });
   else if (mode === 'sfx') m = block(`🔊 ο ήχος μπήκε στο ${ep}.mp4 → άκουσέ το`, { say: `«${id}: σημειώσεις: …» ή «${id}: προχώρα»` });
   else if (mode === 'check' || mode === 'lint') m = ok ? block(`${ep}: lint ✔`, { run: `preview μόνο όπου άλλαξε κάτι → node ${ep}.js render` }) : block(`${ep}: lint ✘`, { run: 'διόρθωσε τα warnings πάνω → ξανά check' });

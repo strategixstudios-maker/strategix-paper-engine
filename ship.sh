@@ -10,13 +10,13 @@ git config user.email >/dev/null || git config user.email "chat@strategix.local"
 BASE=$(git rev-parse origin/main)
 git add -A
 # lint gate: κάθε επεισόδιο που άλλαξε πρέπει να βγαίνει «lint ✔ καθαρό»
-# επεισόδιο = .js στη ρίζα που καλεί το render.js, όχι _legacy (χωρίς λίστα prefixes: νέα σειρά μπαίνει αυτόματα · ίδιο κριτήριο με το regress.js)
+# επεισόδιο = .js στη ρίζα που καλεί το render.js ή το carousel.js, όχι _legacy (χωρίς λίστα prefixes: νέα σειρά μπαίνει αυτόματα · ίδιο κριτήριο με το regress.js)
 for f in $(git diff --cached --name-only --diff-filter=AM "$BASE" | grep -E '^[a-z]+[0-9]*_[^/]+\.js$' | grep -v '_legacy' || true); do
-  grep -qE "^[^/]*require\('\./render\.js'\)\(" "$f" || continue
+  grep -qE "^[^/]*require\('\./(render|carousel)\.js'\)\(" "$f" || continue
   echo "lint $f"; node "$f" lint || { [ -n "$FORCE" ] || { echo "✘ $f όχι καθαρό (FORCE=1 για παράκαμψη)"; exit 1; }; }
 done
 # engine gate: άλλαξε engine/props → περιγραφές props + regress σε ΟΛΑ τα επεισόδια (νέο crash / νέο lint warning = stop)
-if git diff --cached --name-only "$BASE" | grep -qE '^(lib|motion|stratos|hands|props|render|sfx|vo)\.js$|^props/'; then
+if git diff --cached --name-only "$BASE" | grep -qE '^(lib|motion|stratos|hands|props|render|carousel|sfx|vo)\.js$|^props/'; then
   node api.js --check || [ -n "$FORCE" ] || exit 1
   node regress.js "$BASE" || { [ -n "$FORCE" ] || { echo "✘ regress: η αλλαγή στο engine χαλάει παλιό επεισόδιο (FORCE=1 για παράκαμψη)"; exit 1; }; }
 fi

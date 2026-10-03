@@ -12,7 +12,9 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const ROOT = __dirname, TMP = path.join(os.tmpdir(), 'strategix-regress');
 const sh = (cmd, cwd = ROOT) => execSync(cmd, { cwd, encoding: 'utf8', maxBuffer: 1 << 28 });
 // επεισόδιο = .js στη ρίζα που καλεί το render (γραμμή που δεν είναι σχόλιο), όχι _legacy — χωρίς λίστα prefixes: νέα σειρά μπαίνει αυτόματα · ίδιο κριτήριο με το ship.sh
-const isEp = (f, dir = ROOT) => /^[a-z]+\d*_\w+\.js$/.test(f) && !f.includes('_legacy') && fs.existsSync(path.join(dir, f)) && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(dir, f), 'utf8'));
+// + carousels με runner (require('./carousel.js'), ka02 →): lint + sheet καρτών, χωρίς ήχο
+const isEp = (f, dir = ROOT) => /^[a-z]+\d*_\w+\.js$/.test(f) && !f.includes('_legacy') && fs.existsSync(path.join(dir, f)) && /^[^/\n]*require\('\.\/(render|carousel)\.js'\)\(/m.test(fs.readFileSync(path.join(dir, f), 'utf8'));
+const isCar = (f, dir) => /^[^/\n]*require\('\.\/carousel\.js'\)\(/m.test(fs.readFileSync(path.join(dir, f), 'utf8'));
 const argv = process.argv.slice(2), fresh = argv.includes('--fresh'), only = [], refs = [];
 for (const a of argv.filter(a => a !== '--fresh')) { const f = a.endsWith('.js') ? a : a + '.js'; isEp(f) ? only.push(f) : refs.push(a); }
 const base = refs[0] || 'HEAD', hash = sh(`git rev-parse --verify "${base}^{commit}"`).trim();
@@ -57,6 +59,7 @@ async function probe(dir, ep) {
   r.lint = l.out.split('\n').slice(1).map(s => s.replace(/^\s*[\d.]+–[\d.]+s\s+/, '').trim()).filter(Boolean);
   const s = await run(dir, [ep, 'sheet', 'clean']), png = (s.out.match(/^(\S+_sheet\.png)$/m) || [])[1];
   if (png) r.sheet = path.join(dir, png); else r.crash = 'sheet: ' + errLine(s);
+  if (isCar(ep, dir)) return r; // carousel: χωρίς ήχο
   const a = await run(dir, [ep, 'sfx']), nm = (a.out.match(/^(\S+?)_(?:sfx|mix)\.wav/m) || [])[1];
   if (nm && fs.existsSync(path.join(dir, nm + '_sfx.wav'))) { r.sfx = wavStat(path.join(dir, nm + '_sfx.wav')); for (const k of ['_sfx.wav', '_vo.wav', '_mix.wav']) fs.rmSync(path.join(dir, nm + k), { force: true }); }
   else r.crash = r.crash || 'sfx: ' + errLine(a);

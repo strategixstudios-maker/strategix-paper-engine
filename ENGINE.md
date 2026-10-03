@@ -10,6 +10,7 @@
 | `stratos.js` · `crew.js` · `hands.js` | χαρακτήρες + χέρια (HANDS.md) · `poseSpring(POSES, t)` · lint ανατομίας |
 | `diorama.js` + `props/diorama.js` | χάρτινη μακέτα 3D (§1d): `D.tex` υφές · `D.camera` · `D.frame(ctx, t, build)` · `roomItems` · `stratosItem` · `mixCam` · `behindDesk` |
 | `props/*.js` (`require('./props.js')`) | έτοιμα αντικείμενα ανά θέμα · `node api.js` |
+| `carousel.js` + `props/carousel.js` | runner καρτών carousel 1080×1350 (ka02 →): φόντο με υφή, σήμα, βελάκι, lint (κάρτα 1 = χαρτί, εναλλάξ), CLI `1 2` / `check` / όλες · `cardTitle` 2 χρωμάτων, `cardSub`, `cardTag`, `photoClip` |
 | `render.js` | runner: σκηνές, wipes, grain, captions/ετικέτα, lint, sheet/preview, render MP4 + ήχος (VO · μουσική · SFX · ducking) |
 | `sfx.js` · `vo.js` · `music.js` · `photos.js` · `publish.js` | ήχοι-κώδικας · VO + Scribe · μουσική · φωτογραφίες · Postiz |
 | `next.js` · `new.js` · `wrap.js` | οδηγός φάσεων · σκελετός επεισοδίου · timing sheet + EPISODES |
