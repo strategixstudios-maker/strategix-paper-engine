@@ -11,6 +11,8 @@
 //       node publish.js manual <ep> [ISO]               → post που έγινε εκτός Postiz (με το χέρι): μετράει για το επόμενο slot, MP4 → publish/posted/
 //       node publish.js skip <αρχείο.mp4>               → δεν δημοσιεύεται ποτέ (demo κ.λπ.)
 //       node publish.js batch [--dry]                   → schedule με τη σειρά του publish/plan.txt όσα δεν είναι ακόμα στο log (λεζάντα: publish/captions/<ep>.json)
+// CAROUSEL (ka01 →): κάρτες <ep>_01.jpg … στη ρίζα (χωρίς MP4) → το ίδιο `schedule` τις ανεβάζει ως IG carousel · FB πολλές φωτογραφίες · TikTok photo (όχι YouTube)
+//       στη δική τους ουρά ΑΝΑΜΕΣΑ στα reels: μέρα reel + 1, 19:00, μετά το τελευταίο carousel · τα reels δεν μετακινούνται ποτέ για carousel (ούτε το αντίστροφο) · move / --date / cancel όπως στα reels
 // ΣΕΙΡΑ (Αλέξανδρος, 2026-10-01): ό,τι ετοιμάζεται μπαίνει στο τέλος της ουράς · καμία αναδιάταξη ανά είδος (ο κύκλος §9 καταργήθηκε) · μετακίνηση ΜΟΝΟ με --date / move όταν το ζητήσει ο ίδιος.
 // caption.json: { "text": "λεζάντα + hashtags (IG · TikTok · FB)", "title": "τίτλος YouTube (≤100)", "youtube"?: "περιγραφή YT", "instagram"?|"tiktok"?|"facebook"?: override,
 //                 "tags"?: [...] (YouTube · default = τα hashtags του text) }
@@ -33,8 +35,21 @@ const SETTINGS = {
     tags: (c.tags || hashtags(c.text)).map(t => ({ value: t, label: t })) }),
 };
 
+// carousel (Αλέξανδρος 2026-10-03: «μια βίντεο, μια ποστ καρουζέλ»): κανάλια + ρυθμίσεις για εικόνες · YouTube δεν δέχεται εικόνες
+const CAR_CH = ['instagram', 'tiktok-business', 'facebook'];
+const CAR_SETTINGS = {
+  instagram: () => ({ post_type: 'post' }),                          // πολλές εικόνες = carousel · trial μόνο στα reels
+  'tiktok-business': c => ({ content_posting_method: 'DIRECT_POST', title: c.title, privacy_level: 'PUBLIC_TO_EVERYONE', comment: true,
+    autoAddMusic: 'yes',                                               // photo post: μουσική από τη βιβλιοθήκη του TikTok (αλλιώς σιωπηλό) · 'no' αν το ζητήσει ο Αλέξανδρος
+    brand_content_toggle: false, brand_organic_toggle: false }),
+  facebook: () => ({ post_type: 'post' }),
+};
+const isCar = e => e.kind === 'carousel';
+const slidesOf = ep => fs.readdirSync(ROOT).filter(f => f.startsWith(ep + '_') && /_\d{2}\.jpg$/.test(f)).sort(); // κάρτες carousel στη ρίζα
+const filesOf = e => e.files || (e.file ? [e.file] : []);
+
 // είδος ανά σειρά (prefix αρχείου) · ep = «Ο πελάτης είπε...» (κωμικό)
-const KIND = { ms: 'Μάθηση', pf: 'Πώς φτιάχνεται', er: 'Γέλιο', ep: 'Γέλιο', pm: 'Πριν/Μετά', ad: 'Πώληση' };
+const KIND = { ms: 'Μάθηση', pf: 'Πώς φτιάχνεται', er: 'Γέλιο', ep: 'Γέλιο', pm: 'Πριν/Μετά', ad: 'Πώληση', ka: 'Carousel' };
 const kind = ep => KIND[(ep.match(/^[a-z]+/) || [''])[0]] || '?';
 
 const die = m => { console.error('✖ ' + m); process.exit(1); };
@@ -67,14 +82,29 @@ function postizPosts(from, to) {
   return (pz('posts:list', '--startDate', iso(from), '--endDate', iso(to)).posts || []);
 }
 
+// ημερομηνίες των reels: log + posts στο Postiz (και όσα μπήκαν από το site με το χέρι) · DRAFT/ERROR δεν βγαίνουν → δεν μετράνε · τα carousels δεν μετράνε
+function reelDates(log) {
+  const now = Date.now(), car = new Set(log.posts.filter(isCar).flatMap(e => Object.values(e.postiz || {})));
+  const dates = log.posts.filter(p => p.date && !isCar(p)).map(p => +new Date(p.date));
+  for (const p of postizPosts(now - 60 * 864e5, now + 365 * 864e5)) if (!/DRAFT|ERROR/.test(p.state) && !car.has(p.id)) dates.push(+new Date(p.publishDate));
+  return dates;
+}
+
 function nextSlot(log) {
-  const now = Date.now(), dates = log.posts.filter(p => p.date).map(p => +new Date(p.date));
-  // posts στο Postiz (και όσα μπήκαν από το site με το χέρι) · DRAFT/ERROR δεν βγαίνουν → δεν μετράνε
-  for (const p of postizPosts(now - 60 * 864e5, now + 365 * 864e5)) if (!/DRAFT|ERROR/.test(p.state)) dates.push(+new Date(p.publishDate));
+  const now = Date.now(), dates = reelDates(log);
   const last = dates.length ? Math.max(...dates) : 0, earliest = now + SLOT.lead * 3600e3;
   let t = last ? slotAt(addDays(day(last), SLOT.every)) : 0;
   if (t < earliest) { t = slotAt(day(now)); if (t < earliest) t = slotAt(addDays(day(now), 1)); }
   return { t, last };
+}
+
+// slot carousel: η πρώτη μέρα «reel + 1» (19:00) μετά το τελευταίο carousel και ≥ 2 ώρες από τώρα · μετά το τελευταίο reel συνεχίζει στο ίδιο πλέγμα των 3 ημερών
+function carSlot(log) {
+  const now = Date.now(), earliest = now + SLOT.lead * 3600e3, reels = [...new Set(reelDates(log).map(day))].sort();
+  const cars = log.posts.filter(p => isCar(p) && p.date).map(p => +new Date(p.date)), taken = new Set(cars.map(day)), lastCar = Math.max(0, ...cars);
+  const end = reels.length ? reels[reels.length - 1] : day(now), grid = [...reels, ...Array.from({ length: 60 }, (_, i) => addDays(end, SLOT.every * (i + 1)))];
+  for (const d of grid) { const c = addDays(d, 1), t = slotAt(c); if (t >= earliest && t > lastCar && !taken.has(c) && !reels.includes(c)) return { t, reel: d }; }
+  die('carousel: δεν βρέθηκε ελεύθερο slot');
 }
 
 function integrations() {
@@ -87,9 +117,11 @@ function integrations() {
 
 const capText = (cap, k) => (k === 'youtube' ? cap.youtube : cap[CH[k]]) || cap.text;
 // ένα post σε όλα τα κανάλια (ίδιο uploaded media) → { κανάλι: postId }
-function createPosts(cap, media, t, ids) {
+// car = carousel: media = [κάρτες με τη σειρά] → IG · TikTok · FB με ρυθμίσεις εικόνων
+function createPosts(cap, media, t, ids, car) {
+  const chs = car ? CAR_CH : Object.keys(CH), S = car ? CAR_SETTINGS : SETTINGS, image = Array.isArray(media) ? media : [media];
   const body = { type: 'schedule', date: iso(t), shortLink: false, tags: [],
-    posts: Object.keys(CH).map(k => ({ integration: { id: ids[k] }, value: [{ content: capText(cap, k), image: [media] }], settings: { __type: k, ...SETTINGS[k](cap) } })) };
+    posts: chs.map(k => ({ integration: { id: ids[k] }, value: [{ content: capText(cap, k), image }], settings: { __type: k, ...S[k](cap) } })) };
   const tmp = path.join(os.tmpdir(), `publish_${process.pid}.json`);
   fs.writeFileSync(tmp, JSON.stringify(body));
   const res = pz('posts:create', '--json', tmp), byInt = Object.fromEntries(Object.entries(ids).map(([k, id]) => [id, k]));
@@ -101,7 +133,7 @@ function createPosts(cap, media, t, ids) {
 // from = παλιά θέση του επεισοδίου που μετακινείται (move) → όσα ήταν μετά −3 μέρες (κλείνει το κενό) · μετά όσα πέφτουν στη νέα μέρα ή αργότερα +3
 function shiftPlan(log, t, skipEp, from) {
   const out = [];
-  for (const e of log.posts.filter(p => p.status === 'scheduled' && p.ep !== skipEp)) {
+  for (const e of log.posts.filter(p => p.status === 'scheduled' && p.ep !== skipEp && !isCar(p))) { // τα carousels μένουν στη μέρα τους
     let d = day(+new Date(e.date));
     if (from && +new Date(e.date) > from) d = addDays(d, -SLOT.every);
     if (slotAt(d) >= t) d = addDays(d, SLOT.every);
@@ -115,7 +147,7 @@ function applyShift(log, shift, ids) {
   if (busy.length) die(`δεν είναι πια σε αναμονή: ${busy.map(({ e }) => `${e.ep} ${JSON.stringify(e.state)}`).join(' · ')} → καμία αλλαγή`);
   for (const { e, nt } of shift) { // νέα posts με το ίδιο media, μετά σβήσιμο των παλιών
     const old = Object.values(e.postiz);
-    e.postiz = createPosts(e.caption, e.media, nt, ids); e.date = iso(nt); delete e.state;
+    e.postiz = createPosts(e.caption, e.media, nt, ids, isCar(e)); e.date = iso(nt); delete e.state;
     for (const id of old) pz('posts:delete', id);
     save(log); console.log(`  ${e.ep} → ${fmt(nt)}`);
   }
@@ -127,30 +159,32 @@ function schedule(ep, capFile, at, dry, date) {
   if (!ep || !capFile) die('node publish.js schedule <ep> <caption.json> [--date YYYY-MM-DD] [--at ISO] [--dry]');
   const log = load(), old = log.posts.find(p => p.ep === ep);
   if (old) die(`${ep}: υπάρχει ήδη στο log (${old.status}${old.date ? ', ' + fmt(old.date) : ''}) → cancel πρώτα αν είναι νέα έκδοση`);
-  const files = fs.readdirSync(ROOT).filter(f => (f === ep + '.mp4' || f.startsWith(ep + '_')) && f.endsWith('.mp4'));
-  if (files.length !== 1) die(`${ep}: ${files.length} MP4 στη ρίζα (${files.join(', ') || '—'}) · χρειάζεται ακριβώς 1`);
-  const file = files[0], cap = JSON.parse(fs.readFileSync(capFile, 'utf8'));
+  const files = fs.readdirSync(ROOT).filter(f => (f === ep + '.mp4' || f.startsWith(ep + '_')) && f.endsWith('.mp4')), slides = slidesOf(ep);
+  const car = !files.length && slides.length > 0; // carousel: κάρτες <ep>_NN.jpg χωρίς MP4
+  if (car && (slides.length < 2 || slides.length > 20)) die(`${ep}: ${slides.length} κάρτες · carousel = 2–20`);
+  if (!car && files.length !== 1) die(`${ep}: ${files.length} MP4 στη ρίζα (${files.join(', ') || '—'}) · χρειάζεται ακριβώς 1 (ή κάρτες ${ep}_01.jpg … για carousel)`);
+  const file = files[0], cap = JSON.parse(fs.readFileSync(capFile, 'utf8')), chs = car ? CAR_CH : Object.keys(CH);
   const text = k => capText(cap, k);
   if (!cap.text) die('caption.json: λείπει το "text"');
-  if (!cap.title || cap.title.length < 2 || cap.title.length > 100) die('caption.json: "title" (YouTube) 2–100 χαρακτήρες');
+  if (!car && (!cap.title || cap.title.length < 2 || cap.title.length > 100)) die('caption.json: "title" (YouTube) 2–100 χαρακτήρες');
+  if (car && cap.title && cap.title.length > 90) die('caption.json: "title" (TikTok photo) ≤ 90 χαρακτήρες');
   for (const k of ['instagram', 'tiktok-business']) if (text(k).length > 2200) die(`${k}: λεζάντα > 2200 χαρακτήρες`);
-  const t = date ? dateArg(date) : at ? +new Date(at) : nextSlot(log).t, shift = date ? shiftPlan(log, t) : [];
+  const t = date ? dateArg(date) : at ? +new Date(at) : car ? carSlot(log).t : nextSlot(log).t, shift = date && !car ? shiftPlan(log, t) : [];
   if (!(t > Date.now())) die(`ημερομηνία στο παρελθόν: ${at}`);
 
-  console.log(`${ep} (${kind(ep)}) · ${file} → ${fmt(t)} (ώρα Ελλάδας) · ${Object.keys(CH).join(' · ')}`);
-  if (date) showShift(shift);
-  for (const k of Object.keys(CH)) console.log(`\n[${k}]${k === 'youtube' ? ' «' + cap.title + '»' : ''}\n${text(k)}`);
+  console.log(`${ep} (${car ? 'carousel' : kind(ep)}) · ${car ? `${slides.length} κάρτες (${slides[0]} …)` : file} → ${fmt(t)} (ώρα Ελλάδας) · ${chs.join(' · ')}`);
+  if (date && !car) showShift(shift);
+  for (const k of chs) console.log(`\n[${k}]${k === 'youtube' || (car && k === 'tiktok-business' && cap.title) ? ' «' + cap.title + '»' : ''}\n${text(k)}`);
   if (dry) return console.log('\n(--dry: τίποτα δεν ανέβηκε)');
 
   const ids = integrations();
   if (shift.length) applyShift(log, shift, ids);
-  const up = pz('upload', path.join(ROOT, file));
-  if (!up.path) die(`upload: ${JSON.stringify(up)}`);
-  const media = { id: up.id, path: up.path }, postiz = createPosts(cap, media, t, ids);
-  move(file, ROOT, path.join(DIR, 'scheduled'));
-  log.posts.push({ ep, file, status: 'scheduled', date: iso(t), caption: cap, media, postiz });
+  const upload = f => { const up = pz('upload', path.join(ROOT, f)); if (!up.path) die(`upload ${f}: ${JSON.stringify(up)}`); return { id: up.id, path: up.path }; };
+  const media = car ? slides.map(upload) : upload(file), postiz = createPosts(cap, media, t, ids, car);
+  for (const f of car ? slides : [file]) move(f, ROOT, path.join(DIR, 'scheduled'));
+  log.posts.push(car ? { ep, kind: 'carousel', files: slides, status: 'scheduled', date: iso(t), caption: cap, media, postiz } : { ep, file, status: 'scheduled', date: iso(t), caption: cap, media, postiz });
   save(log);
-  console.log(`\n✔ scheduled ${fmt(t)} · ${Object.keys(postiz).length} posts · MP4 → publish/scheduled/`);
+  console.log(`\n✔ scheduled ${fmt(t)} · ${Object.keys(postiz).length} posts · ${car ? 'κάρτες' : 'MP4'} → publish/scheduled/`);
 }
 
 // live → publish/posted/ · επιστρέφει τις γραμμές αναφοράς
@@ -168,7 +202,7 @@ function sync(log) {
     if (bad.length) notes.push(`⚠ ${e.ep}: ${bad.map(([k, s]) => `${k} ${s}`).join(' · ')} → έλεγχος στο postiz.com`);
     if (!st.includes('QUEUE') && st.includes('PUBLISHED')) {
       e.status = 'posted';
-      if (fs.existsSync(path.join(DIR, 'scheduled', e.file))) move(e.file, path.join(DIR, 'scheduled'), path.join(DIR, 'posted'));
+      for (const f of filesOf(e)) if (fs.existsSync(path.join(DIR, 'scheduled', f))) move(f, path.join(DIR, 'scheduled'), path.join(DIR, 'posted'));
       notes.push(`✔ ${e.ep} live (${fmt(e.date)}) → publish/posted/`);
     }
   }
@@ -182,18 +216,21 @@ function status() {
   for (const s of ['scheduled', 'posted']) {
     const ps = log.posts.filter(p => p.status === s).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     console.log(`\n${s} (${ps.length})`);
-    for (const p of ps) console.log(`  ${p.ep.padEnd(9)} ${kind(p.ep).padEnd(15)} ${p.date ? fmt(p.date) : '— χωρίς ημερομηνία'}${p.manual ? ' · με το χέρι' : ''}${p.state ? ' · ' + Object.entries(p.state).map(([k, v]) => `${k} ${v}`).join(' ') : ''}`);
+    for (const p of ps) console.log(`  ${p.ep.padEnd(9)} ${(isCar(p) ? 'Carousel' : kind(p.ep)).padEnd(15)} ${p.date ? fmt(p.date) : '— χωρίς ημερομηνία'}${p.manual ? ' · με το χέρι' : ''}${p.state ? ' · ' + Object.entries(p.state).map(([k, v]) => `${k} ${v}`).join(' ') : ''}`);
   }
   const wait = fs.readdirSync(ROOT).filter(f => f.endsWith('.mp4') && !log.posts.some(p => p.file === f) && !(log.skip || []).includes(f));
+  const done = new Set(log.posts.flatMap(filesOf));
+  for (const n of new Set(fs.readdirSync(ROOT).filter(f => /_\d{2}\.jpg$/.test(f) && !done.has(f)).map(f => f.replace(/_\d{2}\.jpg$/, '')))) wait.push(`${n} (carousel)`);
   console.log(`\nστη ρίζα, χωρίς δημοσίευση (${wait.length}): ${wait.join(' · ') || '—'}`);
   console.log(`\nεπόμενο slot: ${fmt(t)}${last ? ` (τελευταίο post ${fmt(last)})` : ''}`);
+  console.log(`επόμενο slot carousel: ${fmt(carSlot(log).t)} (reel + 1 μέρα)`);
 }
 
 function moveTo(ep, date, dry) {
   if (!ep || !date) die('node publish.js move <ep> YYYY-MM-DD [--dry]');
   const log = load(), e = log.posts.find(p => p.ep === ep && p.status === 'scheduled');
   if (!e) die(`${ep}: δεν υπάρχει scheduled post στο log`);
-  const t = dateArg(date), from = +new Date(e.date), shift = shiftPlan(log, t, ep, from);
+  const t = dateArg(date), from = +new Date(e.date), shift = isCar(e) ? [] : shiftPlan(log, t, ep, from); // carousel: μόνο το ίδιο
   console.log(`${ep}: ${fmt(from)} → ${fmt(t)}`); showShift(shift);
   if (dry) return console.log('(--dry: τίποτα δεν άλλαξε)');
   applyShift(log, [{ e, nt: t }, ...shift], integrations());
@@ -205,14 +242,15 @@ function cancel(ep) {
   sync(log);
   if (e.status !== 'scheduled' || Object.values(e.state).some(s => s === 'PUBLISHED')) die(`${ep}: έχει ήδη βγει σε κάποιο κανάλι (${JSON.stringify(e.state)}) → διαγραφή από την ίδια την πλατφόρμα`);
   for (const id of Object.values(e.postiz)) pz('posts:delete', id);
-  const src = path.join(DIR, 'scheduled', e.file);
-  if (fs.existsSync(src)) {
-    if (fs.existsSync(path.join(ROOT, e.file))) { fs.unlinkSync(src); console.log(`(νέο render ${e.file} στη ρίζα → το παλιό αντίγραφο σβήστηκε)`); }
-    else move(e.file, path.join(DIR, 'scheduled'), ROOT);
+  for (const f of filesOf(e)) {
+    const src = path.join(DIR, 'scheduled', f);
+    if (!fs.existsSync(src)) continue;
+    if (fs.existsSync(path.join(ROOT, f))) { fs.unlinkSync(src); console.log(`(νέο render ${f} στη ρίζα → το παλιό αντίγραφο σβήστηκε)`); }
+    else move(f, path.join(DIR, 'scheduled'), ROOT);
   }
   log.posts = log.posts.filter(p => p !== e);
   save(log);
-  console.log(`✔ ${ep}: ${Object.keys(e.postiz).length} posts σβήστηκαν από το Postiz · MP4 στη ρίζα`);
+  console.log(`✔ ${ep}: ${Object.keys(e.postiz).length} posts σβήστηκαν από το Postiz · ${isCar(e) ? 'κάρτες' : 'MP4'} στη ρίζα`);
 }
 
 function batch(dry) {
@@ -248,7 +286,7 @@ if (require.main === module) {
   const [cmd = 'status', ...a] = process.argv.slice(2), opt = k => { const i = a.indexOf('--' + k); return i < 0 ? undefined : a[i + 1]; };
   const pos = a.filter((x, i) => !x.startsWith('--') && !(i && /^--(at|date)$/.test(a[i - 1])));
   if (cmd === 'status') status();
-  else if (cmd === 'next') { const { t, last } = nextSlot(load()); console.log(`${fmt(t)}  ${iso(t)}${last ? `  (τελευταίο ${fmt(last)})` : ''}`); }
+  else if (cmd === 'next') { const log = load(), { t, last } = nextSlot(log), c = carSlot(log).t; console.log(`${fmt(t)}  ${iso(t)}${last ? `  (τελευταίο ${fmt(last)})` : ''}\ncarousel: ${fmt(c)}  ${iso(c)}`); }
   else if (cmd === 'schedule') { if (a.includes('--insert')) console.log('(--insert καταργήθηκε 2026-10-01 → τέλος ουράς · ημερομηνία μόνο με --date όταν τη ζητήσει ο Αλέξανδρος)'); schedule(pos[0], pos[1], opt('at'), a.includes('--dry'), opt('date')); if (!a.includes('--dry')) try { require('./next.js').after(pos[0], 'publish', true); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; } }
   else if (cmd === 'sync') { const log = load(); const n = sync(log); console.log(n.join('\n') || 'τίποτα νέο'); }
   else if (cmd === 'cancel') cancel(pos[0]);

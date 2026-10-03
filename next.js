@@ -6,27 +6,29 @@
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const ROOT = __dirname;
 const isEp = f => /^[a-z]+\d*_\w+\.js$/.test(f) && !f.includes('_legacy') && /^[^/\n]*require\('\.\/render\.js'\)\(/m.test(fs.readFileSync(path.join(ROOT, f), 'utf8'));
+const isCarFile = f => /^ka\d+_\w+\.js$/.test(f) && /^module\.exports = \{ CARDS/m.test(fs.readFileSync(path.join(ROOT, f), 'utf8')); // carousel (ka01 →): κάρτες, όχι βίντεο
 const idOf = n => { n = n.replace(/\.js$/, ''); return /^ad_/.test(n) ? n : n.split('_')[0]; }; // pf06_autokollita → pf06 · ads: ολόκληρο (ad_event)
 const mt = f => fs.existsSync(path.join(ROOT, f)) ? fs.statSync(path.join(ROOT, f)).mtimeMs : 0;
 const git = (...a) => { const r = spawnSync('git', a, { cwd: ROOT, encoding: 'utf8' }); return r.status === 0 ? r.stdout.trim() : ''; };
 
 // ---------- κατάσταση ενός επεισοδίου ----------
 function state(id) {
-  const files = fs.readdirSync(ROOT), epFile = files.find(f => (f === id + '.js' || f.startsWith(id + '_')) && f.endsWith('.js') && isEp(f));
+  const files = fs.readdirSync(ROOT), epFile = files.find(f => (f === id + '.js' || f.startsWith(id + '_')) && f.endsWith('.js') && (isEp(f) || isCarFile(f)));
   const name = epFile ? epFile.replace(/\.js$/, '') : null, takes = files.filter(f => new RegExp(`^${id}_take\\d+\\.mp3$`).test(f));
   const mp4 = name && [`${name}.mp4`, `publish/scheduled/${name}.mp4`, `publish/posted/${name}.mp4`].find(f => fs.existsSync(path.join(ROOT, f)));
   const log = fs.existsSync(path.join(ROOT, 'publish/log.json')) ? JSON.parse(fs.readFileSync(path.join(ROOT, 'publish/log.json'), 'utf8')).posts : [];
   const post = log.find(p => p.ep === id || (name && p.file === name + '.mp4'));
   const dirty = name ? git('status', '--porcelain', '--', epFile, `${name}_timing_sheet.md`, `vo/${id}_vo.mp3`, `music/${id}.mp3`) : '';
+  const car = /^ka\d/.test(id), cards = name ? files.filter(f => new RegExp(`^${name}_\\d{2}\\.jpg$`).test(f)).sort() : [];
   return {
-    id, name, epFile, script: fs.existsSync(path.join(ROOT, `scripts/${id}.md`)), txt: fs.existsSync(path.join(ROOT, `vo/${id}.txt`)), takes,
+    id, name, epFile, car, cards, cardsFresh: !!(cards.length && mt(cards[0]) >= mt(epFile)), script: fs.existsSync(path.join(ROOT, `scripts/${id}.md`)), txt: fs.existsSync(path.join(ROOT, `vo/${id}.txt`)), takes,
     vo: fs.existsSync(path.join(ROOT, `vo/${id}_vo.mp3`)), music: fs.existsSync(path.join(ROOT, `music/${id}.mp3`)),
     mp4, fresh: !!(mp4 && mt(mp4) >= mt(epFile)), timing: !!(name && fs.existsSync(path.join(ROOT, `${name}_timing_sheet.md`))),
     tracked: !!(epFile && git('ls-files', epFile)), dirty: !!dirty, logged: !!(name && fs.readFileSync(path.join(ROOT, 'EPISODES.md'), 'utf8').includes(epFile)), post,
   };
 }
 const latest = () => { // το επεισόδιο που άλλαξε τελευταίο (αρχείο επεισοδίου · vo/<ep>.txt · scripts/<ep>.md)
-  const c = [...fs.readdirSync(ROOT).filter(isEp).map(f => [idOf(f), mt(f)]),
+  const c = [...fs.readdirSync(ROOT).filter(f => isEp(f) || isCarFile(f)).map(f => [idOf(f), mt(f)]),
     ...fs.readdirSync(path.join(ROOT, 'vo')).filter(f => /^([a-z]+\d+|ad_\w+)\.txt$/.test(f)).map(f => [f.replace('.txt', ''), mt('vo/' + f)]),
     ...(fs.existsSync(path.join(ROOT, 'scripts')) ? fs.readdirSync(path.join(ROOT, 'scripts')).filter(f => f.endsWith('.md')).map(f => [f.replace('.md', ''), mt('scripts/' + f)]) : [])];
   return c.sort((a, b) => b[1] - a[1])[0]?.[0];
@@ -45,8 +47,19 @@ function block(title, o) {
   L.push('  [Claude: μετέφερε αυτό το μπλοκ αυτούσιο στο τέλος της απάντησής σου]');
   return L.join('\n');
 }
+// carousel: σενάριο → κάρτες (node <ep>.js) → σημειώσεις / προχώρα → schedule (slot ανάμεσα στα reels) · χωρίς VO / μουσική / wrap
+function adviseCar(s) {
+  const id = s.id, ep = s.name || id;
+  if (!s.epFile) return block(`${id}: τέλος φάσης 1 → φάση 2 · κάρτες carousel`, { clear: true, effort: 'high', say: `«${id}: κώδικας»`, note: `scripts/${id}.md → style frames 2 κάρτες (node <ep>.js 1 2) → όλες` });
+  if (s.post) return block(`${ep}: ${s.post.status === 'posted' ? 'δημοσιεύτηκε' : 'στο Postiz ' + (s.post.date || '').slice(0, 10)} ✔ → επόμενο`, { clear: true, effort: 'high', say: '«νέο επεισόδιο: <ιδέα>»' });
+  if (!s.cards.length || !s.cardsFresh) return block(`${ep}: φάση 2 · κάρτες`, { run: `node ${ep}.js 1 2 (style frames) → node ${ep}.js (όλες: ${ep}_NN.jpg + sheet)` });
+  if (!s.tracked || s.dirty) return block(`${ep}: ${s.cards.length} κάρτες έτοιμες → σημειώσεις`, { clear: true, effort: 'medium', say: `«${id}: σημειώσεις: …» (ΟΛΕΣ σε ένα μήνυμα) ή «${id}: προχώρα»`,
+    note: `προχώρα (carousel): EPISODES + BACKLOG → commit + push → λεζάντα publish/captions/${id}.json → node publish.js schedule ${id} … (slot reel + 1 μέρα)` });
+  return block(`${ep}: έτοιμο, όχι στο Postiz`, { say: `«${id}: προχώρα» → node publish.js schedule ${id} publish/captions/${id}.json`, effort: 'medium' });
+}
 function advise(s) {
   const id = s.id, ep = s.name || id;
+  if (s.car && (s.script || s.epFile)) return adviseCar(s);
   if (!s.script && !s.txt && !s.epFile) return block(`${id}: φάση 1 · σενάριο`, { clear: true, effort: 'high', say: `«νέο επεισόδιο ${id}: <ιδέα / σενάριο>»`, note: 'docs/scripts.md → σενάριο σε πίνακα → έγκριση → scripts/' + id + '.md + vo/' + id + '.txt' });
   if (!s.vo) {
     if (!s.txt) return block(`${id}: φάση 1 · κείμενο VO`, { run: `κείμενο → vo/${id}.txt (§5d) → node vo.js ${id}` });

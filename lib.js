@@ -5,6 +5,8 @@ const fs = require('fs');
 GlobalFonts.registerFromPath(__dirname + '/fonts/Mynerve-Regular.ttf', 'Hand');
 GlobalFonts.registerFromPath(__dirname + '/fonts/Comfortaa.ttf', 'Round');
 GlobalFonts.registerFromPath(__dirname + '/fonts/Poppins-Bold.ttf', 'Brand');
+// Geologica = ελληνικοί τίτλοι με βάρος (carousels, ka01 →· η Poppins δεν έχει ελληνικά) · Geo 900 · GeoX 800 · GeoS 600 · από το setup.sh (χωρίς το αρχείο → fallback, κανένα crash)
+for (const [f, a] of [['Black', 'Geo'], ['ExtraBold', 'GeoX'], ['SemiBold', 'GeoS']]) { const p = `${__dirname}/fonts/Geologica-${f}.ttf`; if (fs.existsSync(p)) GlobalFonts.registerFromPath(p, a); }
 
 const W = 1080, H = 1920, FPS = 30;
 const C = { // παλέτα (STYLE_GUIDE §2)
