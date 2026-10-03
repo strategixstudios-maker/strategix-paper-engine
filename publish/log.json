@@ -604,6 +604,65 @@
         "tiktok-business": "cmusutt5x03b5qy0ykszc3uq6",
         "facebook": "cmusutt6s03b6qy0ysdefr64o"
       }
+    },
+    {
+      "ep": "ka03",
+      "kind": "carousel",
+      "files": [
+        "ka03_ruxa_01.jpg",
+        "ka03_ruxa_02.jpg",
+        "ka03_ruxa_03.jpg",
+        "ka03_ruxa_04.jpg",
+        "ka03_ruxa_05.jpg",
+        "ka03_ruxa_06.jpg",
+        "ka03_ruxa_07.jpg",
+        "ka03_ruxa_08.jpg"
+      ],
+      "status": "scheduled",
+      "date": "2026-10-11T16:00:00.000Z",
+      "caption": {
+        "title": "Κέντημα, DTF ή μεταξοτυπία; Ποιο να διαλέξω;",
+        "text": "Κέντημα, DTF ή μεταξοτυπία; Ποιο να διαλέξω;\n\nΊδιο λογότυπο, τρεις τρόποι να μπει στο ρούχο. Σύρε για να δεις πότε ταιριάζει ο καθένας και λύσε το quiz πριν δεις τις απαντήσεις.\n\nΔεν ξέρεις ποιο σου ταιριάζει; Στείλε μας μήνυμα.\n\n#strategixstudios #κέντημα #dtf #μεταξοτυπία #τυπογραφείο"
+      },
+      "media": [
+        {
+          "id": "9c64bd32-f37b-4c87-a9f5-52eff4042f1f",
+          "path": "https://uploads.postiz.com/6NaDpS5QBc.jpg"
+        },
+        {
+          "id": "5b961eff-ceb6-4c5e-95df-08de5a5936fe",
+          "path": "https://uploads.postiz.com/sExLtRvNuU.jpg"
+        },
+        {
+          "id": "2fbcbea8-87a2-4e7a-81a0-25694e967de0",
+          "path": "https://uploads.postiz.com/PgJW4kAYXC.jpg"
+        },
+        {
+          "id": "45d2a0e0-5164-496e-b8a7-1b21ff620187",
+          "path": "https://uploads.postiz.com/Af272nJ3iQ.jpg"
+        },
+        {
+          "id": "314e3f58-76b2-4372-bcf7-973217ecbfca",
+          "path": "https://uploads.postiz.com/MxuVn2EYCS.jpg"
+        },
+        {
+          "id": "f3018301-5ab1-4095-82ac-85a4959a21a6",
+          "path": "https://uploads.postiz.com/2yOmMaLll9.jpg"
+        },
+        {
+          "id": "7f1cf0f7-97c5-4725-82df-4994e7cb448b",
+          "path": "https://uploads.postiz.com/CXHoiN92ox.jpg"
+        },
+        {
+          "id": "98bb1a32-6994-4737-ba9b-00fab538e60f",
+          "path": "https://uploads.postiz.com/GcA8gOylZo.jpg"
+        }
+      ],
+      "postiz": {
+        "instagram": "cmusx1ge10473qy0yzu1avozp",
+        "tiktok-business": "cmusx1gfh0474qy0yywxgkc6i",
+        "facebook": "cmusx1ggk0475qy0ygxx39c8v"
+      }
     }
   ],
   "skip": [
