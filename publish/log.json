@@ -540,6 +540,70 @@
         "tiktok-business": "cmust20km02pulh0y2zxp1ar8",
         "facebook": "cmust20lv02pvlh0yde2kl1pd"
       }
+    },
+    {
+      "ep": "ka02",
+      "kind": "carousel",
+      "files": [
+        "ka02_vector_01.jpg",
+        "ka02_vector_02.jpg",
+        "ka02_vector_03.jpg",
+        "ka02_vector_04.jpg",
+        "ka02_vector_05.jpg",
+        "ka02_vector_06.jpg",
+        "ka02_vector_07.jpg",
+        "ka02_vector_08.jpg",
+        "ka02_vector_09.jpg"
+      ],
+      "status": "scheduled",
+      "date": "2026-10-08T16:00:00.000Z",
+      "caption": {
+        "title": "Σου ζήτησαν το λογότυπο σε vector; Vector ή raster",
+        "text": "Σου ζήτησαν το λογότυπο σε vector;\n\nΤο ζητάει το τυπογραφείο, ο κατασκευαστής της ταμπέλας, όποιος κόβει βινύλιο. Σύρε για να δεις τι είναι, πώς διαφέρει από το raster και πώς καταλαβαίνεις τι αρχείο έχεις.\n\nΈχεις το λογότυπό σου μόνο σε JPG; Στείλε μας μήνυμα.\n\n#strategixstudios #λογότυπο #vector #γραφιστική #εκτύπωση"
+      },
+      "media": [
+        {
+          "id": "12ace2dc-db44-4cad-8584-d3ede96e8be5",
+          "path": "https://uploads.postiz.com/RSXdmoQNxG.jpg"
+        },
+        {
+          "id": "0466423d-75c1-4865-933a-2cd200a2156d",
+          "path": "https://uploads.postiz.com/pVHQLS48l1.jpg"
+        },
+        {
+          "id": "d5fc7369-6854-462f-928b-c51b2d80ace4",
+          "path": "https://uploads.postiz.com/wbAuMdYVfy.jpg"
+        },
+        {
+          "id": "8485d4e8-b005-43a6-8eb6-33a65c06fadd",
+          "path": "https://uploads.postiz.com/B9418rSyMB.jpg"
+        },
+        {
+          "id": "63a4321b-0424-4a0d-806b-3aaf4bf8aab1",
+          "path": "https://uploads.postiz.com/kxiv7beCVT.jpg"
+        },
+        {
+          "id": "1cd1d431-0087-47f4-9f53-f838d8a465e2",
+          "path": "https://uploads.postiz.com/ZXrYsFBRE2.jpg"
+        },
+        {
+          "id": "2ddb5a9f-3c60-4665-9fd3-226e2c353a08",
+          "path": "https://uploads.postiz.com/Vi3vIGR6DB.jpg"
+        },
+        {
+          "id": "07ec1fc8-6b05-4499-a716-a13564e8bc43",
+          "path": "https://uploads.postiz.com/oKsOLQQjJu.jpg"
+        },
+        {
+          "id": "18fb7576-a588-4904-8318-a6c61b3d9c4e",
+          "path": "https://uploads.postiz.com/GAZFhXFHOx.jpg"
+        }
+      ],
+      "postiz": {
+        "instagram": "cmusutt5103b4qy0yetk2bm38",
+        "tiktok-business": "cmusutt5x03b5qy0ykszc3uq6",
+        "facebook": "cmusutt6s03b6qy0ysdefr64o"
+      }
     }
   ],
   "skip": [
