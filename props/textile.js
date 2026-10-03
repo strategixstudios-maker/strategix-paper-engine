@@ -94,4 +94,35 @@ function machine(ctx, cx, cy, w, h, spin, o = {}) {
   return [px, py, R * 0.78];
 }
 
-module.exports = { hoodie, tshirt, drum, machine };
+// film DTF (pm02 → ka03): διάφανο φύλλο με θαμπή πούδρα · (x, y) = κέντρο · hw = μισή πλευρά · o.art(ctx, r) = τυπωμένο σχέδιο πάνω στο film (πριν την πρέσα· χωρίς = άδειο, το σχέδιο έχει περάσει στο ύφασμα)
+// o.frost 0..1 πούδρα · o.peel 0..1 ξεκολλάει από πάνω-αριστερά προς κάτω-δεξιά (άλλη γωνία → ctx.rotate γύρω από το κέντρο) · o.flap: το κομμάτι που ξεκόλλησε διπλώνει πάνω στο film και σηκώνεται (true = 0.55, μικρότερο = πιο όρθιο) αντί να χάνεται (pm02) · o.seed
+function dtfFilm(ctx, x, y, hw, o = {}) {
+  const D = 2 * hw, B = 4 * hw, peel = o.peel || 0, cd = L.lerp(-D - 20, D + 20, peel), sd = o.seed || 9700;   // μένει ό,τι έχει x + y > cd
+  ctx.save(); ctx.translate(x, y);
+  ctx.save();
+  if (peel) { ctx.beginPath(); ctx.moveTo(cd - B, B); ctx.lineTo(cd + B, -B); ctx.lineTo(cd + B, B); ctx.closePath(); ctx.clip(); }
+  cut(ctx, rrPts(-hw, -hw, D, D, 10), 'rgba(226,236,250,0.62)', { seed: sd, amp: 1, edgeW: 4 });
+  if (o.art) o.art(ctx, hw * 0.79);
+  if (o.frost > 0) { ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.75; for (let i = 0; i < Math.floor(220 * o.frost); i++) { const r = rng(i * 3 + 1); ctx.fillRect(-hw * 0.8 + r() * hw * 1.6, -hw * 0.8 + r() * hw * 1.6, 4, 4); } ctx.globalAlpha = 1; }
+  ctx.restore();
+  const x0 = Math.max(-hw, cd - hw), x1 = Math.min(hw, cd + hw);                        // η άκρη που σηκώνεται (γραμμή x + y = cd μέσα στο film)
+  if (o.flap && peel > 0 && x1 > x0) {                                                  // το ξεκολλημένο κομμάτι = καθρέφτισμα ως προς τη γραμμή (c − y, c − x)
+    let poly = [[-hw, -hw], [hw, -hw], [hw, hw], [-hw, hw]], cl = [];
+    for (let i = 0; i < 4; i++) { const p = poly[i], q = poly[(i + 1) % 4], ip = p[0] + p[1] < cd, iq = q[0] + q[1] < cd;
+      if (ip) cl.push(p); if (ip !== iq) { const f = (cd - p[0] - p[1]) / (q[0] + q[1] - p[0] - p[1]); cl.push([p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]); } }
+    const f = o.flap === true ? 0.55 : o.flap, fl = cl.map(([a, b]) => [cd - b, cd - a]).map(([a, b]) => { const t = (1 - f) * (a + b - cd) / 2; return [a - t, b - t]; });   // σηκώνεται προς τον φακό → κοντύτερο (foreshortening)
+    cut(ctx, fl, 'rgba(236,242,252,0.72)', { seed: sd + 1, amp: 1, edgeW: 4, sx: 14, sy: 20 });
+    ctx.save(); L.path(ctx, fl); ctx.clip();                                                // καμπύλωμα: φως στο δίπλωμα, σκιά προς τη μύτη
+    const mx = (x0 + x1) / 2, my = cd - mx, g = ctx.createLinearGradient(mx, my, mx + hw * 0.5, my + hw * 0.5);
+    g.addColorStop(0, 'rgba(255,255,255,0.85)'); g.addColorStop(0.25, 'rgba(255,255,255,0.15)'); g.addColorStop(1, 'rgba(120,145,190,0.3)');
+    ctx.fillStyle = g; ctx.fillRect(-B, -B, 2 * B, 2 * B); ctx.restore();
+  }
+  ctx.restore();
+  if (peel > 0 && x1 > x0) {
+    ctx.save(); ctx.translate(x - 10, y - 10); ctx.strokeStyle = 'rgba(248,251,255,0.96)'; ctx.lineWidth = o.flap ? 14 : 28; ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(4,16,42,0.35)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 8;
+    ctx.beginPath(); ctx.moveTo(x0 + (o.flap ? 10 : 0), cd - x0 + (o.flap ? 10 : 0)); ctx.lineTo(x1 + (o.flap ? 10 : 0), cd - x1 + (o.flap ? 10 : 0)); ctx.stroke(); ctx.restore();
+  }
+}
+
+module.exports = { hoodie, tshirt, drum, machine, dtfFilm };

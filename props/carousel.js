@@ -17,17 +17,20 @@ const CARD_TH = {
 // τίτλος με **έμφαση** σε 2 χρώματα (Geologica) → κάτω y · με \n οι γραμμές μένουν όπως γράφτηκαν (μικραίνει ώσπου να χωράει η πιο φαρδιά) · χωρίς \n σπάει μόνος του (o.maxL γραμμές) · o: size (130) · font ('Geo') · maxW · lh · all (όλο σε χρώμα έμφασης)
 function cardTitle(ctx, s, x, y, th, o = {}) {
   const maxW = o.maxW || CARD.MAXW, font = o.font || 'Geo', fixed = s.includes('\n');
-  const toks = l => l.split(/(\*\*[^*]+\*\*)/).filter(Boolean).flatMap(seg => seg.replace(/\*\*/g, '').split(' ').filter(Boolean).map(w => ({ w, a: seg.startsWith('**') })));
+  const toks = l => { const out = [];                                                 // λέξη = parts [{ w, a }] · κομμάτι χωρίς κενό μπροστά (στίξη μετά από **…**) κολλάει στην προηγούμενη λέξη (ka03)
+    let glue = false; for (const seg of l.split(/(\*\*[^*]+\*\*)/).filter(Boolean)) { const a = seg.startsWith('**'), s2 = seg.replace(/\*\*/g, '');
+      s2.split(' ').forEach((w, i) => { if (!w) return; if (!i && glue && out.length) out[out.length - 1].parts.push({ w, a }); else out.push({ parts: [{ w, a }] }); }); glue = !s2.endsWith(' '); }
+    return out; };
   let size = o.size || 130, R;
   const lay = () => {
     ctx.font = `${size}px ${font}`; const sp = ctx.measureText(' ').width * 0.9, lines = [];
-    for (const l of s.split('\n')) { let cur = [], cw = 0; for (const t of toks(l)) { const tw = ctx.measureText(t.w).width; if (!fixed && cur.length && cw + sp + tw > maxW) { lines.push(cur); cur = []; cw = 0; } cw += (cur.length ? sp : 0) + tw; cur.push({ ...t, tw }); } lines.push(cur); }
+    for (const l of s.split('\n')) { let cur = [], cw = 0; for (const t of toks(l)) { const tw = t.parts.reduce((a, p) => a + ctx.measureText(p.w).width, 0); if (!fixed && cur.length && cw + sp + tw > maxW) { lines.push(cur); cur = []; cw = 0; } cw += (cur.length ? sp : 0) + tw; cur.push({ ...t, tw }); } lines.push(cur); }
     return { lines, sp, wide: Math.max(...lines.map(l => l.reduce((a, t) => a + t.tw, 0) + (l.length - 1) * sp)) };
   };
   for (R = lay(); size > 40 && (R.lines.length > (o.maxL || 9) || R.wide > maxW); R = lay()) size -= 4;
   const lh = size * (o.lh || 1.06);
   ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.font = `${size}px ${font}`;
-  R.lines.forEach((l, i) => { let cx = x; for (const t of l) { ctx.fillStyle = t.a || o.all ? th.acc : th.ink; ctx.fillText(t.w, cx, y + size * 0.78 + i * lh); cx += t.tw + R.sp; } });
+  R.lines.forEach((l, i) => { let cx = x; for (const t of l) { let px = cx; for (const p of t.parts) { ctx.fillStyle = p.a || o.all ? th.acc : th.ink; ctx.fillText(p.w, px, y + size * 0.78 + i * lh); px += ctx.measureText(p.w).width; } cx += t.tw + R.sp; } });
   ctx.restore();
   return y + R.lines.length * lh;
 }
