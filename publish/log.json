@@ -355,7 +355,7 @@
     {
       "ep": "pf06",
       "file": "pf06_autokollita.mp4",
-      "status": "scheduled",
+      "status": "posted",
       "date": "2026-10-04T16:00:00.000Z",
       "caption": {
         "title": "Πώς φτιάχνουμε αυτοκόλλητα με περιγραμμική κοπή",
@@ -372,10 +372,16 @@
         "youtube": "cmupg9kp307uqpe0yrnyvxa2s"
       },
       "state": {
-        "instagram": "QUEUE",
-        "tiktok-business": "QUEUE",
-        "facebook": "QUEUE",
-        "youtube": "QUEUE"
+        "instagram": "PUBLISHED",
+        "tiktok-business": "PUBLISHED",
+        "facebook": "PUBLISHED",
+        "youtube": "PUBLISHED"
+      },
+      "urls": {
+        "instagram": "https://www.instagram.com/reel/DeFBAKPEYcH/",
+        "tiktok-business": "https://www.tiktok.com/@strategix.studios",
+        "facebook": "https://www.facebook.com/reel/2694384704311210",
+        "youtube": "https://www.youtube.com/watch?v=5eYQRRf9KyE"
       }
     },
     {
@@ -480,6 +486,12 @@
         "tiktok-business": "cmuqzhxpy00uymu0y170o443d",
         "facebook": "cmuqzhxrl00uzmu0yfh21y0yn",
         "youtube": "cmuqzhxt000v2mu0yg7kqv2fb"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE",
+        "youtube": "QUEUE"
       }
     },
     {
@@ -495,7 +507,7 @@
         "ka01_dora_07.jpg",
         "ka01_dora_08.jpg"
       ],
-      "status": "scheduled",
+      "status": "posted",
       "date": "2026-10-05T16:00:00.000Z",
       "caption": {
         "title": "Το εταιρικό σου δώρο δουλεύει για σένα; Σετ BAGNER (MJ1655), 5 λόγοι",
@@ -539,6 +551,16 @@
         "instagram": "cmust20jg02ptlh0yhvzb1e2y",
         "tiktok-business": "cmust20km02pulh0y2zxp1ar8",
         "facebook": "cmust20lv02pvlh0yde2kl1pd"
+      },
+      "state": {
+        "instagram": "PUBLISHED",
+        "tiktok-business": "PUBLISHED",
+        "facebook": "PUBLISHED"
+      },
+      "urls": {
+        "instagram": "https://www.instagram.com/p/DeHl2-KHaWW/",
+        "tiktok-business": "https://www.tiktok.com/@strategix.studios",
+        "facebook": "https://www.facebook.com/122229279710549654/posts/122229279704549654"
       }
     },
     {
@@ -600,9 +622,14 @@
         }
       ],
       "postiz": {
-        "instagram": "cmusutt5103b4qy0yetk2bm38",
-        "tiktok-business": "cmusutt5x03b5qy0ykszc3uq6",
-        "facebook": "cmusutt6s03b6qy0ysdefr64o"
+        "instagram": "cmuvowwmr0c5rql0yby9ov3g6",
+        "tiktok-business": "cmuvowwnz0c5tql0ymtf43pdk",
+        "facebook": "cmuvowwpp0c5uql0y50ayo21f"
+      },
+      "state": {
+        "instagram": "QUEUE",
+        "tiktok-business": "QUEUE",
+        "facebook": "QUEUE"
       }
     },
     {
@@ -659,9 +686,9 @@
         }
       ],
       "postiz": {
-        "instagram": "cmusx1ge10473qy0yzu1avozp",
-        "tiktok-business": "cmusx1gfh0474qy0yywxgkc6i",
-        "facebook": "cmusx1ggk0475qy0ygxx39c8v"
+        "instagram": "cmuvox01g0c11mo0y7d96iukv",
+        "tiktok-business": "cmuvox02d0c12mo0ynv10cxsy",
+        "facebook": "cmuvox0450c13mo0ydjn7dg3p"
       }
     }
   ],
