@@ -40,7 +40,7 @@ const CAR_CH = ['instagram', 'tiktok-business', 'facebook'];
 const CAR_SETTINGS = {
   instagram: () => ({ post_type: 'post' }),                          // πολλές εικόνες = carousel · trial μόνο στα reels
   'tiktok-business': c => ({ content_posting_method: 'DIRECT_POST', title: c.title, privacy_level: 'PUBLIC_TO_EVERYONE', comment: true,
-    autoAddMusic: 'yes',                                               // photo post: μουσική από τη βιβλιοθήκη του TikTok (αλλιώς σιωπηλό) · 'no' αν το ζητήσει ο Αλέξανδρος
+    autoAddMusic: 'no',                                                // σιωπηλό (Αλέξανδρος 2026-10-05: με 'yes' το TikTok διαλέγει μόνο του κομμάτι, ka01 βγήκε με πιάνο · το API δεν αφήνει επιλογή κομματιού)
     duet: false, stitch: false,                                        // δεν ισχύουν σε photo post, αλλά το Postiz τα θέλει boolean (400 χωρίς αυτά, ka01)
     brand_content_toggle: false, brand_organic_toggle: false }),
   facebook: () => ({ post_type: 'post' }),
